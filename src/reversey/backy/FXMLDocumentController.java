@@ -5,31 +5,45 @@
  */
 package reversey.backy;
 
-import java.net.URL;
-import java.util.ResourceBundle;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 
 /**
  *
  * @author Caitlin
  */
+
 public class FXMLDocumentController implements Initializable {
     
     @FXML
-    private Label label;
+    private TextField instrField;
+    private ListView instrList;
+    //private ListView<Instructions> instrList;
     
-    @FXML
-    private void handleButtonAction(ActionEvent event) {
-        System.out.println("You clicked me!");
-        label.setText("Hello World!");
+    //If lambda expressions are allowed
+    /* 
+    instrField.setOnKeyPressed(event-> {
+        if(event.getCode() == KeyCode.ENTER) {
+        etc.
     }
+    });
+    */
     
-    @Override
-    public void initialize(URL url, ResourceBundle rb) {
-        // TODO
-    }    
+    //TODO @Caitlin: Make it not be this way
+    instrField.setOnKeyPressed(new EventHandler<KeyEvent>() {
+           @Override
+           public void handleInstrEntered(KeyEvent keyEvent){
+                if (keyEvent.getCode() == KeyCode.ENTER){
+                       String text = instrField.getText();
+                       
+                       //TODO: Enter text in listView
+                       
+                       //clear text from instruction pane
+                       // Will this clear the textbox and leave the instructions?
+                       instrField.setText("");
+                }
+    }
+    });
     
 }
