@@ -14,6 +14,45 @@ import javafx.scene.control.*;
  * @author Caitlin
  */
 
+public class x86Instruction {
+    operand destination;
+    String instructionType;
+    // Perform the operation specific to the instruction type
+    public int eval();
+    // Create a new x86Instruction if input is valid otherwise return null
+    public static x86Instruction create(String userInput);
+}
+
+public class x86UnaryInstruction extends x86Instruction{
+    public int eval();
+}
+public class x86BinaryInstruction extends x86Instruction{
+    operand source;
+    public int eval();
+}
+        
+public class operand{
+    HashMap <String, Integer> registers;
+     public int getValue();
+} 
+        
+public class regOperand{
+    String regName;
+    public int getValue();
+    
+}
+     
+public class memoryOperand{
+    String memName;
+     public int getValue();
+}
+        
+public class constantOperand{
+      int constant;
+     public int getValue();
+}
+
+
 public class FXMLDocumentController implements Initializable {
     
     @FXML
