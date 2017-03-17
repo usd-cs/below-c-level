@@ -5,60 +5,92 @@
  */
 package reversey.backy;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import java.util.HashMap;
+import java.util.*;
+import java.net.*;
+import javafx.event.EventHandler;
 
 /**
  *
  * @author Caitlin
  */
 
-public class x86Instruction {
+class x86Instruction {
     operand destination;
     String instructionType;
     // Perform the operation specific to the instruction type
-    public int eval();
+
+    /**
+     *
+     * @return
+     */
+    public int eval() { return 0; }
     // Create a new x86Instruction if input is valid otherwise return null
-    public static x86Instruction create(String userInput);
+    public static x86Instruction create(String userInput) { return null; }
 }
 
-public class x86UnaryInstruction extends x86Instruction{
-    public int eval();
+class x86UnaryInstruction extends x86Instruction{
+    public int eval() { return 1; }
 }
-public class x86BinaryInstruction extends x86Instruction{
+
+class x86BinaryInstruction extends x86Instruction{
     operand source;
-    public int eval();
+    public int eval() { return 3; }
 }
         
-public class operand{
+class operand{
     HashMap <String, Integer> registers;
-     public int getValue();
+     public int getValue() { return 99; }
 } 
         
-public class regOperand{
+class regOperand{
     String regName;
-    public int getValue();
+    public int getValue() { return 162; }
     
 }
      
-public class memoryOperand{
+class memoryOperand{
     String memName;
-     public int getValue();
+     public int getValue() { return 5298; }
 }
         
-public class constantOperand{
+class constantOperand{
       int constant;
-     public int getValue();
+     public int getValue() { return 0; }
 }
 
 
 public class FXMLDocumentController implements Initializable {
-    
-    @FXML
-    private TextField instrField;
-    private ListView instrList;
+  
+    @FXML private TextField instrField;
+    @FXML private ListView instrList;
+    @FXML private MenuButton insertMenu;
+    @FXML private Button nextInstr;
     //private ListView<Instructions> instrList;
+    
+    @Override
+    public void initialize(URL foo, ResourceBundle bar) {
+        
+        nextInstr.setText("foo");
+       // nextInstr.setOnAction(new EventHandler<ActionEvent>() {
+            
+            /*
+             private void handle(ActionEvent event) {
+                System.out.println("That was easy, wasn't it?");
+            } */
+        //}); 
+        
+        
+         nextInstr.setOnAction((event) -> {
+                System.out.println("That was easy, wasn't it?");
+         });
+        
+
+    }
     
     //If lambda expressions are allowed
     /* 
@@ -70,6 +102,7 @@ public class FXMLDocumentController implements Initializable {
     */
     
     //TODO @Caitlin: Make it not be this way
+    /*
     instrField.setOnKeyPressed(new EventHandler<KeyEvent>() {
            @Override
            public void handleInstrEntered(KeyEvent keyEvent){
@@ -84,5 +117,7 @@ public class FXMLDocumentController implements Initializable {
                 }
     }
     });
-    
+*/
+   
 }
+
