@@ -26,6 +26,13 @@ public class ReverseyBacky extends Application {
         stage.setScene(scene);
         stage.setTitle("SPud Puppies");
         stage.show();
+
+		// simple test of validation
+		x86Instruction inst = x86Instruction.create("addl $eax, $ebx");
+		if (inst == null)
+			System.out.println("that didn't work!");
+		else
+			System.out.println("that worked!");
     }
 
     /**
