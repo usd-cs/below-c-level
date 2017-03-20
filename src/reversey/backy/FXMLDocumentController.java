@@ -19,9 +19,12 @@ import javafx.event.EventHandler;
  * @author Caitlin
  */
 
+// TODO: We should move the following classes to different files
+// TODO: Add some Javadoc comments to our classes and methods!
+
 class x86Instruction {
-    operand destination;
-    String instructionType;
+    protected operand destination;
+    protected String instructionType;
     // Perform the operation specific to the instruction type
 
     /**
@@ -29,16 +32,66 @@ class x86Instruction {
      * @return
      */
     public int eval() { return 0; }
+
     // Create a new x86Instruction if input is valid otherwise return null
-    public static x86Instruction create(String userInput) { return null; }
+    public static x86Instruction create(String userInput) { 
+		String[] tokens = userInput.split("\\s+");
+		String instrName = tokens[0]; // should be instruction name, e.g. "addl"
+		System.out.println("instruction name: " + instrName);
+
+		// TODO: a regular expression is probably a better approach here
+		switch (instrName) {
+			case "movb":
+			case "movw":
+			case "movl":
+			case "movq":
+			case "addb":
+			case "addw":
+			case "addl":
+			case "addq":
+			// TODO: cases for more types of binary instructions
+				// found binary instruction
+				// step 1: make sure it has exactly two operands (TODO)
+				// step 2: make sure operands are valid (TODO)
+				// step 3: get operands to pass into constructor (TODO)
+				System.out.println("yay got a valid binary inst!");
+				return new x86BinaryInstruction(instrName, null, null);
+			case "pushq":
+			case "popq":
+			case "incb":
+			case "incw":
+			case "incl":
+			case "incq":
+			// TODO: cases for more types of unary instructions
+				// step 1: make sure it has exactly one operand (TODO)
+				// step 2: make sure operand is valid (TODO)
+				// step 3: get operand to pass into constructor (TODO)
+				System.out.println("yay got a valid unary inst!");
+				return new x86UnaryInstruction(instrName, null);
+			default:
+				return null;
+		}
+	}
 }
 
 class x86UnaryInstruction extends x86Instruction{
+	public x86UnaryInstruction(String instType, operand op) {
+		this.instructionType = instType;
+		this.destination = op;
+	}
+
     public int eval() { return 1; }
 }
 
 class x86BinaryInstruction extends x86Instruction{
-    operand source;
+    private operand source;
+
+	public x86BinaryInstruction(String instType, operand src, operand dest) {
+		this.instructionType = instType;
+		this.source = src;
+		this.destination = dest;
+	}
+
     public int eval() { return 3; }
 }
         
