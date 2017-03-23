@@ -19,6 +19,9 @@ public class ReverseyBacky extends Application {
     
     @Override
     public void start(Stage stage) throws Exception {
+        //FXMLLoader loader = new FXMLLoader(getClass().getResource("FXMLDocument.fxml"));
+        //Parent root = loader.load();
+        
         Parent root = FXMLLoader.load(getClass().getResource("FXMLDocument.fxml"));
         
         Scene scene = new Scene(root);

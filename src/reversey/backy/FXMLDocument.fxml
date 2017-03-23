@@ -37,18 +37,18 @@
       </VBox>
       <HBox prefHeight="100.0" prefWidth="200.0" GridPane.rowIndex="1">
          <children>
-            <Button fx:id="prevInstr" mnemonicParsing="false" text="|&lt;">
+            <Button fx:id="skipToStart" mnemonicParsing="false" text="|&lt;">
                <HBox.margin>
                   <Insets left="85.0" />
                </HBox.margin></Button>
-            <Button fx:id="skipToStart" mnemonicParsing="false" text="&lt;&lt;" />
-            <Button fx:id="skipToEnd" mnemonicParsing="false" text="&gt;&gt;" />
-            <Button fx:id="nextInstr" mnemonicParsing="false" text="&gt;|" />
+            <Button fx:id="prevInstr" mnemonicParsing="false" text="&lt;&lt;" />
+            <Button fx:id="nextInstr" mnemonicParsing="false" text="&gt;&gt;" />
+            <Button fx:id="skipToEnd" mnemonicParsing="false" text="&gt;|" />
          </children>
       </HBox>
       <TableView prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
         <columns>
-          <TableColumn fx:id="regTable" prefWidth="153.0" text="Reigster" />
+          <TableColumn fx:id="regTable" prefWidth="153.0" text="Register" />
           <TableColumn fx:id="valueTable" minWidth="0.0" prefWidth="154.0" text="Value" />
         </columns>
       </TableView>
