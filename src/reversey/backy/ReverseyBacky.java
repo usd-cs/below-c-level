@@ -24,8 +24,17 @@ public class ReverseyBacky extends Application {
         Scene scene = new Scene(root);
         
         stage.setScene(scene);
+
         stage.setTitle("Below C-Level Stack Simulator");
+
         stage.show();
+
+		// simple test of validation
+		x86Instruction inst = x86Instruction.create("addl $eax, $ebx");
+		if (inst == null)
+			System.out.println("that didn't work!");
+		else
+			System.out.println("that worked!");
     }
 
     /**
