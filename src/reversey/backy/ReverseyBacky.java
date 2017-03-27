@@ -10,6 +10,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import java.util.HashMap;
 
 /**
  *
@@ -26,12 +27,36 @@ public class ReverseyBacky extends Application {
         stage.setTitle("Below C-Level Stack Simulator");
         stage.show();
 
-		// simple test of validation
-		x86Instruction inst = x86Instruction.create("addl $eax, $ebx");
-		if (inst == null)
-			System.out.println("that didn't work!");
-		else
-			System.out.println("that worked!");
+		HashMap<String, Integer> registers = new HashMap<String, Integer>();
+		registers.put("eax", 1);
+		registers.put("ebx", 2);
+		registers.put("ecx", 3);
+		registers.put("edx", 4);
+		registers.put("esi", 5);
+		registers.put("edi", 6);
+
+		// test a instruction creation and invalidation
+		x86Instruction inst = x86Instruction.create("addl %eax, %ecx", registers);
+		if (inst != null) {
+			inst.eval();
+			//System.out.println("%ebx new value: " + registers.get("ebx"));
+			System.out.println("ecx should be 4");
+			System.out.println(registers);
+		}
+
+		x86Instruction inst2 = x86Instruction.create("subl %edi, %esi", registers);
+		if (inst2 != null) {
+			inst2.eval();
+			System.out.println("esi should be -1");
+			System.out.println(registers);
+		}
+
+		x86Instruction inst3 = x86Instruction.create("decl %esi", registers);
+		if (inst3 != null) {
+			inst3.eval();
+			System.out.println("esi should be -2");
+			System.out.println(registers);
+		}
     }
 
     /**
