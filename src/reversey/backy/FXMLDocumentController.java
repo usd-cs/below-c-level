@@ -42,17 +42,6 @@ public class FXMLDocumentController implements Initializable {
                  instrList.getSelectionModel().selectNext();
          });
         
-         
-    
-    //If lambda expressions are allowed
-    /* 
-    instrField.setOnKeyPressed(event-> {
-        if(event.getCode() == KeyCode.ENTER) {
-        etc.
-    }
-    });
-    */
-    
     //“Give a man a program, frustrate him for a day. 
     //Teach a man to program, frustrate him for a lifetime.” 
     instrText.setOnKeyPressed(new EventHandler<KeyEvent>() {
@@ -71,19 +60,19 @@ public class FXMLDocumentController implements Initializable {
 
     
     //Highlighting selected instruction is newly added item has an index of N
-    instrList.getSelectionModel().getSelectedItem();
+    //instrList.getSelectionModel().getSelectedItem();
     //instrList.getFocusModel().focus(N);
     //Highlighting scrolled then selected
     //instrList.scrollTo(N);
     
-    Platform.runLater(new Runnable() {
-        
-        @Override
-        public void run(){
-        //    instrList.scrollTo(N);
-      //      instrList.getSelectionModel().select(N);
-    }
-    });
+	Platform.runLater(new Runnable() {
+
+		@Override
+		public void run(){
+			// instrList.scrollTo(N);
+			// instrList.getSelectionModel().select(N);
+		}
+	});
 
 }
 
