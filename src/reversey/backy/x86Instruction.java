@@ -10,7 +10,7 @@ import java.util.function.*;
 
 /**
  *
- * @author Caitlin
+ * @author Dr. Sat
  */
 
 // TODO: Add some Javadoc comments to our classes and methods!

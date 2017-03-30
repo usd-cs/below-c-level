@@ -46,10 +46,10 @@
             <Button fx:id="skipToEnd" mnemonicParsing="false" text="&gt;|" />
          </children>
       </HBox>
-      <TableView prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+      <TableView fx:id="promRegTable" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
         <columns>
-          <TableColumn fx:id="regTable" prefWidth="153.0" text="Register" />
-          <TableColumn fx:id="valueTable" minWidth="0.0" prefWidth="154.0" text="Value" />
+          <TableColumn fx:id="regCol" prefWidth="153.0" text="Register" />
+          <TableColumn fx:id="valCol" minWidth="0.0" prefWidth="154.0" text="Value" />
         </columns>
       </TableView>
       <ListView fx:id="stackPane" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" />
