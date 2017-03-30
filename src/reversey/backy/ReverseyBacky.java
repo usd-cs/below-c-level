@@ -35,7 +35,7 @@ public class ReverseyBacky extends Application {
 		registers.put("esi", 5);
 		registers.put("edi", 6);
 
-		// test a instruction creation and invalidation
+		// test an instruction creation and invalidation
 		x86Instruction inst = x86Instruction.create("addl %eax, %ecx", registers);
 		if (inst != null) {
 			inst.eval();
@@ -57,8 +57,6 @@ public class ReverseyBacky extends Application {
 			System.out.println("esi should be -2");
 			System.out.println(registers);
 		}
-                
-                
     }
 
     /**

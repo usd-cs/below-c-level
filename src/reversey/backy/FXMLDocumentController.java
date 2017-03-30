@@ -72,12 +72,19 @@ public class FXMLDocumentController implements Initializable {
                        
                        //Enter text in listView
                        instrList.getItems().addAll(text);
-                       //clear text from instruction pane
+                       //Clear text from instruction pane
                        instrText.clear();
                 } 
     }
     });
     
+    //Abandon all hope ye who enter here
+    //TODO: if instruction is valid, do the thingy
+    stackPane.setOnKeyPressed(new EventHandler<KeyEvent>);
+    
+    //TODO: if the instruction uses registers, display the registers in regTable
+    
+    //TODO: if user wants to change where the instruction should be inserted
     MenuItem menuItem1 = new MenuItem("Beginning");
     MenuItem menuItem2 = new MenuItem("Current");
            
