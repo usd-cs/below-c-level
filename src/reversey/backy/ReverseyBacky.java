@@ -27,13 +27,7 @@ public class ReverseyBacky extends Application {
         stage.setTitle("Below C-Level Stack Simulator");
         stage.show();
 
-		HashMap<String, Integer> registers = new HashMap<String, Integer>();
-		registers.put("eax", 1);
-		registers.put("ebx", 2);
-		registers.put("ecx", 3);
-		registers.put("edx", 4);
-		registers.put("esi", 5);
-		registers.put("edi", 6);
+		/*
 
 		// test an instruction creation and invalidation
 		x86Instruction inst = x86Instruction.create("addl %eax, %ecx", registers);
@@ -57,6 +51,7 @@ public class ReverseyBacky extends Application {
 			System.out.println("esi should be -2");
 			System.out.println(registers);
 		}
+        */
     }
 
     /**

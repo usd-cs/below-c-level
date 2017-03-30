@@ -14,39 +14,67 @@ import java.util.HashMap;
 import java.util.*;
 import java.net.*;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 
 /**
  *
  * @author Caitlin
  */
-
 public class FXMLDocumentController implements Initializable {
-  
-    @FXML private TextField instrText;
-    @FXML private ListView<String> instrList;
-    @FXML private MenuButton insertMenu;
-    @FXML private Button nextInstr;
-    @FXML private Button skipToEnd;
-    @FXML private Button prevInstr;
-    @FXML private Button skipToStart;
-    @FXML private ListView<String> stackPane;
+
+    HashMap<String, Integer> registers;
+    @FXML
+    private TextField instrText;
+    @FXML
+    private ListView<x86Instruction> instrList;
+    @FXML
+    private MenuButton insertMenu;
+    @FXML
+    private Button nextInstr;
+    @FXML
+    private Button skipToEnd;
+    @FXML
+    private Button prevInstr;
+    @FXML
+    private Button skipToStart;
+    //@FXML private TableView<String> stackPane;
+    //@FXML private TableColumn contentCol;
+    //@FXML private TableColumn addrCol;
     @FXML private TableView<String> promRegTable;
     @FXML private TableColumn regCol;
-    @FXML private TableColumn valCol;
-    @FXML private MenuItem begin;
-    @FXML private MenuItem current;
-    
-    
+    @FXML private TableColumn valCol; 
+    ObservableList<String> shtuff;
+
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
-            
+
+        
+         
+        registers = new HashMap<String, Integer>();
+		registers.put("eax", 1);
+		registers.put("ebx", 2);
+		registers.put("ecx", 3);
+		registers.put("edx", 4);
+		registers.put("esi", 5);
+		registers.put("edi", 6);
+                
+        shtuff = FXCollections.observableArrayList();
+         
+        //stackPane.setItems(shtuff);
+        shtuff.add("good Shtuff");
+        shtuff.add("bad shtuff");
+        shtuff.add("indifferent shtuff");
+                
          nextInstr.setOnAction((event) -> {
-             //int selectedIndex = instrList.getSelectionModel().getSelectedIndex();
              System.out.println(instrList.getSelectionModel().getSelectedItem());
+             instrList.getSelectionModel().getSelectedItem().eval();
+             System.out.println(registers);
                  instrList.getSelectionModel().selectNext();
          });
         
+       //TODO: Keep history list of previous registers HashMap
          skipToEnd.setOnAction((event) -> {
              System.out.println(instrList.getSelectionModel().getSelectedItem());
              instrList.getSelectionModel().selectLast();
@@ -70,8 +98,10 @@ public class FXMLDocumentController implements Initializable {
                 if (keyEvent.getCode() == KeyCode.ENTER){
                        String text = instrText.getText();
                        
+                       x86Instruction x = x86Instruction.create(text, registers);
+                       
                        //Enter text in listView
-                       instrList.getItems().addAll(text);
+                       instrList.getItems().addAll(x);
                        //Clear text from instruction pane
                        instrText.clear();
                 } 
@@ -80,23 +110,24 @@ public class FXMLDocumentController implements Initializable {
     
     //Abandon all hope ye who enter here
     //TODO: if instruction is valid, do the thingy
-    stackPane.setOnKeyPressed(new EventHandler<KeyEvent>);
+ //   stackPane.setOnKeyPressed(new EventHandler<KeyEvent>);
     
     //TODO: if the instruction uses registers, display the registers in regTable
     
     //TODO: if user wants to change where the instruction should be inserted
-    MenuItem menuItem1 = new MenuItem("Beginning");
-    MenuItem menuItem2 = new MenuItem("Current");
-           
-
-    menuItem1.setOnAction((event) -> {
+    MenuItem beginning = insertMenu.getItems().get(0);  
+    MenuItem current = insertMenu.getItems().get(1);
+    //MenuItem current
+    beginning.setText("At beginning");
+    current.setText("At current");
+    
+    beginning.setOnAction((event) -> {
         System.out.println("Option 1 selected");
     });
     
-    menuItem2.setOnAction((event) -> {
+    current.setOnAction((event) -> {
            System.out.println("Option 2 selected");
     });
-            
 
     
     //Highlighting selected instruction is newly added item has an index of N
@@ -113,8 +144,6 @@ public class FXMLDocumentController implements Initializable {
 			// instrList.getSelectionModel().select(N);
 		}
 	});
-
+         
+    }
 }
-
-}
-

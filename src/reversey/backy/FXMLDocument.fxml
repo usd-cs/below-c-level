@@ -52,6 +52,6 @@
           <TableColumn fx:id="valCol" minWidth="0.0" prefWidth="154.0" text="Value" />
         </columns>
       </TableView>
-      <ListView fx:id="stackPane" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" />
+      <ListView prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" />
    </children>
 </GridPane>
