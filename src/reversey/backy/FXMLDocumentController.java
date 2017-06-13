@@ -24,7 +24,10 @@ import javafx.event.EventHandler;
  */
 public class FXMLDocumentController implements Initializable {
 
-    HashMap<String, Integer> registers;
+    //HashMap<String, Integer> registers;
+
+	private MachineState currState;
+
     @FXML
     private TextField instrText;
     @FXML
@@ -51,7 +54,9 @@ public class FXMLDocumentController implements Initializable {
     public void initialize(URL foo, ResourceBundle bar) {
 
         
+		currState = new MachineState();
          
+		/*
         registers = new HashMap<String, Integer>();
 		registers.put("eax", 1);
 		registers.put("ebx", 2);
@@ -59,6 +64,7 @@ public class FXMLDocumentController implements Initializable {
 		registers.put("edx", 4);
 		registers.put("esi", 5);
 		registers.put("edi", 6);
+		*/
                 
         shtuff = FXCollections.observableArrayList();
          
@@ -69,9 +75,9 @@ public class FXMLDocumentController implements Initializable {
                 
          nextInstr.setOnAction((event) -> {
              System.out.println(instrList.getSelectionModel().getSelectedItem());
-             instrList.getSelectionModel().getSelectedItem().eval();
-             System.out.println(registers);
-                 instrList.getSelectionModel().selectNext();
+             this.currState = instrList.getSelectionModel().getSelectedItem().eval(this.currState);
+             System.out.println(currState);
+             instrList.getSelectionModel().selectNext();
          });
         
        //TODO: Keep history list of previous registers HashMap
@@ -98,7 +104,7 @@ public class FXMLDocumentController implements Initializable {
                 if (keyEvent.getCode() == KeyCode.ENTER){
                        String text = instrText.getText();
                        
-                       x86Instruction x = x86Instruction.create(text, registers);
+                       x86Instruction x = x86Instruction.parseInstruction(text);
                        
                        //Enter text in listView
                        instrList.getItems().addAll(x);
