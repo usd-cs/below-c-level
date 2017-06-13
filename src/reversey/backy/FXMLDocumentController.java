@@ -24,8 +24,6 @@ import javafx.event.EventHandler;
  */
 public class FXMLDocumentController implements Initializable {
 
-    //HashMap<String, Integer> registers;
-
 	private MachineState currState;
 
     @FXML
@@ -53,19 +51,7 @@ public class FXMLDocumentController implements Initializable {
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
 
-        
 		currState = new MachineState();
-         
-		/*
-        registers = new HashMap<String, Integer>();
-		registers.put("eax", 1);
-		registers.put("ebx", 2);
-		registers.put("ecx", 3);
-		registers.put("edx", 4);
-		registers.put("esi", 5);
-		registers.put("edi", 6);
-		*/
-                
         shtuff = FXCollections.observableArrayList();
          
         //stackPane.setItems(shtuff);
