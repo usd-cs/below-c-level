@@ -310,7 +310,7 @@ class x86BinaryInstruction extends x86Instruction{
 	/**
 	 * The function performed by this instruction.
 	 */
-	private IntBinaryOperator operation;
+	private BinaryX86Operation operation;
 
 	/**
 	 * @param instType String representation of the instruction's operation.
@@ -324,32 +324,41 @@ class x86BinaryInstruction extends x86Instruction{
 
 		switch (instType) {
 			case "add":
-				this.operation = (src, dest) -> dest + src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state) + src.getValue(state));
 				break;
 			case "sub":
-				this.operation = (src ,dest) -> dest - src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state) - src.getValue(state));
 				break;
 			case "xor":
-				this.operation = (src ,dest) -> dest ^ src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state) ^ src.getValue(state));
 				break;
 			case "or":
-				this.operation = (src ,dest) -> dest | src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state) | src.getValue(state));
 				break;
 			case "and":
-				this.operation = (src ,dest) -> dest & src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state) & src.getValue(state));
 				break;
 			case "sal":
 			case "shl":
-				this.operation = (src ,dest) -> dest << src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state) << src.getValue(state));
 				break;
 			case "sar":
-				this.operation = (src ,dest) -> dest >> src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state) >> src.getValue(state));
 				break;
 			case "shr":
-				this.operation = (src ,dest) -> dest >>> src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state) >>> src.getValue(state));
 				break;
 			case "mov":
-				this.operation = (src ,dest) -> src;
+				this.operation = 
+					(state, src, dest) -> dest.updateState(state, src.getValue(state));
 				break;
 			default:
 				System.err.println("unknown instr type for binary inst: " + instType);
@@ -359,7 +368,7 @@ class x86BinaryInstruction extends x86Instruction{
 
 	@Override
 	public MachineState eval(MachineState state) {
-		return destination.updateState(state, operation.applyAsInt(source.getValue(state), destination.getValue(state)));
+		return operation.apply(state, this.source, this.destination);
 	}
 
 	@Override
