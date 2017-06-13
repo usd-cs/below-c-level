@@ -643,7 +643,7 @@ class MachineState {
 
 		s += "Memory:\n";
 		for (Map.Entry<Integer, Integer> entry : memory.entrySet()) {
-			s += "\t" + entry.getKey() + ": " + entry.getValue() + "\n";
+			s += "\t" + Integer.toHexString(entry.getKey()) + ": " + entry.getValue() + "\n";
 		}
 
 		return s;
