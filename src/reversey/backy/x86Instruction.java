@@ -25,9 +25,9 @@ public abstract class x86Instruction {
 
 	/**
 	 *
-	 * @return
+	 * @return State of machine after evaluation of evaluating the instruction
 	 */
-	public abstract void eval();
+	public abstract MachineState eval(MachineState state);
 
 	/**
 	 * @return true if a supported binary instruction, false if a supported
@@ -68,8 +68,8 @@ public abstract class x86Instruction {
 		if (str.charAt(0) == '$') {
 			// constant operand
 			System.out.println("found a constant op");
-			String[] splits = str.split("$,");
-			op = new ConstantOperand(Integer.parseInt(splits[0])); // TODO: handle hex constant
+			String[] splits = str.split("[$,]");
+			op = new ConstantOperand(Integer.parseInt(splits[1])); // TODO: handle hex constant
 		}
 		else if (str.charAt(0) == '%') {
 			// register operand
@@ -332,21 +332,21 @@ class x86UnaryInstruction extends x86Instruction {
 	}
 
 	@Override
-		public void eval() { 
+		public MachineState eval(MachineState state) { 
 			switch (this.instructionType) {
 				case "inc":
 				case "dec":
-					int destVal = operation.applyAsInt(destination.getValue());
-					destination.setValue(destVal);
-					break;
+					int destVal = operation.applyAsInt(destination.getValue(state));
+					return destination.updateState(state, destVal);
 				case "push":
 					System.out.println("push not supported yet");
-					break;
+					return state;
 				case "pop":
 					System.out.println("pop not supported yet");
-					break;
+					return state;
 				default:
 					System.err.println("Something went terribly wrong.");
+					return null;
 			}
 		}
 
@@ -382,8 +382,8 @@ class x86BinaryInstruction extends x86Instruction{
 	}
 
 	@Override
-		public void eval() { 
-			destination.setValue(operation.applyAsInt(source.getValue(), destination.getValue()));
+		public MachineState eval(MachineState state) { 
+			return destination.updateState(state, operation.applyAsInt(source.getValue(state), destination.getValue(state)));
 		}
 
 	@Override
@@ -394,8 +394,8 @@ class x86BinaryInstruction extends x86Instruction{
 
 abstract class Operand {
 	protected HashMap <String, Integer> registers;
-	public abstract int getValue();
-	public abstract void setValue(int val);
+	public abstract int getValue(MachineState state);
+	public abstract MachineState updateState(MachineState currState, int val);
 } 
 
 class RegOperand extends Operand {
@@ -407,11 +407,14 @@ class RegOperand extends Operand {
 	}
 
 	@Override
-		public int getValue() { return registers.get(regName); }
+		public int getValue(MachineState state) { 
+			return state.getRegisterValue(regName);
+		}
 
 	@Override
-		public void setValue(int val) {
-			registers.put(this.regName, val);
+		public MachineState updateState(MachineState currState, int val) {
+			return currState.getNewState(this.regName, val);
+			//registers.put(this.regName, val);
 		}
 
 	@Override
@@ -434,11 +437,24 @@ class MemoryOperand extends Operand {
 		this.registers = registers;
 	}
 
-	@Override
-		public int getValue() { return 5298; }
+	private int calculateAddress(MachineState state) {
+		int address = state.getRegisterValue(baseReg) + offset;
+		if (indexReg != null) {
+			address += state.getRegisterValue(indexReg) * scale;
+		}
+
+		return address;
+	}
 
 	@Override
-		public void setValue(int val) {}
+		public int getValue(MachineState state) { 
+			return state.getMemoryValue(calculateAddress(state));
+		}
+
+	@Override
+		public MachineState updateState(MachineState currState, int val) {
+			return currState.getNewState(calculateAddress(currState), val);
+		}
 
 	@Override
 		public String toString() {
@@ -460,15 +476,90 @@ class ConstantOperand extends Operand {
 	}
 
 	@Override
-		public int getValue() { return 0; }
+		public int getValue(MachineState state) { return constant; }
 
 	@Override
-		public void setValue(int val) { 
+		public MachineState updateState(MachineState currState, int val) { 
 			System.err.println("Why are you trying to set a constant?");
+			// TODO: exception here?
+			return currState;
 		}
 
 	@Override
 		public String toString() {
 			return "$" + constant;
 		}
+}
+
+class MachineState {
+	private HashMap<String, Integer> registers;
+	private HashMap<Integer, Integer> memory;
+
+	public MachineState() {
+		this.registers = new HashMap<String, Integer>();
+		this.memory = new HashMap<Integer, Integer>();
+
+		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp"};
+		for (String s : regNames)
+			registers.put(s, 0);
+	}
+
+	public MachineState(HashMap<String, Integer> reg, HashMap<Integer, Integer> mem) {
+		this.registers = reg;
+		this.memory = mem;
+	}
+
+	/**
+	 * @return new state that is the same as the current but with new binding
+	 * from given address to given val
+	 */
+	public MachineState getNewState(int address, int val) {
+		HashMap<Integer, Integer> mem = new HashMap<Integer, Integer>(this.memory);
+		mem.put(address, val);
+		return new MachineState(this.registers, mem);
+	}
+
+	/**
+	 * @return new state that is the same as the current but with new binding
+	 * from given register to given val
+	 */
+	public MachineState getNewState(String regName, int val) {
+		HashMap<String, Integer> reg = new HashMap<String, Integer>(registers);
+		reg.put(regName, val);
+		return new MachineState(reg, this.memory);
+	}
+
+	public int getRegisterValue(String regName) {
+		return registers.get(regName);
+	}
+
+	public int getMemoryValue(int address) {
+		return memory.get(address);
+	}
+
+	public String toString() {
+		String s = "Registers:\n";
+		for (HashMap.Entry<String, Integer> entry : registers.entrySet()) {
+			s += "\t" + entry.getKey() + ": " + entry.getValue() + "\n";
+		}
+
+		s += "Memory:\n";
+		for (HashMap.Entry<Integer, Integer> entry : memory.entrySet()) {
+			s += "\t" + entry.getKey() + ": " + entry.getValue() + "\n";
+		}
+
+		return s;
+	}
+}
+
+class x86InstructionTester {
+	public static void main(String[] args) {
+		MachineState state = new MachineState();
+		x86Instruction inst1 = x86Instruction.parseInstruction("movl $17, %eax");
+		System.out.println("Before:");
+		System.out.println(state);
+		MachineState state2 = inst1.eval(state);
+		System.out.println("After:");
+		System.out.println(state2);
+	}
 }
