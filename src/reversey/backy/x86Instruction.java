@@ -62,6 +62,8 @@ public abstract class x86Instruction {
 			case "decl":
 			case "negl":
 			case "notl":
+			case "pushl":
+			case "popl":
 				return false;
 			default:
 				System.err.println("invalid or unsupported instruction: " + instrName);
@@ -570,16 +572,18 @@ class MachineState {
 	private Map<Integer, Integer> memory;
 
 	/**
-	 * Create a new state with all registers initialized to 0 but no memory
-	 * initialization.
+	 * Create a new state with all registers (except %rsp) initialized to 0 but
+	 * no memory initialization. %rsp is initialized to 0x7FFFFFFF.
 	 */
 	public MachineState() {
 		this.registers = new HashMap<String, Integer>();
 		this.memory = new HashMap<Integer, Integer>();
 
-		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp"};
+		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"};
 		for (String s : regNames)
 			registers.put(s, 0);
+
+		registers.put("esp", 0x7FFFFFFF);
 	}
 
 	public MachineState(Map<String, Integer> reg, Map<Integer, Integer> mem) {
