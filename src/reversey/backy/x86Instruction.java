@@ -209,14 +209,7 @@ public abstract class x86Instruction {
 		}
 	}
 
-	// Create a new x86Instruction if input is valid otherwise return null
-	//TODO: Pass in memory structure whatever that means... 
-	public static x86Instruction create(String userInput, HashMap <String, Integer> registers) { 
-		return null;
-	}
-
 	public abstract String toString();
-
 }
 
 class x86UnaryInstruction extends x86Instruction {
