@@ -49,10 +49,19 @@ public abstract class x86Instruction {
 		switch (instrName) {
 			case "addl":
 			case "subl":
+			case "xorl":
+			case "orl":
+			case "andl":
+			case "shll":
+			case "sall":
+			case "shrl":
+			case "sarl":
 			case "movl":
 				return true;
 			case "incl":
 			case "decl":
+			case "negl":
+			case "notl":
 				return false;
 			default:
 				System.err.println("invalid or unsupported instruction: " + instrName);
@@ -244,6 +253,12 @@ class x86UnaryInstruction extends x86Instruction {
 			case "dec":
 				this.operation = (dest) -> dest - 1;
 				break;
+			case "neg":
+				this.operation = (dest) -> -dest;
+				break;
+			case "not":
+				this.operation = (dest) -> ~dest;
+				break;
 			case "push":
 				this.operation = IntUnaryOperator.identity();
 				break;
@@ -261,17 +276,17 @@ class x86UnaryInstruction extends x86Instruction {
 		switch (this.instructionType) {
 			case "inc":
 			case "dec":
+			case "neg":
+			case "not":
 				int destVal = operation.applyAsInt(destination.getValue(state));
 				return destination.updateState(state, destVal);
 			case "push":
-				System.out.println("push not supported yet");
-				return state;
 			case "pop":
-				System.out.println("pop not supported yet");
+				System.out.println(this.instructionType + " not supported yet");
 				return state;
 			default:
 				System.err.println("Something went terribly wrong.");
-				return null;
+				return null; // TODO: exception?
 		}
 	}
 
@@ -306,6 +321,25 @@ class x86BinaryInstruction extends x86Instruction{
 				break;
 			case "sub":
 				this.operation = (src ,dest) -> dest - src;
+				break;
+			case "xor":
+				this.operation = (src ,dest) -> dest ^ src;
+				break;
+			case "or":
+				this.operation = (src ,dest) -> dest | src;
+				break;
+			case "and":
+				this.operation = (src ,dest) -> dest & src;
+				break;
+			case "sal":
+			case "shl":
+				this.operation = (src ,dest) -> dest << src;
+				break;
+			case "sar":
+				this.operation = (src ,dest) -> dest >> src;
+				break;
+			case "shr":
+				this.operation = (src ,dest) -> dest >>> src;
 				break;
 			case "mov":
 				this.operation = (src ,dest) -> src;
@@ -572,6 +606,11 @@ class MachineState {
 
 		return s;
 	}
+}
+
+@FunctionalInterface
+interface BinaryX86Operation {
+	MachineState apply(MachineState state, Operand src, Operand dest);
 }
 
 /**
