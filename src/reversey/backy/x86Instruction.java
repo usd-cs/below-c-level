@@ -13,19 +13,25 @@ import java.util.regex.Matcher;
 import javafx.util.Pair;
 
 /**
+ * An abstract class representing an x86-64 instruction.
  *
  * @author Dr. Sat
  */
-
-// TODO: Add some Javadoc comments to our classes and methods!
 public abstract class x86Instruction {
+	/**
+	 * The operand where the instruction will write its results.
+	 */
 	protected Operand destination;
+
+	/**
+	 * The type of instruction (e.g. add)
+	 */
 	protected String instructionType;
 
 	// 
 
 	/**
-	 * Perform the operation specific to the instruction type
+	 * Perform the operation specific to the instruction.
 	 * 
 	 * @param state The state of the machine before evaluation begins.
 	 * @return State of machine after evaluating the instruction.
@@ -33,6 +39,9 @@ public abstract class x86Instruction {
 	public abstract MachineState eval(MachineState state);
 
 	/**
+	 * Checks that instruction is a valid, supported x86 instruction.
+	 *
+	 * @param instrName The name of the instruction (e.g. addl)
 	 * @return true if a supported binary instruction, false if a supported
 	 * unary instruction.
 	 */
@@ -53,6 +62,9 @@ public abstract class x86Instruction {
 	}
 
 	/**
+	 * Get the register name from a given string.
+	 *
+	 * @param str The string that contains a register name, starting with %
 	 * @return Name of the register, or null if invalid register.
 	 */
 	public static String parseRegister(String str) {
@@ -65,6 +77,8 @@ public abstract class x86Instruction {
 	}
 
 	/**
+	 * Construct an operand based on a given string.
+	 *
 	 * @param String that contains the operand at the beginning.
 	 * @return The parsed operand and the index in str where the operand ends.
 	 */
@@ -169,6 +183,8 @@ public abstract class x86Instruction {
 	}
 
 	/**
+	 * Create an x86-64 instruction by parsing a given string.
+	 *
 	 * @param instr A string representation of the instruction.
 	 * @return The parsed instruction.
 	 */
@@ -213,9 +229,21 @@ public abstract class x86Instruction {
 	public abstract String toString();
 }
 
+/**
+ * Class representing an x86 instruction with a single operand.
+ *
+ * @author Sat Garcia (sat@sandiego.edu)
+ */
 class x86UnaryInstruction extends x86Instruction {
+	/**
+	 * The function that this instruction performs.
+	 */
 	private IntUnaryOperator operation;
 
+	/**
+	 * @param instType String representation of the instruction's operation.
+	 * @param destOp Operand representing the destination of the instruction.
+	 */
 	public x86UnaryInstruction(String instType, Operand destOp) {
 		this.instructionType = instType;
 		this.destination = destOp;
@@ -264,10 +292,20 @@ class x86UnaryInstruction extends x86Instruction {
 	}
 }
 
+/**
+ * Class representing an x86 instruction with two operands.
+ *
+ * @author Sat Garcia (sat@sandiego.edu)
+ */
 class x86BinaryInstruction extends x86Instruction{
 	private Operand source;
 	private IntBinaryOperator operation;
 
+	/**
+	 * @param instType String representation of the instruction's operation.
+	 * @param srcOp A source operand of the instruction.
+	 * @param destOp Operand representing the destination of the instruction.
+	 */
 	public x86BinaryInstruction(String instType, Operand srcOp, Operand destOp) {
 		this.instructionType = instType;
 		this.source = srcOp;
@@ -300,11 +338,33 @@ class x86BinaryInstruction extends x86Instruction{
 	}
 }
 
+/**
+ * An abstract class representing an x86 operand.
+ *
+ * @author Sat Garcia (sat@sandiego.edu)
+ */
 abstract class Operand {
+
+	/**
+	 * @param state The state of the machine.
+	 * @return The value of the operand in a machine with the given state.
+	 */
 	public abstract int getValue(MachineState state);
+
+	/**
+	 * @param currState The current state of the machine.
+	 * @param val The value to update the operand with.
+	 * @return The state after updating the current state with the new value for
+	 * the operand.
+	 */
 	public abstract MachineState updateState(MachineState currState, int val);
 } 
 
+/**
+ * A class representing an x86-64 register operand (e.g. %eax).
+ *
+ * @author Sat Garcia (sat@sandiego.edu)
+ */
 class RegOperand extends Operand {
 	private String regName;
 
@@ -328,10 +388,31 @@ class RegOperand extends Operand {
 		}
 }
 
+
+/**
+ * A class representing an x86-64 memory operand.
+ *
+ * @author Sat Garcia (sat@sandiego.edu)
+ */
 class MemoryOperand extends Operand {
+	/**
+	 * Name of the base register.
+	 */
 	private String baseReg;
+
+	/**
+	 * Name of the index register.
+	 */
 	private String indexReg;
+
+	/**
+	 * The scaling factor for the index register.
+	 */
 	private int scale;
+
+	/**
+	 * The offset amount.
+	 */
 	private int offset;
 
 	public MemoryOperand(String baseReg, String indexReg, int scale, int offset) {
@@ -341,6 +422,13 @@ class MemoryOperand extends Operand {
 		this.offset = offset;
 	}
 
+	/**
+	 * Calculate the effective address of the operand, given the specified
+	 * machine state.
+	 *
+	 * @param state The state in which to calculate the address.
+	 * @return The effective address.
+	 */
 	private int calculateAddress(MachineState state) {
 		int address = state.getRegisterValue(baseReg) + offset;
 		if (indexReg != null) {
@@ -372,7 +460,15 @@ class MemoryOperand extends Operand {
 	}
 }
 
+/**
+ * A class representing an x86-64 constant (i.e. immediate) operand.
+ *
+ * @author Sat Garcia (sat@sandiego.edu)
+ */
 class ConstantOperand extends Operand {
+	/**
+	 * The operand's value.
+	 */
 	private int constant;
 
 	public ConstantOperand(int val) {
@@ -395,10 +491,27 @@ class ConstantOperand extends Operand {
 	}
 }
 
+/**
+ * A class representing the state of the machine, namely its register file and
+ * memory.
+ *
+ * @author Sat Garcia (sat@sandiego.edu)
+ */
 class MachineState {
+	/**
+	 * The register file.
+	 */
 	private Map<String, Integer> registers;
+
+	/**
+	 * The machine's memory.
+	 */
 	private Map<Integer, Integer> memory;
 
+	/**
+	 * Create a new state with all registers initialized to 0 but no memory
+	 * initialization.
+	 */
 	public MachineState() {
 		this.registers = new HashMap<String, Integer>();
 		this.memory = new HashMap<Integer, Integer>();
@@ -414,8 +527,13 @@ class MachineState {
 	}
 
 	/**
-	 * @return new state that is the same as the current but with new binding
-	 * from given address to given val
+	 * Create a new MachineState based on the current state but with an updated
+	 * value for a memory address.
+	 *
+	 * @param address The address that will be changed in the new state.
+	 * @param val The new value of the given memory address.
+	 * @return A new state that is the same as the current but with new binding
+	 * from given address to given val.
 	 */
 	public MachineState getNewState(int address, int val) {
 		Map<Integer, Integer> mem = new HashMap<Integer, Integer>(this.memory);
@@ -424,7 +542,12 @@ class MachineState {
 	}
 
 	/**
-	 * @return new state that is the same as the current but with new binding
+	 * Create a new MachineState based on the current state but with an updated
+	 * value for a register.
+	 *
+	 * @param regName The register that will be updated.
+	 * @param val The new value of the given register.
+	 * @return A new state that is the same as the current but with new binding
 	 * from given register to given val
 	 */
 	public MachineState getNewState(String regName, int val) {
@@ -433,10 +556,16 @@ class MachineState {
 		return new MachineState(reg, this.memory);
 	}
 
+	/**
+	 * Gets the value stored in the given register.
+	 */
 	public int getRegisterValue(String regName) {
 		return registers.get(regName);
 	}
 
+	/**
+	 * Gets the value stored at the given memory address.
+	 */
 	public int getMemoryValue(int address) {
 		return memory.get(address);
 	}
@@ -456,6 +585,11 @@ class MachineState {
 	}
 }
 
+/**
+ * Simple class to test x86 instruction parsing and evaluation.
+ *
+ * @author Sat Garcia (sat@sandiego.edu)
+ */
 class x86InstructionTester {
 	public static void main(String[] args) {
 		MachineState state = new MachineState();
