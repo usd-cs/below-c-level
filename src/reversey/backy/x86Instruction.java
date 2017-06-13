@@ -302,7 +302,14 @@ class x86UnaryInstruction extends x86Instruction {
  * @author Sat Garcia (sat@sandiego.edu)
  */
 class x86BinaryInstruction extends x86Instruction{
+	/**
+	 * An operand used solely as a source for the operation.
+	 */
 	private Operand source;
+
+	/**
+	 * The function performed by this instruction.
+	 */
 	private IntBinaryOperator operation;
 
 	/**
