@@ -21,11 +21,13 @@ public abstract class x86Instruction {
 	protected Operand destination;
 	protected String instructionType;
 
-	// Perform the operation specific to the instruction type
+	// 
 
 	/**
-	 *
-	 * @return State of machine after evaluation of evaluating the instruction
+	 * Perform the operation specific to the instruction type
+	 * 
+	 * @param state The state of the machine before evaluation begins.
+	 * @return State of machine after evaluating the instruction.
 	 */
 	public abstract MachineState eval(MachineState state);
 
@@ -33,7 +35,6 @@ public abstract class x86Instruction {
 	 * @return true if a supported binary instruction, false if a supported
 	 * unary instruction.
 	 */
-	// TODO: throw exception on invalid / unsupported instruction
 	public static boolean validateInstruction(String instrName) {
 		switch (instrName) {
 			case "addl":
@@ -45,20 +46,27 @@ public abstract class x86Instruction {
 				return false;
 			default:
 				System.err.println("invalid or unsupported instruction: " + instrName);
-				System.exit(1);
+				System.exit(1); // TODO: throw exception
 				return false;
 		}
 	}
 
+	/**
+	 * @return Name of the register, or null if invalid register.
+	 */
 	public static String parseRegister(String str) {
 		System.out.println("parseRegister: " + str);
 		String regRegEx = "^\\%(eax|ebx|ecx|edx|esi|edi|ebp|esp|eip)$";
 		if (Pattern.matches(regRegEx, str))
 			return str.substring(1);
 		else
-			return null; // TODO: this should raise illegal register exception
+			return null; // TODO: throw exception
 	}
 
+	/**
+	 * @param String that contains the operand at the beginning.
+	 * @return The parsed operand and the index in str where the operand ends.
+	 */
 	public static Pair<Operand, Integer> parseOperand(String str) {
 		System.out.println("parsing Operand in: " + str);
 
@@ -76,7 +84,7 @@ public abstract class x86Instruction {
 			System.out.println("found a register op");
 			String[] splits = str.split(",");
 			String regName = parseRegister(splits[0]);
-			op = new RegOperand(regName, null); // FIXME: this shouldn't be null
+			op = new RegOperand(regName);
 		}
 		else {
 			// memory operand
@@ -140,7 +148,7 @@ public abstract class x86Instruction {
 				}
 			}
 
-			op = new MemoryOperand(baseReg, indexReg, scale, offset, null);
+			op = new MemoryOperand(baseReg, indexReg, scale, offset);
 		}
 
 		if (str.charAt(0) == '$' || str.charAt(0) == '%') {
@@ -159,6 +167,10 @@ public abstract class x86Instruction {
 		return new Pair<Operand, Integer>(op, endPoint);
 	}
 
+	/**
+	 * @param instr A string representation of the instruction.
+	 * @return The parsed instruction.
+	 */
 	public static x86Instruction parseInstruction(String instr) {
 		String[] tokens = instr.split("\\s+");
 		String instrName = tokens[0]; // should be instruction name, e.g. "addl"
@@ -200,105 +212,7 @@ public abstract class x86Instruction {
 	// Create a new x86Instruction if input is valid otherwise return null
 	//TODO: Pass in memory structure whatever that means... 
 	public static x86Instruction create(String userInput, HashMap <String, Integer> registers) { 
-		String[] tokens = userInput.split("\\s+");
-		String instrName = tokens[0]; // should be instruction name, e.g. "addl"
-		System.out.println("instruction name: " + instrName);
-
-		// TODO: a regular expression is probably a better approach here
-		switch (instrName) {
-			case "movb":
-			case "movw":
-			case "movq":
-			case "addb":
-			case "addw":
-			case "addq":
-				System.err.println("only 32-bit ops supported now");
-				return null;
-
-			case "addl":
-			case "subl":
-			case "movl":
-				// TODO: cases for more types of binary instructions
-				// found a supported binary instruction
-				// Step 1: make sure it has exactly two operands, separated by
-				//  a comma (TODO)
-
-				// quick check: splitting by "," results in two tokens
-				// FIXME: won't work if we have a memory op that has comma in
-				// it.
-				String[] tmp = userInput.split(",");
-				if (tmp.length != 2) {
-					System.err.println("invalid format: expecting exactly 1 ',' in instruction");
-					return null;
-				}
-
-				// now split first token by whitespace and look only at the
-				// second token, which will be the first operand
-				String[] tmp2 = tmp[0].trim().split("\\s+");
-				if (tmp2.length != 2) {
-					System.err.println("unexpected extra token");
-					return null;
-				}
-				else if (tmp2[1].charAt(0) != '%') {
-					System.err.println("invalid operand: " + tmp2[1]);
-					return null;
-				}
-
-				String op1 = tmp2[1].substring(1);
-				System.out.println("first operand is " + op1);
-
-				// now split second token by whitespace. It should only have a
-				// single token
-				String[] tmp3 = tmp[1].trim().split("\\s+");
-				if (tmp3.length != 1) {
-					System.err.println("unexpected extra tokens in: " + tmp[1]);
-					return null;
-				}
-				else if (tmp3[0].charAt(0) != '%') {
-					System.err.println("invalid operand: " + tmp3[0]);
-					return null;
-				}
-
-				String op2 = tmp3[0].substring(1);
-				System.out.println("second operand is " + op2);
-
-				// step 2: make sure operands are valid (TODO)
-
-				// step 3: construct the instruction
-				return new x86BinaryInstruction(instrName.substring(0, instrName.length()-1), 
-						new RegOperand(op1, registers), 
-						new RegOperand(op2, registers));
-			case "pushq":
-				System.err.println("push not yet supported");
-				return null;
-			case "popq":
-				System.err.println("pop not yet supported");
-				return null;
-			case "incb":
-			case "incw":
-			case "incq":
-				System.err.println("only 32-bit ops supported now");
-				return null;
-
-			case "incl":
-			case "decl":
-				// step 1: make sure it has exactly one operand (TODO)
-				if (tokens[1].charAt(0) != '%') {
-					System.err.println("invalid operand: " + tokens[1]);
-					return null;
-				}
-
-				String op = tokens[1].substring(1);
-
-				// step 2: make sure operand is valid (TODO)
-
-				// step 3: get operand to pass into constructor (TODO)
-				return new x86UnaryInstruction(instrName.substring(0, instrName.length()-1), 
-						new RegOperand(op, registers));
-			default:
-				System.out.println("unsupported instruction: " + instrName);
-				return null;
-		}
+		return null;
 	}
 
 	public abstract String toString();
@@ -332,28 +246,28 @@ class x86UnaryInstruction extends x86Instruction {
 	}
 
 	@Override
-		public MachineState eval(MachineState state) { 
-			switch (this.instructionType) {
-				case "inc":
-				case "dec":
-					int destVal = operation.applyAsInt(destination.getValue(state));
-					return destination.updateState(state, destVal);
-				case "push":
-					System.out.println("push not supported yet");
-					return state;
-				case "pop":
-					System.out.println("pop not supported yet");
-					return state;
-				default:
-					System.err.println("Something went terribly wrong.");
-					return null;
-			}
+	public MachineState eval(MachineState state) {
+		switch (this.instructionType) {
+			case "inc":
+			case "dec":
+				int destVal = operation.applyAsInt(destination.getValue(state));
+				return destination.updateState(state, destVal);
+			case "push":
+				System.out.println("push not supported yet");
+				return state;
+			case "pop":
+				System.out.println("pop not supported yet");
+				return state;
+			default:
+				System.err.println("Something went terribly wrong.");
+				return null;
 		}
+	}
 
 	@Override
-		public String toString() {
-			return instructionType + " " + destination.toString();
-		}
+	public String toString() {
+		return instructionType + " " + destination.toString();
+	}
 }
 
 class x86BinaryInstruction extends x86Instruction{
@@ -382,18 +296,17 @@ class x86BinaryInstruction extends x86Instruction{
 	}
 
 	@Override
-		public MachineState eval(MachineState state) { 
-			return destination.updateState(state, operation.applyAsInt(source.getValue(state), destination.getValue(state)));
-		}
+	public MachineState eval(MachineState state) {
+		return destination.updateState(state, operation.applyAsInt(source.getValue(state), destination.getValue(state)));
+	}
 
 	@Override
-		public String toString() {
-			return instructionType + " " + source.toString() + ", " + destination.toString();
-		}
+	public String toString() {
+		return instructionType + " " + source.toString() + ", " + destination.toString();
+	}
 }
 
 abstract class Operand {
-	protected HashMap <String, Integer> registers;
 	public abstract int getValue(MachineState state);
 	public abstract MachineState updateState(MachineState currState, int val);
 } 
@@ -401,21 +314,19 @@ abstract class Operand {
 class RegOperand extends Operand {
 	private String regName;
 
-	public RegOperand(String regName, HashMap<String, Integer> registers) {
-		this.registers = registers;
+	public RegOperand(String regName) {
 		this.regName = regName;
 	}
 
 	@Override
-		public int getValue(MachineState state) { 
-			return state.getRegisterValue(regName);
-		}
+	public int getValue(MachineState state) { 
+		return state.getRegisterValue(regName);
+	}
 
 	@Override
-		public MachineState updateState(MachineState currState, int val) {
-			return currState.getNewState(this.regName, val);
-			//registers.put(this.regName, val);
-		}
+	public MachineState updateState(MachineState currState, int val) {
+		return currState.getNewState(this.regName, val);
+	}
 
 	@Override
 		public String toString() {
@@ -429,12 +340,11 @@ class MemoryOperand extends Operand {
 	private int scale;
 	private int offset;
 
-	public MemoryOperand(String baseReg, String indexReg, int scale, int offset, HashMap<String, Integer> registers) {
+	public MemoryOperand(String baseReg, String indexReg, int scale, int offset) {
 		this.baseReg = baseReg;
 		this.indexReg = indexReg;
 		this.scale = scale;
 		this.offset = offset;
-		this.registers = registers;
 	}
 
 	private int calculateAddress(MachineState state) {
@@ -447,25 +357,25 @@ class MemoryOperand extends Operand {
 	}
 
 	@Override
-		public int getValue(MachineState state) { 
-			return state.getMemoryValue(calculateAddress(state));
-		}
+	public int getValue(MachineState state) { 
+		return state.getMemoryValue(calculateAddress(state));
+	}
 
 	@Override
-		public MachineState updateState(MachineState currState, int val) {
-			return currState.getNewState(calculateAddress(currState), val);
-		}
+	public MachineState updateState(MachineState currState, int val) {
+		return currState.getNewState(calculateAddress(currState), val);
+	}
 
 	@Override
-		public String toString() {
-			String res = offset + "(%" + baseReg;
-			if (indexReg != null) {
-				res += ", %" + indexReg + ", " + scale;
-			}
-
-			res += ")";
-			return res;
+	public String toString() {
+		String res = offset + "(%" + baseReg;
+		if (indexReg != null) {
+			res += ", %" + indexReg + ", " + scale;
 		}
+
+		res += ")";
+		return res;
+	}
 }
 
 class ConstantOperand extends Operand {
@@ -476,19 +386,19 @@ class ConstantOperand extends Operand {
 	}
 
 	@Override
-		public int getValue(MachineState state) { return constant; }
+	public int getValue(MachineState state) { return constant; }
 
 	@Override
-		public MachineState updateState(MachineState currState, int val) { 
-			System.err.println("Why are you trying to set a constant?");
-			// TODO: exception here?
-			return currState;
-		}
+	public MachineState updateState(MachineState currState, int val) { 
+		System.err.println("Why are you trying to set a constant?");
+		// TODO: exception here?
+		return currState;
+	}
 
 	@Override
-		public String toString() {
-			return "$" + constant;
-		}
+	public String toString() {
+		return "$" + constant;
+	}
 }
 
 class MachineState {
