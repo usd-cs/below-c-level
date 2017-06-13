@@ -124,14 +124,6 @@ public abstract class x86Instruction {
 				return null; // TODO: throw exception
 			}
 
-			/*
-			if (opString.charAt(0) != '(') {
-				System.out.println("got an offset for memory op");
-				offset = Integer.parseInt(opString.substring(0, opString.indexOf('('))); // TODO: handle hex
-				opString = opString.substring(opString.indexOf('('));
-			}
-			*/
-
 			System.out.println("opString: " + opString);
 
 			String[] components = opString.split("[(),]");
@@ -139,9 +131,6 @@ public abstract class x86Instruction {
 				System.err.println("ERROR: invalid number of memory op components");
 				return null; // TODO: throw exception
 			}
-
-			//for (String s : components)
-			//	System.out.println("component: " + s);
 
 			int offset = 0;
 			if (!components[0].isEmpty()) {
