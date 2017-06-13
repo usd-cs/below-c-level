@@ -5,6 +5,7 @@
  */
 package reversey.backy;
 
+import java.util.Map;
 import java.util.HashMap;
 import java.util.function.*;
 import java.util.regex.Pattern;
@@ -395,8 +396,8 @@ class ConstantOperand extends Operand {
 }
 
 class MachineState {
-	private HashMap<String, Integer> registers;
-	private HashMap<Integer, Integer> memory;
+	private Map<String, Integer> registers;
+	private Map<Integer, Integer> memory;
 
 	public MachineState() {
 		this.registers = new HashMap<String, Integer>();
@@ -407,7 +408,7 @@ class MachineState {
 			registers.put(s, 0);
 	}
 
-	public MachineState(HashMap<String, Integer> reg, HashMap<Integer, Integer> mem) {
+	public MachineState(Map<String, Integer> reg, Map<Integer, Integer> mem) {
 		this.registers = reg;
 		this.memory = mem;
 	}
@@ -417,7 +418,7 @@ class MachineState {
 	 * from given address to given val
 	 */
 	public MachineState getNewState(int address, int val) {
-		HashMap<Integer, Integer> mem = new HashMap<Integer, Integer>(this.memory);
+		Map<Integer, Integer> mem = new HashMap<Integer, Integer>(this.memory);
 		mem.put(address, val);
 		return new MachineState(this.registers, mem);
 	}
@@ -427,7 +428,7 @@ class MachineState {
 	 * from given register to given val
 	 */
 	public MachineState getNewState(String regName, int val) {
-		HashMap<String, Integer> reg = new HashMap<String, Integer>(registers);
+		Map<String, Integer> reg = new HashMap<String, Integer>(registers);
 		reg.put(regName, val);
 		return new MachineState(reg, this.memory);
 	}
@@ -442,12 +443,12 @@ class MachineState {
 
 	public String toString() {
 		String s = "Registers:\n";
-		for (HashMap.Entry<String, Integer> entry : registers.entrySet()) {
+		for (Map.Entry<String, Integer> entry : registers.entrySet()) {
 			s += "\t" + entry.getKey() + ": " + entry.getValue() + "\n";
 		}
 
 		s += "Memory:\n";
-		for (HashMap.Entry<Integer, Integer> entry : memory.entrySet()) {
+		for (Map.Entry<Integer, Integer> entry : memory.entrySet()) {
 			s += "\t" + entry.getKey() + ": " + entry.getValue() + "\n";
 		}
 
