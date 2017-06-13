@@ -236,7 +236,7 @@ class x86UnaryInstruction extends x86Instruction {
 	/**
 	 * The function that this instruction performs.
 	 */
-	private IntUnaryOperator operation;
+	private UnaryX86Operation operation;
 
 	/**
 	 * @param instType String representation of the instruction's operation.
@@ -248,22 +248,47 @@ class x86UnaryInstruction extends x86Instruction {
 
 		switch (instType) {
 			case "inc":
-				this.operation = (dest) -> dest + 1;
+				this.operation = 
+					(state, dest) -> dest.updateState(state, dest.getValue(state) + 1); 
 				break;
 			case "dec":
-				this.operation = (dest) -> dest - 1;
+				this.operation = 
+					(state, dest) -> dest.updateState(state, dest.getValue(state) - 1); 
 				break;
 			case "neg":
-				this.operation = (dest) -> -dest;
+				this.operation = 
+					(state, dest) -> dest.updateState(state, -dest.getValue(state)); 
 				break;
 			case "not":
-				this.operation = (dest) -> ~dest;
+				this.operation = 
+					(state, dest) -> dest.updateState(state, ~dest.getValue(state)); 
 				break;
 			case "push":
-				this.operation = IntUnaryOperator.identity();
+				this.operation = 
+					(state, src) -> { 
+						// step 1: subtract 8 from rsp
+						// FIXME: esp should become rsp, 4 should become 8
+						RegOperand rsp = new RegOperand("esp");
+						MachineState tmp = rsp.updateState(state, rsp.getValue(state) - 4);
+
+						// step 2: store src operand value in (%rsp)
+						MemoryOperand dest = new MemoryOperand("esp", null, 1, 0);
+						return dest.updateState(tmp, src.getValue(tmp)); 
+					};
 				break;
 			case "pop":
-				this.operation = IntUnaryOperator.identity();
+				this.operation = 
+					(state, dest) -> { 
+						// step 1: store (%rsp) value in dest operand 
+						MemoryOperand src = new MemoryOperand("esp", null, 1, 0);
+						MachineState tmp = dest.updateState(state, src.getValue(state)); 
+
+						// step 2: add 8 to rsp
+						// FIXME: esp should become rsp, 4 should become 8
+						RegOperand rsp = new RegOperand("esp");
+						return rsp.updateState(tmp, rsp.getValue(tmp) + 4);
+
+					};
 				break;
 			default:
 				System.err.println("invalid instr type for unary inst: " + instType);
@@ -278,12 +303,9 @@ class x86UnaryInstruction extends x86Instruction {
 			case "dec":
 			case "neg":
 			case "not":
-				int destVal = operation.applyAsInt(destination.getValue(state));
-				return destination.updateState(state, destVal);
 			case "push":
 			case "pop":
-				System.out.println(this.instructionType + " not supported yet");
-				return state;
+				return operation.apply(state, this.destination);
 			default:
 				System.err.println("Something went terribly wrong.");
 				return null; // TODO: exception?
@@ -627,6 +649,11 @@ class MachineState {
 @FunctionalInterface
 interface BinaryX86Operation {
 	MachineState apply(MachineState state, Operand src, Operand dest);
+}
+
+@FunctionalInterface
+interface UnaryX86Operation {
+	MachineState apply(MachineState state, Operand dest);
 }
 
 /**
