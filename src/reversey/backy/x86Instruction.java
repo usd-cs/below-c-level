@@ -57,6 +57,7 @@ public abstract class x86Instruction {
 			case "shrl":
 			case "sarl":
 			case "movl":
+			case "leal":
 				return true;
 			case "incl":
 			case "decl":
@@ -384,6 +385,19 @@ class x86BinaryInstruction extends x86Instruction{
 				this.operation = 
 					(state, src, dest) -> dest.updateState(state, src.getValue(state));
 				break;
+			case "lea":
+				this.operation = 
+					(state, src, dest) -> {
+						// TODO: Use polymorophism to avoid this instanceof junk
+						if (!(src instanceof MemoryOperand)) {
+							System.err.println("ERROR: lea src must be a memory operand");
+							return null;
+						}
+
+						MemoryOperand mo = (MemoryOperand)src;
+						return dest.updateState(state, mo.calculateAddress(state));
+					};
+				break;
 			default:
 				System.err.println("unknown instr type for binary inst: " + instType);
 				System.exit(1);
@@ -492,7 +506,7 @@ class MemoryOperand extends Operand {
 	 * @param state The state in which to calculate the address.
 	 * @return The effective address.
 	 */
-	private int calculateAddress(MachineState state) {
+	public int calculateAddress(MachineState state) {
 		int address = state.getRegisterValue(baseReg) + offset;
 		if (indexReg != null) {
 			address += state.getRegisterValue(indexReg) * scale;
