@@ -523,12 +523,12 @@ class MemoryOperand extends Operand {
 
 	@Override
 	public BigInteger getValue(MachineState state) { 
-		return state.getMemoryValue(calculateAddress(state));
+		return state.getMemoryValue(calculateAddress(state), 4); // FIXME: 4 should be based on op size
 	}
 
 	@Override
 	public MachineState updateState(MachineState currState, BigInteger val) {
-		return currState.getNewState(calculateAddress(currState), val);
+		return currState.getNewState(calculateAddress(currState), val, 4); // FIXME: 4 should be based op size
 	}
 
 	@Override
@@ -589,7 +589,7 @@ class MachineState {
 	/**
 	 * The machine's memory.
 	 */
-	private Map<Integer, BigInteger> memory;
+	private Map<Integer, Byte> memory;
 
 	/**
 	 * Create a new state with all registers (except %rsp) initialized to 0 but
@@ -597,7 +597,7 @@ class MachineState {
 	 */
 	public MachineState() {
 		this.registers = new HashMap<String, byte[]>();
-		this.memory = new HashMap<Integer, BigInteger>();
+		this.memory = new HashMap<Integer, Byte>();
 
 		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"};
 		for (String s : regNames)
@@ -606,7 +606,7 @@ class MachineState {
 		registers.put("esp", ByteBuffer.allocate(4).putInt(0x7FFFFFFF).array()); // FIXME 8 bytes when adding 64-bit support
 	}
 
-	public MachineState(Map<String, byte[]> reg, Map<Integer, BigInteger> mem) {
+	public MachineState(Map<String, byte[]> reg, Map<Integer, Byte> mem) {
 		this.registers = reg;
 		this.memory = mem;
 	}
@@ -620,9 +620,21 @@ class MachineState {
 	 * @return A new state that is the same as the current but with new binding
 	 * from given address to given val.
 	 */
-	public MachineState getNewState(int address, BigInteger val) {
-		Map<Integer, BigInteger> mem = new HashMap<Integer, BigInteger>(this.memory);
-		mem.put(address, val);
+	public MachineState getNewState(int address, BigInteger val, int size) {
+		Map<Integer, Byte> mem = new HashMap<Integer, Byte>(this.memory);
+
+		byte[] valArray = val.toByteArray();
+
+		for (int src = 0, dest = address + (valArray.length - 1);
+				src < valArray.length; src++, dest++) {
+			mem.put(dest, valArray[src]);
+		}
+
+		for (int i = address + valArray.length; i < (address + size); i++) {
+			if (val.signum() == -1) mem.put(i, (byte)0xFF);
+			else mem.put(i, (byte)0);
+		}
+
 		return new MachineState(this.registers, mem);
 	}
 
@@ -664,8 +676,13 @@ class MachineState {
 	/**
 	 * Gets the value stored at the given memory address.
 	 */
-	public BigInteger getMemoryValue(int address) {
-		return memory.get(address);
+	public BigInteger getMemoryValue(int address, int size) {
+		byte[] val = new byte[4];
+
+		for (int addr = address+(size-1), dest = 0; dest < size; addr--, dest++)
+			val[dest] = memory.get(addr);
+
+		return new BigInteger(val);
 	}
 
 	public String toString() {
@@ -677,8 +694,8 @@ class MachineState {
 		}
 
 		s += "Memory:\n";
-		for (Map.Entry<Integer, BigInteger> entry : memory.entrySet()) {
-			s += "\t" + Integer.toHexString(entry.getKey()) + ": " + entry.getValue().intValue() + "\n";
+		for (Map.Entry<Integer, Byte> entry : memory.entrySet()) {
+			s += "\t" + Integer.toHexString(entry.getKey()) + ": " + String.format("%02x", entry.getValue()) + "\n";
 		}
 
 		return s;
