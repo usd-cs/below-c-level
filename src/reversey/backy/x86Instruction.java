@@ -702,12 +702,23 @@ interface UnaryX86Operation {
  */
 class x86InstructionTester {
 	public static void main(String[] args) {
+		ArrayList<x86Instruction> instructions = new ArrayList<x86Instruction>();
+		instructions.add(x86Instruction.parseInstruction("movl $9, %eax"));
+		instructions.add(x86Instruction.parseInstruction("movl $4, %ebx"));
+		instructions.add(x86Instruction.parseInstruction("addl %eax, %ebx"));
+		instructions.add(x86Instruction.parseInstruction("pushl %ebx"));
+		instructions.add(x86Instruction.parseInstruction("popl %ecx"));
+		instructions.add(x86Instruction.parseInstruction("leal -8(%esp), %edx"));
+		instructions.add(x86Instruction.parseInstruction("movl $73, (%edx)"));
+		instructions.add(x86Instruction.parseInstruction("incl %esi"));
+		instructions.add(x86Instruction.parseInstruction("decl %edi"));
+
 		MachineState state = new MachineState();
-		x86Instruction inst1 = x86Instruction.parseInstruction("movl $17, %eax");
-		System.out.println("Before:");
 		System.out.println(state);
-		MachineState state2 = inst1.eval(state);
-		System.out.println("After:");
-		System.out.println(state2);
+		for (x86Instruction inst : instructions) {
+			System.out.println(inst);
+			state = inst.eval(state);
+			System.out.println(state);
+		}
 	}
 }
