@@ -688,7 +688,6 @@ class MachineState {
 	public String toString() {
 		String s = "Registers:\n";
 		for (Map.Entry<String, byte[]> entry : registers.entrySet()) {
-			//s += "\t" + entry.getKey() + ": " + ByteBuffer.wrap(entry.getValue()).getInt() + "\n";
 			BigInteger b = new BigInteger(entry.getValue());
 			s += "\t" + entry.getKey() + ": " + b.toString() + " (0x" + b.toString(16) + ")\n";
 		}
