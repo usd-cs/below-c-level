@@ -11,6 +11,7 @@ import java.util.function.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import javafx.util.Pair;
+import java.math.BigInteger;
 
 /**
  * An abstract class representing an x86-64 instruction.
@@ -252,19 +253,19 @@ class x86UnaryInstruction extends x86Instruction {
 		switch (instType) {
 			case "inc":
 				this.operation = 
-					(state, dest) -> dest.updateState(state, dest.getValue(state) + 1); 
+					(state, dest) -> dest.updateState(state, dest.getValue(state).add(BigInteger.ONE)); 
 				break;
 			case "dec":
 				this.operation = 
-					(state, dest) -> dest.updateState(state, dest.getValue(state) - 1); 
+					(state, dest) -> dest.updateState(state, dest.getValue(state).subtract(BigInteger.ONE)); 
 				break;
 			case "neg":
 				this.operation = 
-					(state, dest) -> dest.updateState(state, -dest.getValue(state)); 
+					(state, dest) -> dest.updateState(state, dest.getValue(state).negate());
 				break;
 			case "not":
 				this.operation = 
-					(state, dest) -> dest.updateState(state, ~dest.getValue(state)); 
+					(state, dest) -> dest.updateState(state, dest.getValue(state).not());
 				break;
 			case "push":
 				this.operation = 
@@ -272,7 +273,7 @@ class x86UnaryInstruction extends x86Instruction {
 						// step 1: subtract 8 from rsp
 						// FIXME: esp should become rsp, 4 should become 8
 						RegOperand rsp = new RegOperand("esp");
-						MachineState tmp = rsp.updateState(state, rsp.getValue(state) - 4);
+						MachineState tmp = rsp.updateState(state, rsp.getValue(state).subtract(BigInteger.valueOf(4)));
 
 						// step 2: store src operand value in (%rsp)
 						MemoryOperand dest = new MemoryOperand("esp", null, 1, 0);
@@ -289,7 +290,7 @@ class x86UnaryInstruction extends x86Instruction {
 						// step 2: add 8 to rsp
 						// FIXME: esp should become rsp, 4 should become 8
 						RegOperand rsp = new RegOperand("esp");
-						return rsp.updateState(tmp, rsp.getValue(tmp) + 4);
+						return rsp.updateState(tmp, rsp.getValue(tmp).add(BigInteger.valueOf(4)));
 
 					};
 				break;
@@ -350,37 +351,40 @@ class x86BinaryInstruction extends x86Instruction{
 		switch (instType) {
 			case "add":
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state) + src.getValue(state));
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state).add(src.getValue(state)));
 				break;
 			case "sub":
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state) - src.getValue(state));
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state).subtract(src.getValue(state)));
 				break;
 			case "xor":
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state) ^ src.getValue(state));
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state).xor(src.getValue(state)));
 				break;
 			case "or":
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state) | src.getValue(state));
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state).or(src.getValue(state)));
 				break;
 			case "and":
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state) & src.getValue(state));
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state).and(src.getValue(state)));
 				break;
 			case "sal":
 			case "shl":
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state) << src.getValue(state));
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state).shiftLeft(src.getValue(state).intValue()));
 				break;
 			case "sar":
+			case "shr": // FIXME: shr needs to be arithmetic shift, not sure how to do this with BigInteger
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state) >> src.getValue(state));
+					(state, src, dest) -> dest.updateState(state, dest.getValue(state).shiftRight(src.getValue(state).intValue()));
 				break;
+			/*
 			case "shr":
 				this.operation = 
 					(state, src, dest) -> dest.updateState(state, dest.getValue(state) >>> src.getValue(state));
 				break;
+			*/
 			case "mov":
 				this.operation = 
 					(state, src, dest) -> dest.updateState(state, src.getValue(state));
@@ -395,7 +399,7 @@ class x86BinaryInstruction extends x86Instruction{
 						}
 
 						MemoryOperand mo = (MemoryOperand)src;
-						return dest.updateState(state, mo.calculateAddress(state));
+						return dest.updateState(state, BigInteger.valueOf(mo.calculateAddress(state)));
 					};
 				break;
 			default:
@@ -426,7 +430,7 @@ abstract class Operand {
 	 * @param state The state of the machine.
 	 * @return The value of the operand in a machine with the given state.
 	 */
-	public abstract int getValue(MachineState state);
+	public abstract BigInteger getValue(MachineState state);
 
 	/**
 	 * @param currState The current state of the machine.
@@ -434,7 +438,7 @@ abstract class Operand {
 	 * @return The state after updating the current state with the new value for
 	 * the operand.
 	 */
-	public abstract MachineState updateState(MachineState currState, int val);
+	public abstract MachineState updateState(MachineState currState, BigInteger val);
 } 
 
 /**
@@ -450,12 +454,12 @@ class RegOperand extends Operand {
 	}
 
 	@Override
-	public int getValue(MachineState state) { 
+	public BigInteger getValue(MachineState state) { 
 		return state.getRegisterValue(regName);
 	}
 
 	@Override
-	public MachineState updateState(MachineState currState, int val) {
+	public MachineState updateState(MachineState currState, BigInteger val) {
 		return currState.getNewState(this.regName, val);
 	}
 
@@ -506,22 +510,22 @@ class MemoryOperand extends Operand {
 	 * @param state The state in which to calculate the address.
 	 * @return The effective address.
 	 */
-	public int calculateAddress(MachineState state) {
-		int address = state.getRegisterValue(baseReg) + offset;
+	public int calculateAddress(MachineState state) { // FIXME: should this return long?
+		int address = state.getRegisterValue(baseReg).add(BigInteger.valueOf(offset)).intValue();
 		if (indexReg != null) {
-			address += state.getRegisterValue(indexReg) * scale;
+			address += state.getRegisterValue(indexReg).multiply(BigInteger.valueOf(scale)).intValue();
 		}
 
 		return address;
 	}
 
 	@Override
-	public int getValue(MachineState state) { 
+	public BigInteger getValue(MachineState state) { 
 		return state.getMemoryValue(calculateAddress(state));
 	}
 
 	@Override
-	public MachineState updateState(MachineState currState, int val) {
+	public MachineState updateState(MachineState currState, BigInteger val) {
 		return currState.getNewState(calculateAddress(currState), val);
 	}
 
@@ -546,17 +550,17 @@ class ConstantOperand extends Operand {
 	/**
 	 * The operand's value.
 	 */
-	private int constant;
+	private long constant;
 
-	public ConstantOperand(int val) {
+	public ConstantOperand(long val) {
 		this.constant = val;
 	}
 
 	@Override
-	public int getValue(MachineState state) { return constant; }
+	public BigInteger getValue(MachineState state) { return BigInteger.valueOf(constant); }
 
 	@Override
-	public MachineState updateState(MachineState currState, int val) { 
+	public MachineState updateState(MachineState currState, BigInteger val) { 
 		System.err.println("Why are you trying to set a constant?");
 		// TODO: exception here?
 		return currState;
@@ -578,29 +582,29 @@ class MachineState {
 	/**
 	 * The register file.
 	 */
-	private Map<String, Integer> registers;
+	private Map<String, BigInteger> registers;
 
 	/**
 	 * The machine's memory.
 	 */
-	private Map<Integer, Integer> memory;
+	private Map<Integer, BigInteger> memory;
 
 	/**
 	 * Create a new state with all registers (except %rsp) initialized to 0 but
 	 * no memory initialization. %rsp is initialized to 0x7FFFFFFF.
 	 */
 	public MachineState() {
-		this.registers = new HashMap<String, Integer>();
-		this.memory = new HashMap<Integer, Integer>();
+		this.registers = new HashMap<String, BigInteger>();
+		this.memory = new HashMap<Integer, BigInteger>();
 
 		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"};
 		for (String s : regNames)
-			registers.put(s, 0);
+			registers.put(s, BigInteger.ZERO);
 
-		registers.put("esp", 0x7FFFFFFF);
+		registers.put("esp", new BigInteger("7FFFFFFF", 16));
 	}
 
-	public MachineState(Map<String, Integer> reg, Map<Integer, Integer> mem) {
+	public MachineState(Map<String, BigInteger> reg, Map<Integer, BigInteger> mem) {
 		this.registers = reg;
 		this.memory = mem;
 	}
@@ -614,8 +618,8 @@ class MachineState {
 	 * @return A new state that is the same as the current but with new binding
 	 * from given address to given val.
 	 */
-	public MachineState getNewState(int address, int val) {
-		Map<Integer, Integer> mem = new HashMap<Integer, Integer>(this.memory);
+	public MachineState getNewState(int address, BigInteger val) {
+		Map<Integer, BigInteger> mem = new HashMap<Integer, BigInteger>(this.memory);
 		mem.put(address, val);
 		return new MachineState(this.registers, mem);
 	}
@@ -629,8 +633,8 @@ class MachineState {
 	 * @return A new state that is the same as the current but with new binding
 	 * from given register to given val
 	 */
-	public MachineState getNewState(String regName, int val) {
-		Map<String, Integer> reg = new HashMap<String, Integer>(registers);
+	public MachineState getNewState(String regName, BigInteger val) {
+		Map<String, BigInteger> reg = new HashMap<String, BigInteger>(registers);
 		reg.put(regName, val);
 		return new MachineState(reg, this.memory);
 	}
@@ -638,25 +642,25 @@ class MachineState {
 	/**
 	 * Gets the value stored in the given register.
 	 */
-	public int getRegisterValue(String regName) {
+	public BigInteger getRegisterValue(String regName) {
 		return registers.get(regName);
 	}
 
 	/**
 	 * Gets the value stored at the given memory address.
 	 */
-	public int getMemoryValue(int address) {
+	public BigInteger getMemoryValue(int address) {
 		return memory.get(address);
 	}
 
 	public String toString() {
 		String s = "Registers:\n";
-		for (Map.Entry<String, Integer> entry : registers.entrySet()) {
+		for (Map.Entry<String, BigInteger> entry : registers.entrySet()) {
 			s += "\t" + entry.getKey() + ": " + entry.getValue() + "\n";
 		}
 
 		s += "Memory:\n";
-		for (Map.Entry<Integer, Integer> entry : memory.entrySet()) {
+		for (Map.Entry<Integer, BigInteger> entry : memory.entrySet()) {
 			s += "\t" + Integer.toHexString(entry.getKey()) + ": " + entry.getValue() + "\n";
 		}
 
