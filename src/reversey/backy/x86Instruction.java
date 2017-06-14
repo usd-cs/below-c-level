@@ -615,8 +615,9 @@ class MachineState {
 	 * Create a new MachineState based on the current state but with an updated
 	 * value for a memory address.
 	 *
-	 * @param address The address that will be changed in the new state.
+	 * @param address The starting (i.e. lowest) address that will be changed.
 	 * @param val The new value of the given memory address.
+	 * @param size The number of bytes to write to memory.
 	 * @return A new state that is the same as the current but with new binding
 	 * from given address to given val.
 	 */
@@ -675,6 +676,9 @@ class MachineState {
 
 	/**
 	 * Gets the value stored at the given memory address.
+	 *
+	 * @param address The starting address where the value is stored.
+	 * @param size The number of bytes of memory to read.
 	 */
 	public BigInteger getMemoryValue(int address, int size) {
 		byte[] val = new byte[4];
