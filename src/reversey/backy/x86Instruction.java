@@ -12,6 +12,8 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import javafx.util.Pair;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 /**
  * An abstract class representing an x86-64 instruction.
@@ -582,7 +584,7 @@ class MachineState {
 	/**
 	 * The register file.
 	 */
-	private Map<String, BigInteger> registers;
+	private Map<String, byte[]> registers;
 
 	/**
 	 * The machine's memory.
@@ -594,17 +596,17 @@ class MachineState {
 	 * no memory initialization. %rsp is initialized to 0x7FFFFFFF.
 	 */
 	public MachineState() {
-		this.registers = new HashMap<String, BigInteger>();
+		this.registers = new HashMap<String, byte[]>();
 		this.memory = new HashMap<Integer, BigInteger>();
 
 		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"};
 		for (String s : regNames)
-			registers.put(s, BigInteger.ZERO);
+			registers.put(s, new byte[4]); // FIXME: should be 8 to support 64-bit registers
 
-		registers.put("esp", new BigInteger("7FFFFFFF", 16));
+		registers.put("esp", ByteBuffer.allocate(4).putInt(0x7FFFFFFF).array()); // FIXME 8 bytes when adding 64-bit support
 	}
 
-	public MachineState(Map<String, BigInteger> reg, Map<Integer, BigInteger> mem) {
+	public MachineState(Map<String, byte[]> reg, Map<Integer, BigInteger> mem) {
 		this.registers = reg;
 		this.memory = mem;
 	}
@@ -634,8 +636,21 @@ class MachineState {
 	 * from given register to given val
 	 */
 	public MachineState getNewState(String regName, BigInteger val) {
-		Map<String, BigInteger> reg = new HashMap<String, BigInteger>(registers);
-		reg.put(regName, val);
+		Map<String, byte[]> reg = new HashMap<String, byte[]>(registers);
+		byte[] valArray = val.toByteArray();
+		byte[] newVal = new byte[4]; // FIXME: this should be 8 for x86-64
+
+		for (int src = 0, dest = (newVal.length - valArray.length); 
+				src < valArray.length; src++, dest++) {
+			newVal[dest] = valArray[src];
+		}
+
+		if (val.signum() == -1) {
+			for (int i = 0; i < newVal.length - valArray.length; i++)
+				newVal[i] = (byte)0xFF;
+		}
+
+		reg.put(regName, newVal);
 		return new MachineState(reg, this.memory);
 	}
 
@@ -643,7 +658,7 @@ class MachineState {
 	 * Gets the value stored in the given register.
 	 */
 	public BigInteger getRegisterValue(String regName) {
-		return registers.get(regName);
+		return new BigInteger(registers.get(regName));
 	}
 
 	/**
@@ -655,13 +670,15 @@ class MachineState {
 
 	public String toString() {
 		String s = "Registers:\n";
-		for (Map.Entry<String, BigInteger> entry : registers.entrySet()) {
-			s += "\t" + entry.getKey() + ": " + entry.getValue() + "\n";
+		for (Map.Entry<String, byte[]> entry : registers.entrySet()) {
+			//s += "\t" + entry.getKey() + ": " + ByteBuffer.wrap(entry.getValue()).getInt() + "\n";
+			BigInteger b = new BigInteger(entry.getValue());
+			s += "\t" + entry.getKey() + ": " + b.toString() + " (0x" + b.toString(16) + ")\n";
 		}
 
 		s += "Memory:\n";
 		for (Map.Entry<Integer, BigInteger> entry : memory.entrySet()) {
-			s += "\t" + Integer.toHexString(entry.getKey()) + ": " + entry.getValue() + "\n";
+			s += "\t" + Integer.toHexString(entry.getKey()) + ": " + entry.getValue().intValue() + "\n";
 		}
 
 		return s;
