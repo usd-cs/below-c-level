@@ -606,15 +606,17 @@ class x86BinaryInstruction extends x86Instruction{
 						return dest.updateState(state, result, flags);
 					};
 				break;
-			case "shr": // TODO: shr needs to be logical shift, but BigInteger doesn't provide logical shift right (>>>)
+			case "shr":
 				this.type = InstructionType.SHR;
 				this.operation = 
 					(state, src, dest) -> {
 						int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
 						BigInteger orig = dest.getValue(state);
 
-						// FIXME: this needs some more thought to make sure it
-						// is correctly implemented.
+						// BigInteger doesn't have logical right shift (>>>)
+						// so we do the ugly thing here and use the >>>
+						// operator by converting to the native types of the
+						// operators.
 						String s = null;
 						switch (this.opSize) {
 							case BYTE:
