@@ -290,7 +290,7 @@ class x86UnaryInstruction extends x86Instruction {
 				this.operation = 
 					(state, dest) -> {
 						BigInteger result = dest.getValue(state).add(BigInteger.ONE);
-						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBits());
 
 						// truncate if we are too long
 						byte[] resArray = result.toByteArray();
@@ -311,7 +311,7 @@ class x86UnaryInstruction extends x86Instruction {
 				this.operation = 
 					(state, dest) -> {
 						BigInteger result = dest.getValue(state).subtract(BigInteger.ONE);
-						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBits());
 
 						// truncate if we are too long
 						byte[] resArray = result.toByteArray();
@@ -333,7 +333,7 @@ class x86UnaryInstruction extends x86Instruction {
 					(state, dest) -> {
 						BigInteger orig = dest.getValue(state);
 						BigInteger result = orig.negate();
-						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBits());
 
 						// truncate if we are too long
 						byte[] resArray = result.toByteArray();
@@ -453,7 +453,7 @@ class x86BinaryInstruction extends x86Instruction{
 						BigInteger src2 = src.getValue(state);
 						BigInteger result = src1.add(src2);
 
-						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBits());
 
 						// truncate if we are too long
 						byte[] resArray = result.toByteArray();
@@ -477,7 +477,7 @@ class x86BinaryInstruction extends x86Instruction{
 						BigInteger src2 = src.getValue(state);
 						BigInteger result = src1.subtract(src2);
 
-						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBits());
 
 						// truncate if we are too long
 						byte[] resArray = result.toByteArray();
@@ -541,7 +541,7 @@ class x86BinaryInstruction extends x86Instruction{
 						BigInteger orig = dest.getValue(state);
 						BigInteger result = orig.shiftLeft(shamt);
 
-						int msbIndex = this.opSize.numBytes()*8-1;
+						int msbIndex = this.opSize.numBits()-1;
 
 						int signum = result.signum();
 						flags.put("zf", signum == 0);
@@ -579,7 +579,7 @@ class x86BinaryInstruction extends x86Instruction{
 						BigInteger orig = dest.getValue(state);
 						BigInteger result = orig.shiftRight(shamt);
 
-						if (result.bitLength()+1 > this.opSize.numBytes()*8) {
+						if (result.bitLength()+1 > this.opSize.numBits()) {
 							System.err.println("ERROR: shifting right made it bigger???");
 							System.exit(1);
 						}
@@ -745,6 +745,7 @@ enum OpSize {
 	}
 
 	public int numBytes() { return this.numBytes; }
+	public int numBits() { return this.numBytes * 8; }
 }
 
 
