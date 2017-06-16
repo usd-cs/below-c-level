@@ -53,50 +53,71 @@ public abstract class x86Instruction {
 	 * Checks that instruction is a valid, supported x86 instruction.
 	 *
 	 * @param instrName The name of the instruction (e.g. addl)
-	 * @return true if a supported binary instruction, false if a supported
+	 * FIXME @return true if a supported binary instruction, false if a supported
 	 * unary instruction.
 	 */
-	public static boolean validateInstruction(String instrName) {
-		switch (instrName) {
-			case "addl":
-			case "subl":
-			case "xorl":
-			case "orl":
-			case "andl":
-			case "shll":
-			case "sall":
-			case "shrl":
-			case "sarl":
-			case "movl":
-			case "leal":
-				return true;
-			case "incl":
-			case "decl":
-			case "negl":
-			case "notl":
-			case "pushl":
-			case "popl":
-				return false;
-			default:
-				System.err.println("invalid or unsupported instruction: " + instrName);
-				System.exit(1); // TODO: throw exception
-				return false;
+	public static Pair<InstructionType, OpSize> parseTypeAndSize(String instrName) {
+		InstructionType type;
+		OpSize size;
+
+		String validInstrNames = "^(add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop)(l|q)$";
+		if (Pattern.matches(validInstrNames, instrName)) {
+			type = InstructionType.valueOf(instrName.substring(0, instrName.length()-1).toUpperCase());
+			switch (instrName.charAt(instrName.length()-1)) {
+				case 'l':
+					System.out.println("instruction size is LONG");
+					size = OpSize.LONG;
+					break;
+				case 'q':
+					System.out.println("instruction size is QUAD");
+					size = OpSize.QUAD;
+					break;
+				default:
+					System.err.println("ERRRRROR: this should never happen...");
+					return null;
+			}
 		}
+		else {
+			System.err.println("ERROR: invalid or unsupported instruction: " + instrName);
+			return null; // TODO: throw exception
+		}
+
+		return new Pair<InstructionType, OpSize>(type, size);
 	}
 
 	/**
 	 * Get the register name from a given string.
 	 *
 	 * @param str The string that contains a register name, starting with %
-	 * @return Name of the register, or null if invalid register.
+	 * FIXME @return Name of the register, or null if invalid register.
 	 */
-	public static String parseRegister(String str) {
+	public static Pair<String, OpSize> parseRegister(String str) {
 		System.out.println("parseRegister: " + str);
+		/*
 		String regRegEx = "^\\%(eax|ebx|ecx|edx|esi|edi|ebp|esp|eip)$";
 		if (Pattern.matches(regRegEx, str))
 			return str.substring(1);
 		else
 			return null; // TODO: throw exception
+		*/
+
+		OpSize opSize = OpSize.BYTE;
+		String longRegNames = "^\\%(e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)d)$";
+		String quadRegNames = "^\\%r(ax|bx|cx|dx|si|di|bp|sp|8|9|10|11|12|13|14|15)$";
+		if (Pattern.matches(longRegNames, str)) {
+			opSize = OpSize.LONG;
+		}
+		else if (Pattern.matches(quadRegNames, str)) {
+			opSize = OpSize.QUAD;
+		}
+		// TODO: BYTE and WORD registers
+		else {
+			System.err.println("ERROR: only LONG and QUAD operands currently supported");
+			return null; // TODO: throw exception
+		}
+
+		String name = str.substring(1);
+		return new Pair<String, OpSize>(name, opSize);
 	}
 
 	/**
@@ -105,7 +126,7 @@ public abstract class x86Instruction {
 	 * @param String that contains the operand at the beginning.
 	 * @return The parsed operand and the index in str where the operand ends.
 	 */
-	public static Pair<Operand, Integer> parseOperand(String str) {
+	public static Pair<Operand, Integer> parseOperand(String str, OpSize instrOpSize) {
 		System.out.println("parsing Operand in: " + str);
 
 		Operand op = null;
@@ -121,8 +142,18 @@ public abstract class x86Instruction {
 			// register operand
 			System.out.println("found a register op");
 			String[] splits = str.split(",");
-			String regName = parseRegister(splits[0]);
-			op = new RegOperand(regName, OpSize.LONG);
+
+			Pair<String, OpSize> regDetails = parseRegister(splits[0]);
+			String regName = regDetails.getKey();
+			OpSize opSize = regDetails.getValue();
+
+			// TODO: move this to a "validation" method
+			if (opSize != instrOpSize) {
+				System.err.println("ERROR: op size mismatch (expected: " + instrOpSize + "; got: " + opSize + ")");
+				return null; // TODO: throw exception
+			}
+
+			op = new RegOperand(regName, opSize);
 		}
 		else {
 			// memory operand
@@ -161,11 +192,15 @@ public abstract class x86Instruction {
 				offset = Integer.parseInt(components[0]); // TODO: handle hex
 			}
 
-			String baseReg = parseRegister(components[1]);
+			Pair<String, OpSize> baseRegDetails = parseRegister(components[1]);
+			String baseReg = baseRegDetails.getKey();
+			//OpSize baseOpSize = baseRegDetails.getValue();
 			String indexReg = null;
 			int scale = 1;
 			if (components.length > 2) {
-				indexReg = parseRegister(components[2]);
+				Pair<String, OpSize> indexRegDetails = parseRegister(components[2]);
+				indexReg = indexRegDetails.getKey();
+				//OpSize indexOpSize = indexRegDetails.getValue();
 			}
 			if (components.length > 3) {
 				scale = Integer.parseInt(components[3]);
@@ -175,7 +210,7 @@ public abstract class x86Instruction {
 				}
 			}
 
-			op = new MemoryOperand(baseReg, indexReg, scale, offset, OpSize.LONG);
+			op = new MemoryOperand(baseReg, indexReg, scale, offset, instrOpSize);
 		}
 
 		if (str.charAt(0) == '$' || str.charAt(0) == '%') {
@@ -205,31 +240,17 @@ public abstract class x86Instruction {
 		String instrName = tokens[0]; // should be instruction name, e.g. "addl"
 		System.out.println("instr name: " + instrName);
 
-		OpSize opSize = OpSize.BYTE;
-
-		char sizeSuffix = instrName.charAt(instrName.length()-1);
-		switch (sizeSuffix) {
-			case 'l':
-				opSize = OpSize.LONG;
-				break;
-			case 'b':
-			case 'w':
-			case 'q':
-				System.err.println("ERROR: Only long instructions are supported currently.");
-				return null; // TODO: throw exception
-			default:
-				System.err.println("ERROR: unknown suffix (" + sizeSuffix + ")");
-				return null; // TODO: throw exception
-				
-		}
+		Pair<InstructionType, OpSize> instDetails = parseTypeAndSize(instrName);
+		InstructionType instrType = instDetails.getKey();
+		OpSize opSize = instDetails.getValue();
 
 		String operandsStr = String.join("",tokens).substring(tokens[0].length());
-		System.out.println("operand str: " + operandsStr);
+		//System.out.println("operand str: " + operandsStr);
 
-		Pair<Operand, Integer> firstOperandAndEndPt = parseOperand(operandsStr);
-		System.out.println("First operand was: " + firstOperandAndEndPt.getKey());
+		Pair<Operand, Integer> firstOperandAndEndPt = parseOperand(operandsStr, opSize);
+		//System.out.println("First operand was: " + firstOperandAndEndPt.getKey());
 
-		if (validateInstruction(instrName)) {
+		if (instrType.numOperands() == 2) {
 			if (operandsStr.indexOf(',') == -1) {
 				System.err.println("ERROR: Couldn't find separator between first and second operand.");
 				return null; // TODO: throw exception
@@ -237,10 +258,10 @@ public abstract class x86Instruction {
 
 			String secondOpStr = operandsStr.substring(firstOperandAndEndPt.getValue());
 
-			Pair<Operand, Integer> secondOperandAndEndPt = parseOperand(secondOpStr);
+			Pair<Operand, Integer> secondOperandAndEndPt = parseOperand(secondOpStr, opSize);
 
 			if (secondOperandAndEndPt.getValue() != secondOpStr.length()) {
-				System.err.println("extra stuff left over: " + secondOpStr.substring(secondOperandAndEndPt.getValue()));
+				System.err.println("ERROR: extra stuff left over: " + secondOpStr.substring(secondOperandAndEndPt.getValue()));
 				return null; // TODO: make this throw an exception
 			}
 
@@ -249,14 +270,22 @@ public abstract class x86Instruction {
 					secondOperandAndEndPt.getKey(),
 					opSize);
 		}
-		else {
-			if (firstOperandAndEndPt.getValue() != operandsStr.length())
+		else if (instrType.numOperands() == 1) {
+			if (firstOperandAndEndPt.getValue() != operandsStr.length()) {
+				System.err.println("ERROR: extra stuff left over: " + operandsStr.substring(firstOperandAndEndPt.getValue()));
 				return null; // TODO: make this throw an exception
+			}
 
 			return new x86UnaryInstruction(instrName.substring(0, instrName.length()-1), 
 					firstOperandAndEndPt.getKey(),
 					opSize);
 		}
+		else {
+			System.err.println("ERROR: Only support binary and unary x86 instructions.");
+			System.exit(1);
+			return null;
+		}
+
 	}
 
 	public abstract String toString();
@@ -706,24 +735,35 @@ class x86BinaryInstruction extends x86Instruction{
  * The type of an x86 Instruction.
  */
 enum InstructionType {
-	ADD,
-	SUB,
-	OR,
-	AND,
-	XOR,
-	SHL,
-	SAL,
-	SHR,
-	SRL,
-	SAR,
-	MOV,
-	LEA,
-	INC,
-	DEC,
-	NEG,
-	NOT,
-	PUSH,
-	POP;
+	ADD (2),
+	SUB (2),
+	OR (2),
+	AND (2),
+	XOR (2),
+	SHL (2),
+	SAL (2),
+	SHR (2),
+	SRL (2),
+	SAR (2),
+	MOV (2),
+	LEA (2),
+	INC (1),
+	DEC (1),
+	NEG (1),
+	NOT (1),
+	PUSH (1),
+	POP (1);
+
+	/**
+	 * Number of operands used by the instruction.
+	 */
+	private int numOperands;
+
+	private InstructionType(int nO) {
+		this.numOperands = nO;
+	}
+
+	public int numOperands() { return this.numOperands; }
 }
 
 /**
@@ -950,7 +990,7 @@ class MachineState {
 		this.memory = new HashMap<Integer, Byte>();
 		this.statusFlags = new HashMap<String, Boolean>();
 
-		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"};
+		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"};
 		for (String s : regNames)
 			registers.put(s, new byte[4]); // FIXME: should be 8 to support 64-bit registers
 
@@ -1129,6 +1169,11 @@ class x86InstructionTester {
 		instructions.add(x86Instruction.parseInstruction("andl $0, %ebp"));
 		instructions.add(x86Instruction.parseInstruction("notl %ebp"));
 		instructions.add(x86Instruction.parseInstruction("shrl $1, %ebp"));
+
+		// more LONG registers
+		instructions.add(x86Instruction.parseInstruction("movl $1, %r8d"));
+		instructions.add(x86Instruction.parseInstruction("sall $4, %r8d"));
+		instructions.add(x86Instruction.parseInstruction("sarl $3, %r8d"));
 
 		MachineState state = new MachineState();
 		System.out.println(state);
