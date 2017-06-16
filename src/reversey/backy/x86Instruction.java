@@ -5,6 +5,7 @@
  */
 package reversey.backy;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.function.*;
@@ -29,9 +30,16 @@ public abstract class x86Instruction {
 	/**
 	 * The type of instruction (e.g. add)
 	 */
-	protected String instructionType;
+	protected InstructionType type;
 
-	// 
+	/**
+	 * The number of bytes the operation works on.
+	 */
+	protected OpSize opSize;
+
+	// Getters
+	public InstructionType getType() { return this.type; }
+	public OpSize getOpSize() { return this.opSize; }
 
 	/**
 	 * Perform the operation specific to the instruction.
@@ -114,7 +122,7 @@ public abstract class x86Instruction {
 			System.out.println("found a register op");
 			String[] splits = str.split(",");
 			String regName = parseRegister(splits[0]);
-			op = new RegOperand(regName);
+			op = new RegOperand(regName, OpSize.LONG);
 		}
 		else {
 			// memory operand
@@ -167,7 +175,7 @@ public abstract class x86Instruction {
 				}
 			}
 
-			op = new MemoryOperand(baseReg, indexReg, scale, offset);
+			op = new MemoryOperand(baseReg, indexReg, scale, offset, OpSize.LONG);
 		}
 
 		if (str.charAt(0) == '$' || str.charAt(0) == '%') {
@@ -196,6 +204,25 @@ public abstract class x86Instruction {
 		String[] tokens = instr.split("\\s+");
 		String instrName = tokens[0]; // should be instruction name, e.g. "addl"
 		System.out.println("instr name: " + instrName);
+
+		OpSize opSize = OpSize.BYTE;
+
+		char sizeSuffix = instrName.charAt(instrName.length()-1);
+		switch (sizeSuffix) {
+			case 'l':
+				opSize = OpSize.LONG;
+				break;
+			case 'b':
+			case 'w':
+			case 'q':
+				System.err.println("ERROR: Only long instructions are supported currently.");
+				return null; // TODO: throw exception
+			default:
+				System.err.println("ERROR: unknown suffix (" + sizeSuffix + ")");
+				return null; // TODO: throw exception
+				
+		}
+
 		String operandsStr = String.join("",tokens).substring(tokens[0].length());
 		System.out.println("operand str: " + operandsStr);
 
@@ -219,14 +246,16 @@ public abstract class x86Instruction {
 
 			return new x86BinaryInstruction(instrName.substring(0, instrName.length()-1), 
 					firstOperandAndEndPt.getKey(),
-					secondOperandAndEndPt.getKey());
+					secondOperandAndEndPt.getKey(),
+					opSize);
 		}
 		else {
 			if (firstOperandAndEndPt.getValue() != operandsStr.length())
 				return null; // TODO: make this throw an exception
 
 			return new x86UnaryInstruction(instrName.substring(0, instrName.length()-1), 
-					firstOperandAndEndPt.getKey());
+					firstOperandAndEndPt.getKey(),
+					opSize);
 		}
 	}
 
@@ -247,52 +276,114 @@ class x86UnaryInstruction extends x86Instruction {
 	/**
 	 * @param instType String representation of the instruction's operation.
 	 * @param destOp Operand representing the destination of the instruction.
+	 * @param size Number of bytes this instruction works on.
 	 */
-	public x86UnaryInstruction(String instType, Operand destOp) {
-		this.instructionType = instType;
+	public x86UnaryInstruction(String instType, Operand destOp, OpSize size) {
 		this.destination = destOp;
+		this.opSize = size;
+
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
 
 		switch (instType) {
 			case "inc":
+				this.type = InstructionType.INC;
 				this.operation = 
-					(state, dest) -> dest.updateState(state, dest.getValue(state).add(BigInteger.ONE)); 
+					(state, dest) -> {
+						BigInteger result = dest.getValue(state).add(BigInteger.ONE);
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+
+						// truncate if we are too long
+						byte[] resArray = result.toByteArray();
+						if (resArray.length > this.opSize.numBytes()) {
+							byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
+							result = new BigInteger(ba);
+						}
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "dec":
+				this.type = InstructionType.DEC;
 				this.operation = 
-					(state, dest) -> dest.updateState(state, dest.getValue(state).subtract(BigInteger.ONE)); 
+					(state, dest) -> {
+						BigInteger result = dest.getValue(state).subtract(BigInteger.ONE);
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+
+						// truncate if we are too long
+						byte[] resArray = result.toByteArray();
+						if (resArray.length > this.opSize.numBytes()) {
+							byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
+							result = new BigInteger(ba);
+						}
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "neg":
+				this.type = InstructionType.NEG;
 				this.operation = 
-					(state, dest) -> dest.updateState(state, dest.getValue(state).negate());
+					(state, dest) -> {
+						BigInteger orig = dest.getValue(state);
+						BigInteger result = orig.negate();
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+
+						// truncate if we are too long
+						byte[] resArray = result.toByteArray();
+						if (resArray.length > this.opSize.numBytes()) {
+							byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
+							result = new BigInteger(ba);
+						}
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+						flags.put("cf", orig.compareTo(BigInteger.ZERO) != 0);
+
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "not":
+				this.type = InstructionType.NOT;
 				this.operation = 
-					(state, dest) -> dest.updateState(state, dest.getValue(state).not());
+					(state, dest) -> {
+						BigInteger result = dest.getValue(state).not();
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "push":
+				this.type = InstructionType.PUSH;
 				this.operation = 
 					(state, src) -> { 
 						// step 1: subtract 8 from rsp
 						// FIXME: esp should become rsp, 4 should become 8
-						RegOperand rsp = new RegOperand("esp");
-						MachineState tmp = rsp.updateState(state, rsp.getValue(state).subtract(BigInteger.valueOf(4)));
+						RegOperand rsp = new RegOperand("esp", OpSize.LONG);
+						MachineState tmp = rsp.updateState(state, rsp.getValue(state).subtract(BigInteger.valueOf(4)), flags);
 
 						// step 2: store src operand value in (%rsp)
-						MemoryOperand dest = new MemoryOperand("esp", null, 1, 0);
-						return dest.updateState(tmp, src.getValue(tmp)); 
+						MemoryOperand dest = new MemoryOperand("esp", null, 1, 0, OpSize.LONG);
+						return dest.updateState(tmp, src.getValue(tmp), flags); 
 					};
 				break;
 			case "pop":
+				this.type = InstructionType.POP;
 				this.operation = 
 					(state, dest) -> { 
 						// step 1: store (%rsp) value in dest operand 
-						MemoryOperand src = new MemoryOperand("esp", null, 1, 0);
-						MachineState tmp = dest.updateState(state, src.getValue(state)); 
+						MemoryOperand src = new MemoryOperand("esp", null, 1, 0, OpSize.LONG);
+						MachineState tmp = dest.updateState(state, src.getValue(state), flags); 
 
 						// step 2: add 8 to rsp
 						// FIXME: esp should become rsp, 4 should become 8
-						RegOperand rsp = new RegOperand("esp");
-						return rsp.updateState(tmp, rsp.getValue(tmp).add(BigInteger.valueOf(4)));
+						RegOperand rsp = new RegOperand("esp", OpSize.LONG);
+						return rsp.updateState(tmp, rsp.getValue(tmp).add(BigInteger.valueOf(4)), flags);
 
 					};
 				break;
@@ -304,13 +395,13 @@ class x86UnaryInstruction extends x86Instruction {
 
 	@Override
 	public MachineState eval(MachineState state) {
-		switch (this.instructionType) {
-			case "inc":
-			case "dec":
-			case "neg":
-			case "not":
-			case "push":
-			case "pop":
+		switch (this.type) {
+			case INC:
+			case DEC:
+			case NEG:
+			case NOT:
+			case PUSH:
+			case POP:
 				return operation.apply(state, this.destination);
 			default:
 				System.err.println("Something went terribly wrong.");
@@ -320,7 +411,7 @@ class x86UnaryInstruction extends x86Instruction {
 
 	@Override
 	public String toString() {
-		return instructionType + " " + destination.toString();
+		return type + " " + destination.toString();
 	}
 }
 
@@ -345,53 +436,240 @@ class x86BinaryInstruction extends x86Instruction{
 	 * @param srcOp A source operand of the instruction.
 	 * @param destOp Operand representing the destination of the instruction.
 	 */
-	public x86BinaryInstruction(String instType, Operand srcOp, Operand destOp) {
-		this.instructionType = instType;
+	public x86BinaryInstruction(String instType, Operand srcOp, Operand destOp, OpSize size) {
 		this.source = srcOp;
 		this.destination = destOp;
+		this.opSize = size;
+
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
 
 		switch (instType) {
 			case "add":
+				this.type = InstructionType.ADD;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state).add(src.getValue(state)));
+					(state, src, dest) -> {
+						BigInteger src1 = dest.getValue(state);
+						BigInteger src2 = src.getValue(state);
+						BigInteger result = src1.add(src2);
+
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+
+						// truncate if we are too long
+						byte[] resArray = result.toByteArray();
+						if (resArray.length > this.opSize.numBytes()) {
+							byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
+							result = new BigInteger(ba);
+						}
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+						flags.put("cf", false); // FIXME: implement
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "sub":
+				this.type = InstructionType.SUB;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state).subtract(src.getValue(state)));
+					(state, src, dest) -> {
+						BigInteger src1 = dest.getValue(state);
+						BigInteger src2 = src.getValue(state);
+						BigInteger result = src1.subtract(src2);
+
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBytes()*8);
+
+						// truncate if we are too long
+						byte[] resArray = result.toByteArray();
+						if (resArray.length > this.opSize.numBytes()) {
+							byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
+							result = new BigInteger(ba);
+						}
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+						flags.put("cf", false); // FIXME: implement
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "xor":
+				this.type = InstructionType.XOR;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state).xor(src.getValue(state)));
+					(state, src, dest) -> {
+						BigInteger result = dest.getValue(state).xor(src.getValue(state));
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+						flags.put("of", false);
+						flags.put("cf", false);
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "or":
+				this.type = InstructionType.OR;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state).or(src.getValue(state)));
+					(state, src, dest) -> {
+						BigInteger result = dest.getValue(state).or(src.getValue(state));
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+						flags.put("of", false);
+						flags.put("cf", false);
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "and":
+				this.type = InstructionType.AND;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state).and(src.getValue(state)));
+					(state, src, dest) -> {
+						BigInteger result = dest.getValue(state).and(src.getValue(state));
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+						flags.put("of", false);
+						flags.put("cf", false);
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "sal":
 			case "shl":
+				this.type = InstructionType.SAL;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state).shiftLeft(src.getValue(state).intValue()));
+					(state, src, dest) -> {
+						int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+						BigInteger orig = dest.getValue(state);
+						BigInteger result = orig.shiftLeft(shamt);
+
+						int msbIndex = this.opSize.numBytes()*8-1;
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+
+						if (shamt > 0 && (msbIndex+1) >= shamt)
+							flags.put("cf", orig.testBit((msbIndex+1)-shamt));
+						else if ((msbIndex+1) >= shamt)
+							flags.put("cf", false); // TODO: not sure if this is handled correctly
+
+						// overflow is only defined when shifting by 1
+						if (shamt == 1) {
+							flags.put("of", orig.testBit(msbIndex) != orig.testBit(msbIndex-1));
+						}
+						else {
+							// This is an undefined case... false sounds great
+							// doesn't it?
+							flags.put("of", false);
+						}
+
+						byte[] resArray = result.toByteArray();
+						if (resArray.length > this.opSize.numBytes()) {
+							byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
+							result = new BigInteger(ba);
+						}
+
+						return dest.updateState(state, result, flags); 
+					};
 				break;
 			case "sar":
-			case "shr": // FIXME: shr needs to be arithmetic shift, not sure how to do this with BigInteger
+				this.type = InstructionType.SAR;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state).shiftRight(src.getValue(state).intValue()));
+					(state, src, dest) -> {
+						int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+						BigInteger orig = dest.getValue(state);
+						BigInteger result = orig.shiftRight(shamt);
+
+						if (result.bitLength()+1 > this.opSize.numBytes()*8) {
+							System.err.println("ERROR: shifting right made it bigger???");
+							System.exit(1);
+						}
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+
+						// overflow is false if shifting by 1, otherwise
+						// undefined
+						if (shamt == 1) {
+							flags.put("of", false);
+						}
+						else {
+							// This is an undefined case... false sounds great
+							// doesn't it?
+							flags.put("of", false);
+						}
+
+						// shift by zero means CF isn't changed
+						if (shamt > 0)
+							flags.put("cf", orig.testBit(shamt-1));
+
+						return dest.updateState(state, result, flags);
+					};
 				break;
-			/*
-			case "shr":
+			case "shr": // TODO: shr needs to be logical shift, but BigInteger doesn't provide logical shift right (>>>)
+				this.type = InstructionType.SHR;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, dest.getValue(state) >>> src.getValue(state));
+					(state, src, dest) -> {
+						int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+						BigInteger orig = dest.getValue(state);
+
+						// FIXME: this needs some more thought to make sure it
+						// is correctly implemented.
+						String s = null;
+						switch (this.opSize) {
+							case BYTE:
+								byte b = orig.byteValue();
+								b = (byte)(b >>> shamt);
+								s = "" + b;
+								break;
+							case WORD:
+								short w = orig.shortValue();
+								w = (short)(w >>> shamt);
+								s = "" + w;
+								break;
+							case LONG:
+								int l = orig.intValue();
+								l = l >>> shamt;
+								s = "" + l;
+								break;
+							case QUAD:
+								long q = orig.longValue();
+								q = q >>> shamt;
+								s = "" + q;
+								break;
+						}
+						BigInteger result = new BigInteger(s);
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+
+						// overflow is the most sig bit of original if shifting by 1, otherwise
+						// undefined
+						if (shamt == 1) {
+							flags.put("of", orig.testBit(this.opSize.numBytes()*8 - 1));
+						}
+						else {
+							// This is an undefined case... false sounds great
+							// doesn't it?
+							flags.put("of", false);
+						}
+
+						if (shamt > 0) {
+							// shift by zero means CF isn't changed
+							flags.put("cf", orig.testBit(shamt-1));
+						}
+
+
+						return dest.updateState(state, result, flags);
+					};
 				break;
-			*/
 			case "mov":
+				this.type = InstructionType.MOV;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, src.getValue(state));
+					(state, src, dest) -> dest.updateState(state, src.getValue(state), flags);
 				break;
 			case "lea":
+				this.type = InstructionType.LEA;
 				this.operation = 
 					(state, src, dest) -> {
 						// TODO: Use polymorophism to avoid this instanceof junk
@@ -401,7 +679,7 @@ class x86BinaryInstruction extends x86Instruction{
 						}
 
 						MemoryOperand mo = (MemoryOperand)src;
-						return dest.updateState(state, BigInteger.valueOf(mo.calculateAddress(state)));
+						return dest.updateState(state, BigInteger.valueOf(mo.calculateAddress(state)), flags);
 					};
 				break;
 			default:
@@ -417,9 +695,46 @@ class x86BinaryInstruction extends x86Instruction{
 
 	@Override
 	public String toString() {
-		return instructionType + " " + source.toString() + ", " + destination.toString();
+		return type + " " + source.toString() + ", " + destination.toString();
 	}
 }
+
+enum InstructionType {
+	ADD,
+	SUB,
+	OR,
+	AND,
+	XOR,
+	SHL,
+	SAL,
+	SHR,
+	SRL,
+	SAR,
+	MOV,
+	LEA,
+	INC,
+	DEC,
+	NEG,
+	NOT,
+	PUSH,
+	POP;
+}
+
+enum OpSize { 
+	BYTE (1),
+	WORD (2),
+	LONG (4),
+	QUAD (8);
+
+	private int numBytes;
+
+	private OpSize(int nb) {
+		this.numBytes = nb;
+	}
+
+	public int numBytes() { return this.numBytes; }
+}
+
 
 /**
  * An abstract class representing an x86 operand.
@@ -440,7 +755,7 @@ abstract class Operand {
 	 * @return The state after updating the current state with the new value for
 	 * the operand.
 	 */
-	public abstract MachineState updateState(MachineState currState, BigInteger val);
+	public abstract MachineState updateState(MachineState currState, BigInteger val, Map<String, Boolean> flags);
 } 
 
 /**
@@ -451,8 +766,14 @@ abstract class Operand {
 class RegOperand extends Operand {
 	private String regName;
 
-	public RegOperand(String regName) {
+	/**
+	 * The size of the operand.
+	 */
+	private OpSize opSize;
+
+	public RegOperand(String regName, OpSize opSize) {
 		this.regName = regName;
+		this.opSize = opSize;
 	}
 
 	@Override
@@ -461,8 +782,8 @@ class RegOperand extends Operand {
 	}
 
 	@Override
-	public MachineState updateState(MachineState currState, BigInteger val) {
-		return currState.getNewState(this.regName, val);
+	public MachineState updateState(MachineState currState, BigInteger val, Map<String, Boolean> flags) {
+		return currState.getNewState(this.regName, val, flags);
 	}
 
 	@Override
@@ -498,11 +819,18 @@ class MemoryOperand extends Operand {
 	 */
 	private int offset;
 
-	public MemoryOperand(String baseReg, String indexReg, int scale, int offset) {
+	/**
+	 * The size of the operand.
+	 */
+	private OpSize opSize;
+
+
+	public MemoryOperand(String baseReg, String indexReg, int scale, int offset, OpSize opSize) {
 		this.baseReg = baseReg;
 		this.indexReg = indexReg;
 		this.scale = scale;
 		this.offset = offset;
+		this.opSize = opSize;
 	}
 
 	/**
@@ -523,12 +851,12 @@ class MemoryOperand extends Operand {
 
 	@Override
 	public BigInteger getValue(MachineState state) { 
-		return state.getMemoryValue(calculateAddress(state), 4); // FIXME: 4 should be based on op size
+		return state.getMemoryValue(calculateAddress(state), opSize.numBytes());
 	}
 
 	@Override
-	public MachineState updateState(MachineState currState, BigInteger val) {
-		return currState.getNewState(calculateAddress(currState), val, 4); // FIXME: 4 should be based op size
+	public MachineState updateState(MachineState currState, BigInteger val, Map<String, Boolean> flags) {
+		return currState.getNewState(calculateAddress(currState), val, opSize.numBytes(), flags);
 	}
 
 	@Override
@@ -562,7 +890,7 @@ class ConstantOperand extends Operand {
 	public BigInteger getValue(MachineState state) { return BigInteger.valueOf(constant); }
 
 	@Override
-	public MachineState updateState(MachineState currState, BigInteger val) { 
+	public MachineState updateState(MachineState currState, BigInteger val, Map<String, Boolean> flags) { 
 		System.err.println("Why are you trying to set a constant?");
 		// TODO: exception here?
 		return currState;
@@ -592,23 +920,34 @@ class MachineState {
 	private Map<Integer, Byte> memory;
 
 	/**
+	 * The status flags (i.e. condition codes).
+	 */
+	private Map<String, Boolean> statusFlags;
+
+	/**
 	 * Create a new state with all registers (except %rsp) initialized to 0 but
 	 * no memory initialization. %rsp is initialized to 0x7FFFFFFF.
 	 */
 	public MachineState() {
 		this.registers = new HashMap<String, byte[]>();
 		this.memory = new HashMap<Integer, Byte>();
+		this.statusFlags = new HashMap<String, Boolean>();
 
 		String[] regNames = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"};
 		for (String s : regNames)
 			registers.put(s, new byte[4]); // FIXME: should be 8 to support 64-bit registers
 
 		registers.put("esp", ByteBuffer.allocate(4).putInt(0x7FFFFFFF).array()); // FIXME 8 bytes when adding 64-bit support
+
+		String[] flagNames = {"zf", "sf", "of", "cf"};
+		for (String s : flagNames)
+			statusFlags.put(s, false);
 	}
 
-	public MachineState(Map<String, byte[]> reg, Map<Integer, Byte> mem) {
+	public MachineState(Map<String, byte[]> reg, Map<Integer, Byte> mem, Map<String, Boolean> flags) {
 		this.registers = reg;
 		this.memory = mem;
+		this.statusFlags = flags;
 	}
 
 	/**
@@ -621,7 +960,7 @@ class MachineState {
 	 * @return A new state that is the same as the current but with new binding
 	 * from given address to given val.
 	 */
-	public MachineState getNewState(int address, BigInteger val, int size) {
+	public MachineState getNewState(int address, BigInteger val, int size, Map<String, Boolean> flags) {
 		Map<Integer, Byte> mem = new HashMap<Integer, Byte>(this.memory);
 
 		byte[] valArray = val.toByteArray();
@@ -636,7 +975,14 @@ class MachineState {
 			else mem.put(i, (byte)0);
 		}
 
-		return new MachineState(this.registers, mem);
+		// TODO: remove code duplication (here and in other version of
+		// getNewState.
+		if (!flags.containsKey("zf")) flags.put("zf", this.statusFlags.get("zf"));
+		if (!flags.containsKey("sf")) flags.put("sf", this.statusFlags.get("sf"));
+		if (!flags.containsKey("of")) flags.put("of", this.statusFlags.get("of"));
+		if (!flags.containsKey("cf")) flags.put("cf", this.statusFlags.get("cf"));
+
+		return new MachineState(this.registers, mem, flags);
 	}
 
 	/**
@@ -648,7 +994,7 @@ class MachineState {
 	 * @return A new state that is the same as the current but with new binding
 	 * from given register to given val
 	 */
-	public MachineState getNewState(String regName, BigInteger val) {
+	public MachineState getNewState(String regName, BigInteger val, Map<String, Boolean> flags) {
 		Map<String, byte[]> reg = new HashMap<String, byte[]>(registers);
 		byte[] valArray = val.toByteArray();
 		byte[] newVal = new byte[4]; // FIXME: this should be 8 for x86-64
@@ -664,7 +1010,15 @@ class MachineState {
 		}
 
 		reg.put(regName, newVal);
-		return new MachineState(reg, this.memory);
+
+		// TODO: remove code duplication (here and in other version of
+		// getNewState.
+		if (!flags.containsKey("zf")) flags.put("zf", this.statusFlags.get("zf"));
+		if (!flags.containsKey("sf")) flags.put("sf", this.statusFlags.get("sf"));
+		if (!flags.containsKey("of")) flags.put("of", this.statusFlags.get("of"));
+		if (!flags.containsKey("cf")) flags.put("cf", this.statusFlags.get("cf"));
+
+		return new MachineState(reg, this.memory, flags);
 	}
 
 	/**
@@ -693,7 +1047,17 @@ class MachineState {
 		String s = "Registers:\n";
 		for (Map.Entry<String, byte[]> entry : registers.entrySet()) {
 			BigInteger b = new BigInteger(entry.getValue());
-			s += "\t" + entry.getKey() + ": " + b.toString() + " (0x" + b.toString(16) + ")\n";
+			byte[] ba = b.toByteArray();
+			//s += "\t" + entry.getKey() + ": " + b.toString() + " (0x" + b.toString(16) + ")\n";
+			s += "\t" + entry.getKey() + ": " + b.toString() + " (0x";
+			for (byte i : ba)
+				s += String.format("%02x", i);
+			s += ")\n";
+		}
+
+		s += "Status Flags:\n";
+		for (Map.Entry<String, Boolean> entry : statusFlags.entrySet()) {
+			s += "\t" + entry.getKey() + ": " + (entry.getValue() ? "1" : "0") + "\n";
 		}
 
 		s += "Memory:\n";
@@ -732,6 +1096,18 @@ class x86InstructionTester {
 		instructions.add(x86Instruction.parseInstruction("movl $73, (%edx)"));
 		instructions.add(x86Instruction.parseInstruction("incl %esi"));
 		instructions.add(x86Instruction.parseInstruction("decl %edi"));
+
+		// tests for condition codes
+		instructions.add(x86Instruction.parseInstruction("movl $0, %ebp"));
+		instructions.add(x86Instruction.parseInstruction("movl $1, %ebp"));
+		instructions.add(x86Instruction.parseInstruction("sall $31, %ebp"));
+		instructions.add(x86Instruction.parseInstruction("decl %ebp"));
+		instructions.add(x86Instruction.parseInstruction("addl $0, %ebp"));
+		instructions.add(x86Instruction.parseInstruction("incl %ebp"));
+		instructions.add(x86Instruction.parseInstruction("negl %ebp"));
+		instructions.add(x86Instruction.parseInstruction("andl $0, %ebp"));
+		instructions.add(x86Instruction.parseInstruction("notl %ebp"));
+		instructions.add(x86Instruction.parseInstruction("shrl $1, %ebp"));
 
 		MachineState state = new MachineState();
 		System.out.println(state);
