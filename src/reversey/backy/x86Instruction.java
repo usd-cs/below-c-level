@@ -53,7 +53,7 @@ public abstract class x86Instruction {
 	 * Checks that instruction is a valid, supported x86 instruction.
 	 *
 	 * @param instrName The name of the instruction (e.g. addl)
-	 * FIXME @return true if a supported binary instruction, false if a supported
+	 * @return A pair containing both the instruction type and op size
 	 * unary instruction.
 	 */
 	public static Pair<InstructionType, OpSize> parseTypeAndSize(String instrName) {
@@ -89,30 +89,29 @@ public abstract class x86Instruction {
 	 * Get the register name from a given string.
 	 *
 	 * @param str The string that contains a register name, starting with %
-	 * FIXME @return Name of the register, or null if invalid register.
+	 * @return A pair containing the name of the register and its size
 	 */
 	public static Pair<String, OpSize> parseRegister(String str) {
 		System.out.println("parseRegister: " + str);
-		/*
-		String regRegEx = "^\\%(eax|ebx|ecx|edx|esi|edi|ebp|esp|eip)$";
-		if (Pattern.matches(regRegEx, str))
-			return str.substring(1);
-		else
-			return null; // TODO: throw exception
-		*/
 
 		OpSize opSize = OpSize.BYTE;
 		String longRegNames = "^\\%(e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)d)$";
 		String quadRegNames = "^\\%r(ax|bx|cx|dx|si|di|bp|sp|8|9|10|11|12|13|14|15)$";
+		String wordRegNames = "^\\%((ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)w)$";
+		String byteRegNames = "^\\%((al|ah|bl|bh|cl|ch|dl|dh|sil|dil|bpl|spl)|r(8|9|10|11|12|13|14|15)w)$";
 		if (Pattern.matches(longRegNames, str)) {
 			opSize = OpSize.LONG;
 		}
 		else if (Pattern.matches(quadRegNames, str)) {
 			opSize = OpSize.QUAD;
 		}
-		// TODO: BYTE and WORD registers
+		else if (Pattern.matches(wordRegNames, str) || Pattern.matches(wordRegNames, str)) {
+			// TODO: BYTE and WORD registers
+			System.err.println("ERROR: only LONG and QUAD registers currently supported");
+			return null; // TODO: throw exception
+		}
 		else {
-			System.err.println("ERROR: only LONG and QUAD operands currently supported");
+			System.err.println("ERROR: unknown instruction name");
 			return null; // TODO: throw exception
 		}
 
