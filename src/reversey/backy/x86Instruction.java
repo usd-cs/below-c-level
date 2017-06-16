@@ -435,6 +435,7 @@ class x86BinaryInstruction extends x86Instruction{
 	 * @param instType String representation of the instruction's operation.
 	 * @param srcOp A source operand of the instruction.
 	 * @param destOp Operand representing the destination of the instruction.
+	 * @param size Number of bytes this instruction works on.
 	 */
 	public x86BinaryInstruction(String instType, Operand srcOp, Operand destOp, OpSize size) {
 		this.source = srcOp;
@@ -699,6 +700,9 @@ class x86BinaryInstruction extends x86Instruction{
 	}
 }
 
+/**
+ * The type of an x86 Instruction.
+ */
 enum InstructionType {
 	ADD,
 	SUB,
@@ -720,12 +724,18 @@ enum InstructionType {
 	POP;
 }
 
+/**
+ * Representation of the size of an x86 instruction or operand.
+ */
 enum OpSize { 
 	BYTE (1),
 	WORD (2),
 	LONG (4),
 	QUAD (8);
 
+	/**
+	 * The number of bytes used for this op.
+	 */
 	private int numBytes;
 
 	private OpSize(int nb) {
@@ -752,6 +762,7 @@ abstract class Operand {
 	/**
 	 * @param currState The current state of the machine.
 	 * @param val The value to update the operand with.
+	 * @param flags The condition flags to be set in the new state.
 	 * @return The state after updating the current state with the new value for
 	 * the operand.
 	 */
@@ -764,6 +775,9 @@ abstract class Operand {
  * @author Sat Garcia (sat@sandiego.edu)
  */
 class RegOperand extends Operand {
+	/**
+	 * The name of the register, sans % (e.g. "eax")
+	 */
 	private String regName;
 
 	/**
@@ -957,6 +971,7 @@ class MachineState {
 	 * @param address The starting (i.e. lowest) address that will be changed.
 	 * @param val The new value of the given memory address.
 	 * @param size The number of bytes to write to memory.
+	 * @param flags The condition flags to modify for the new state.
 	 * @return A new state that is the same as the current but with new binding
 	 * from given address to given val.
 	 */
@@ -991,6 +1006,7 @@ class MachineState {
 	 *
 	 * @param regName The register that will be updated.
 	 * @param val The new value of the given register.
+	 * @param flags The condition flags to modify for the new state.
 	 * @return A new state that is the same as the current but with new binding
 	 * from given register to given val
 	 */
@@ -1096,6 +1112,8 @@ class x86InstructionTester {
 		instructions.add(x86Instruction.parseInstruction("movl $73, (%edx)"));
 		instructions.add(x86Instruction.parseInstruction("incl %esi"));
 		instructions.add(x86Instruction.parseInstruction("decl %edi"));
+
+		// TODO: some instructions aren't tested (e.g. most shifts)
 
 		// tests for condition codes
 		instructions.add(x86Instruction.parseInstruction("movl $0, %ebp"));
