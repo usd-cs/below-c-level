@@ -15,6 +15,7 @@ import javafx.util.Pair;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Optional;
 
 /**
  * An abstract class representing an x86-64 instruction.
@@ -60,7 +61,7 @@ public abstract class x86Instruction {
 		InstructionType type;
 		OpSize size;
 
-		String validInstrNames = "^(add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop)(b|w|l|q)$";
+		String validInstrNames = "^(add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test)(b|w|l|q)$";
 		if (Pattern.matches(validInstrNames, instrName)) {
 			type = InstructionType.valueOf(instrName.substring(0, instrName.length()-1).toUpperCase());
 			switch (instrName.charAt(instrName.length()-1)) {
@@ -340,7 +341,7 @@ class x86UnaryInstruction extends x86Instruction {
 						flags.put("zf", signum == 0);
 						flags.put("sf", signum == -1);
 
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
 			case "dec":
@@ -361,7 +362,7 @@ class x86UnaryInstruction extends x86Instruction {
 						flags.put("zf", signum == 0);
 						flags.put("sf", signum == -1);
 
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
 			case "neg":
@@ -384,7 +385,7 @@ class x86UnaryInstruction extends x86Instruction {
 						flags.put("sf", signum == -1);
 						flags.put("cf", orig.compareTo(BigInteger.ZERO) != 0);
 
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
 			case "not":
@@ -392,7 +393,7 @@ class x86UnaryInstruction extends x86Instruction {
 				this.operation = 
 					(state, dest) -> {
 						BigInteger result = dest.getValue(state).not();
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
 			case "push":
@@ -401,11 +402,11 @@ class x86UnaryInstruction extends x86Instruction {
 					(state, src) -> { 
 						// step 1: subtract 8 from rsp
 						RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
-						MachineState tmp = rsp.updateState(state, rsp.getValue(state).subtract(BigInteger.valueOf(8)), flags);
+						MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags);
 
 						// step 2: store src operand value in (%rsp)
 						MemoryOperand dest = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-						return dest.updateState(tmp, src.getValue(tmp), flags); 
+						return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags); 
 					};
 				break;
 			case "pop":
@@ -414,11 +415,11 @@ class x86UnaryInstruction extends x86Instruction {
 					(state, dest) -> { 
 						// step 1: store (%rsp) value in dest operand 
 						MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-						MachineState tmp = dest.updateState(state, src.getValue(state), flags); 
+						MachineState tmp = dest.updateState(state, Optional.of(src.getValue(state)), flags); 
 
 						// step 2: add 8 to rsp
 						RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
-						return rsp.updateState(tmp, rsp.getValue(tmp).add(BigInteger.valueOf(8)), flags);
+						return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags);
 
 					};
 				break;
@@ -466,6 +467,7 @@ class x86BinaryInstruction extends x86Instruction{
 	 */
 	private BinaryX86Operation operation;
 
+	// TODO: instType should be of type InstructionType
 	/**
 	 * @param instType String representation of the instruction's operation.
 	 * @param srcOp A source operand of the instruction.
@@ -501,7 +503,7 @@ class x86BinaryInstruction extends x86Instruction{
 						flags.put("zf", signum == 0);
 						flags.put("sf", signum == -1);
 						flags.put("cf", false); // FIXME: implement
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
 			case "sub":
@@ -525,7 +527,31 @@ class x86BinaryInstruction extends x86Instruction{
 						flags.put("zf", signum == 0);
 						flags.put("sf", signum == -1);
 						flags.put("cf", false); // FIXME: implement
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
+					};
+				break;
+			case "cmp":
+				this.type = InstructionType.CMP;
+				this.operation = 
+					(state, src, dest) -> {
+						BigInteger src1 = dest.getValue(state);
+						BigInteger src2 = src.getValue(state);
+						BigInteger result = src1.subtract(src2);
+
+						flags.put("of", (result.bitLength()+1) > this.opSize.numBits());
+
+						// truncate if we are too long
+						byte[] resArray = result.toByteArray();
+						if (resArray.length > this.opSize.numBytes()) {
+							byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
+							result = new BigInteger(ba);
+						}
+
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+						flags.put("cf", false); // FIXME: implement
+						return dest.updateState(state, Optional.empty(), flags); 
 					};
 				break;
 			case "xor":
@@ -538,7 +564,7 @@ class x86BinaryInstruction extends x86Instruction{
 						flags.put("sf", signum == -1);
 						flags.put("of", false);
 						flags.put("cf", false);
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
 			case "or":
@@ -551,7 +577,7 @@ class x86BinaryInstruction extends x86Instruction{
 						flags.put("sf", signum == -1);
 						flags.put("of", false);
 						flags.put("cf", false);
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
 			case "and":
@@ -564,7 +590,20 @@ class x86BinaryInstruction extends x86Instruction{
 						flags.put("sf", signum == -1);
 						flags.put("of", false);
 						flags.put("cf", false);
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
+					};
+				break;
+			case "test":
+				this.type = InstructionType.TEST;
+				this.operation = 
+					(state, src, dest) -> {
+						BigInteger result = dest.getValue(state).and(src.getValue(state));
+						int signum = result.signum();
+						flags.put("zf", signum == 0);
+						flags.put("sf", signum == -1);
+						flags.put("of", false);
+						flags.put("cf", false);
+						return dest.updateState(state, Optional.empty(), flags); 
 					};
 				break;
 			case "sal":
@@ -603,7 +642,7 @@ class x86BinaryInstruction extends x86Instruction{
 							result = new BigInteger(ba);
 						}
 
-						return dest.updateState(state, result, flags); 
+						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
 			case "sar":
@@ -638,7 +677,7 @@ class x86BinaryInstruction extends x86Instruction{
 						if (shamt > 0)
 							flags.put("cf", orig.testBit(shamt-1));
 
-						return dest.updateState(state, result, flags);
+						return dest.updateState(state, Optional.of(result), flags);
 					};
 				break;
 			case "shr":
@@ -698,13 +737,13 @@ class x86BinaryInstruction extends x86Instruction{
 						}
 
 
-						return dest.updateState(state, result, flags);
+						return dest.updateState(state, Optional.of(result), flags);
 					};
 				break;
 			case "mov":
 				this.type = InstructionType.MOV;
 				this.operation = 
-					(state, src, dest) -> dest.updateState(state, src.getValue(state), flags);
+					(state, src, dest) -> dest.updateState(state, Optional.of(src.getValue(state)), flags);
 				break;
 			case "lea":
 				this.type = InstructionType.LEA;
@@ -717,7 +756,7 @@ class x86BinaryInstruction extends x86Instruction{
 						}
 
 						MemoryOperand mo = (MemoryOperand)src;
-						return dest.updateState(state, BigInteger.valueOf(mo.calculateAddress(state)), flags);
+						return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), flags);
 					};
 				break;
 			default:
@@ -743,8 +782,10 @@ class x86BinaryInstruction extends x86Instruction{
 enum InstructionType {
 	ADD (2),
 	SUB (2),
+	CMP (2),
 	OR (2),
 	AND (2),
+	TEST (2),
 	XOR (2),
 	SHL (2),
 	SAL (2),
@@ -815,7 +856,7 @@ abstract class Operand {
 	 * @return The state after updating the current state with the new value for
 	 * the operand.
 	 */
-	public abstract MachineState updateState(MachineState currState, BigInteger val, Map<String, Boolean> flags);
+	public abstract MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags);
 } 
 
 /**
@@ -845,7 +886,7 @@ class RegOperand extends Operand {
 	}
 
 	@Override
-	public MachineState updateState(MachineState currState, BigInteger val, Map<String, Boolean> flags) {
+	public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags) {
 		return currState.getNewState(this.regName, val, flags);
 	}
 
@@ -918,7 +959,7 @@ class MemoryOperand extends Operand {
 	}
 
 	@Override
-	public MachineState updateState(MachineState currState, BigInteger val, Map<String, Boolean> flags) {
+	public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags) {
 		return currState.getNewState(calculateAddress(currState), val, opSize.numBytes(), flags);
 	}
 
@@ -953,7 +994,7 @@ class ConstantOperand extends Operand {
 	public BigInteger getValue(MachineState state) { return BigInteger.valueOf(constant); }
 
 	@Override
-	public MachineState updateState(MachineState currState, BigInteger val, Map<String, Boolean> flags) { 
+	public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags) { 
 		System.err.println("Why are you trying to set a constant?");
 		// TODO: exception here?
 		return currState;
@@ -1028,20 +1069,23 @@ class MachineState {
 	 * @return A new state that is the same as the current but with new binding
 	 * from given address to given val.
 	 */
-	public MachineState getNewState(long address, BigInteger val, int size, Map<String, Boolean> flags) {
-		Map<Long, Byte> mem = new HashMap<Long, Byte>(this.memory);
+	public MachineState getNewState(long address, Optional<BigInteger> val, int size, Map<String, Boolean> flags) {
+		Map<Long, Byte> mem = this.memory;
 
-		byte[] valArray = val.toByteArray();
+		if (val.isPresent()) {
+			mem = new HashMap<Long, Byte>(this.memory);
+			byte[] valArray = val.get().toByteArray();
 
-		long dest = address + (valArray.length - 1);
-		for (int src = 0;
-				src < valArray.length; src++, dest++) {
-			mem.put(dest, valArray[src]);
-		}
+			long dest = address + (valArray.length - 1);
+			for (int src = 0;
+					src < valArray.length; src++, dest++) {
+				mem.put(dest, valArray[src]);
+			}
 
-		for (long i = address + valArray.length; i < (address + size); i++) {
-			if (val.signum() == -1) mem.put(i, (byte)0xFF);
-			else mem.put(i, (byte)0);
+			for (long i = address + valArray.length; i < (address + size); i++) {
+				if (val.get().signum() == -1) mem.put(i, (byte)0xFF);
+				else mem.put(i, (byte)0);
+			}
 		}
 
 		// TODO: remove code duplication (here and in other version of
@@ -1136,31 +1180,34 @@ class MachineState {
 	 * @return A new state that is the same as the current but with new binding
 	 * from given register to given val
 	 */
-	public MachineState getNewState(String regName, BigInteger val, Map<String, Boolean> flags) {
-		String quadName = getQuadName(regName);
-		Pair<Integer, Integer> range = getByteRange(regName);
-		int startIndex = range.getKey();
-		int endIndex = range.getValue();
+	public MachineState getNewState(String regName, Optional<BigInteger> val, Map<String, Boolean> flags) {
+		Map<String, byte[]> reg = this.registers;
+		if (val.isPresent()) {
+			String quadName = getQuadName(regName);
+			Pair<Integer, Integer> range = getByteRange(regName);
+			int startIndex = range.getKey();
+			int endIndex = range.getValue();
 
-		Map<String, byte[]> reg = new HashMap<String, byte[]>(this.registers);
-		byte[] valArray = val.toByteArray();
-		byte[] newVal = new byte[endIndex-startIndex];
+			reg = new HashMap<String, byte[]>(this.registers);
+			byte[] valArray = val.get().toByteArray();
+			byte[] newVal = new byte[endIndex-startIndex];
 
-		for (int src = 0, dest = (newVal.length - valArray.length); 
-				src < valArray.length; src++, dest++) {
-			newVal[dest] = valArray[src];
+			for (int src = 0, dest = (newVal.length - valArray.length); 
+					src < valArray.length; src++, dest++) {
+				newVal[dest] = valArray[src];
+			}
+
+			if (val.get().signum() == -1) {
+				for (int i = 0; i < newVal.length - valArray.length; i++)
+					newVal[i] = (byte)0xFF;
+			}
+
+			byte[] newValFull = Arrays.copyOf(this.registers.get(quadName), 8);
+			for (int src = 0, dest = startIndex; dest < endIndex; src++, dest++)
+				newValFull[dest] = newVal[src];
+
+			reg.put(quadName, newValFull);
 		}
-
-		if (val.signum() == -1) {
-			for (int i = 0; i < newVal.length - valArray.length; i++)
-				newVal[i] = (byte)0xFF;
-		}
-
-		byte[] newValFull = Arrays.copyOf(this.registers.get(quadName), 8);
-		for (int src = 0, dest = startIndex; dest < endIndex; src++, dest++)
-			newValFull[dest] = newVal[src];
-
-		reg.put(quadName, newValFull);
 
 		// TODO: remove code duplication (here and in other version of
 		// getNewState.
