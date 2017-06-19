@@ -62,6 +62,7 @@ public abstract class x86Instruction {
 		OpSize size;
 
 		String validInstrNames = "^(add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test)(b|w|l|q)$";
+		String validSetInstrNames = "^(set)(e|ne|s|ns|g|ge|l|le)$";
 		if (Pattern.matches(validInstrNames, instrName)) {
 			type = InstructionType.valueOf(instrName.substring(0, instrName.length()-1).toUpperCase());
 			switch (instrName.charAt(instrName.length()-1)) {
@@ -85,6 +86,10 @@ public abstract class x86Instruction {
 					System.err.println("ERRRRROR: this should never happen...");
 					return null;
 			}
+		}
+		else if (Pattern.matches(validSetInstrNames, instrName)) {
+			type = InstructionType.valueOf(instrName.toUpperCase());
+			size = OpSize.BYTE;
 		}
 		else {
 			System.err.println("ERROR: invalid or unsupported instruction: " + instrName);
@@ -285,9 +290,11 @@ public abstract class x86Instruction {
 				return null; // TODO: make this throw an exception
 			}
 
-			return new x86UnaryInstruction(instrName.substring(0, instrName.length()-1), 
-					firstOperandAndEndPt.getKey(),
-					opSize);
+			if (!instrName.startsWith("set")) instrName = instrName.substring(0, instrName.length()-1);
+
+			return new x86UnaryInstruction(instrName,
+											firstOperandAndEndPt.getKey(),
+											opSize);
 		}
 		else {
 			System.err.println("ERROR: Only support binary and unary x86 instructions.");
@@ -396,6 +403,59 @@ class x86UnaryInstruction extends x86Instruction {
 						return dest.updateState(state, Optional.of(result), flags); 
 					};
 				break;
+			case "sete":
+			case "setne":
+			case "sets":
+			case "setns":
+			case "setg":
+			case "setge":
+			case "setl":
+			case "setle":
+				final Predicate<MachineState> p;
+				switch (instType) {
+					case "sete":
+						this.type = InstructionType.SETE;
+						p = state -> state.getZeroFlag();
+						break;
+					case "setne":
+						this.type = InstructionType.SETNE;
+						p = state -> !state.getZeroFlag();
+						break;
+					case "sets":
+						this.type = InstructionType.SETS;
+						p = state -> state.getSignFlag();
+						break;
+					case "setns":
+						this.type = InstructionType.SETNS;
+						p = state -> !state.getSignFlag();
+						break;
+					case "setg":
+						this.type = InstructionType.SETG;
+						p = state -> !(state.getSignFlag() ^ state.getOverflowFlag()) & !state.getZeroFlag();
+						break;
+					case "setge":
+						this.type = InstructionType.SETGE;
+						p = state -> !(state.getSignFlag() ^ state.getOverflowFlag());
+						break;
+					case "setl":
+						this.type = InstructionType.SETL;
+						p = state -> (state.getSignFlag() ^ state.getOverflowFlag());
+						break;
+					case "setle":
+						this.type = InstructionType.SETLE;
+						p = state -> (state.getSignFlag() ^ state.getOverflowFlag()) | state.getZeroFlag();
+						break;
+					default:
+						p = null;
+						System.err.println("ERROR: set that isn't a set: " + instType);
+						System.exit(1);
+				}
+				this.operation = 
+					(state, dest) -> {
+						BigInteger result = p.test(state) ? BigInteger.ONE : BigInteger.ZERO;
+						return dest.updateState(state, Optional.of(result), flags); 
+					};
+				break;
 			case "push":
 				this.type = InstructionType.PUSH;
 				this.operation = 
@@ -431,18 +491,7 @@ class x86UnaryInstruction extends x86Instruction {
 
 	@Override
 	public MachineState eval(MachineState state) {
-		switch (this.type) {
-			case INC:
-			case DEC:
-			case NEG:
-			case NOT:
-			case PUSH:
-			case POP:
-				return operation.apply(state, this.destination);
-			default:
-				System.err.println("Something went terribly wrong.");
-				return null; // TODO: exception?
-		}
+		return operation.apply(state, this.destination);
 	}
 
 	@Override
@@ -799,7 +848,16 @@ enum InstructionType {
 	NEG (1),
 	NOT (1),
 	PUSH (1),
-	POP (1);
+	POP (1),
+	SETE (1),
+	SETNE (1),
+	SETS (1),
+	SETNS (1),
+	SETG (1),
+	SETGE (1),
+	SETL (1),
+	SETLE (1);
+	// TODO: set instructions for unsigned (e.g. seta)
 
 	/**
 	 * Number of operands used by the instruction.
@@ -1057,6 +1115,12 @@ class MachineState {
 		this.memory = mem;
 		this.statusFlags = flags;
 	}
+
+	// Getters for the status flags
+	public boolean getCarryFlag() { return this.statusFlags.get("cf"); }
+	public boolean getOverflowFlag() { return this.statusFlags.get("of"); }
+	public boolean getZeroFlag() { return this.statusFlags.get("zf"); }
+	public boolean getSignFlag() { return this.statusFlags.get("sf"); }
 
 	/**
 	 * Create a new MachineState based on the current state but with an updated
@@ -1349,6 +1413,13 @@ class x86InstructionTester {
 		instructions.add(x86Instruction.parseInstruction("movl $1, %r8d"));
 		instructions.add(x86Instruction.parseInstruction("sall $4, %r8d"));
 		instructions.add(x86Instruction.parseInstruction("sarl $3, %r8d"));
+
+		// tests for cmp, test, and set instructions
+		instructions.add(x86Instruction.parseInstruction("movl $-5, %eax"));
+		instructions.add(x86Instruction.parseInstruction("cmpl $-5, %eax"));
+		instructions.add(x86Instruction.parseInstruction("setge %bl"));
+
+		// TODO: more tests for cmp, test, and set instructions
 
 		MachineState state = new MachineState();
 		System.out.println(state);
