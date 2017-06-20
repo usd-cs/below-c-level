@@ -5,18 +5,23 @@
  */
 package reversey.backy;
 
-import javafx.event.ActionEvent;
+import javafx.scene.image.Image;
 import javafx.fxml.FXML;
 import javafx.scene.input.*;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import java.util.HashMap;
 import java.util.*;
 import java.net.*;
 import javafx.application.Platform;
+import javafx.beans.property.ListProperty;
+import javafx.beans.property.SimpleListProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.ImageView;
 
 /**
  *
@@ -26,39 +31,41 @@ public class FXMLDocumentController implements Initializable {
 
 	private MachineState currState;
 
-    @FXML
-    private TextField instrText;
-    @FXML
-    private ListView<x86Instruction> instrList;
-    @FXML
-    private MenuButton insertMenu;
-    @FXML
-    private Button nextInstr;
-    @FXML
-    private Button skipToEnd;
-    @FXML
-    private Button prevInstr;
-    @FXML
-    private Button skipToStart;
-    //@FXML private TableView<String> stackPane;
-    //@FXML private TableColumn contentCol;
-    //@FXML private TableColumn addrCol;
-    @FXML private TableView<String> promRegTable;
-    @FXML private TableColumn regCol;
-    @FXML private TableColumn valCol; 
-    ObservableList<String> shtuff;
-
+    @FXML private TextField instrText;
+    @FXML private ListView<x86Instruction> instrList;
+    @FXML private MenuButton insertMenu;
+    @FXML private Button nextInstr;
+    @FXML private Button skipToEnd;
+    @FXML private Button prevInstr;
+    @FXML private Button skipToStart;
+    @FXML private Button currInstr;
+    @FXML private TableView stackTable;
+    @FXML private TableView promRegTable;
+    @FXML private TableColumn stackAddress;
+    @FXML private TableColumn stackVal;
+    @FXML private TableColumn stackOrigin;
+    @FXML private TableColumn registerName;
+    @FXML private TableColumn registerVal;
+    ObservableList<String> registerTableList;
+    
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
 
-		currState = new MachineState();
-        shtuff = FXCollections.observableArrayList();
-         
-        //stackPane.setItems(shtuff);
-        shtuff.add("good Shtuff");
-        shtuff.add("bad shtuff");
-        shtuff.add("indifferent shtuff");
-                
+        currState = new MachineState();
+        
+        List list = new ArrayList();
+
+        list.add(new Register("%rax", "1"));
+        list.add(new Register("%rbx", "2"));
+        list.add(new Register("%rcx", "3"));
+        list.add(new Register("%rdx", "4"));
+
+        registerTableList = FXCollections.observableArrayList(list);
+        promRegTable.setItems(registerTableList);
+        
+        registerName.setCellValueFactory(new PropertyValueFactory("name"));
+        registerVal.setCellValueFactory(new PropertyValueFactory("value"));
+
          nextInstr.setOnAction((event) -> {
              System.out.println(instrList.getSelectionModel().getSelectedItem());
              this.currState = instrList.getSelectionModel().getSelectedItem().eval(this.currState);
@@ -99,10 +106,9 @@ public class FXMLDocumentController implements Initializable {
                 } 
     }
     });
-    
-    //Abandon all hope ye who enter here
+            
     //TODO: if instruction is valid, do the thingy
- //   stackPane.setOnKeyPressed(new EventHandler<KeyEvent>);
+    //stackPane.setOnKeyPressed(new EventHandler<KeyEvent>);
     
     //TODO: if the instruction uses registers, display the registers in regTable
     
@@ -112,6 +118,21 @@ public class FXMLDocumentController implements Initializable {
     //MenuItem current
     beginning.setText("At beginning");
     current.setText("At current");
+    
+    Image skipStartImg = new Image(getClass().getResourceAsStream("skipToStart.png"));
+    Image prevInstrImg = new Image(getClass().getResourceAsStream("prevInstr.png"));
+    Image currInstrImg = new Image(getClass().getResourceAsStream("currInstr.jpg"));
+    Image nextInstrImg = new Image(getClass().getResourceAsStream("nextInstr.png"));
+    Image skipEndImg = new Image(getClass().getResourceAsStream("Sharonisgenius.png"));
+   
+    //Fix size 
+    /*
+    skipToStart.setGraphic(new ImageView(skipStartImg));
+    prevInstr.setGraphic(new ImageView(prevInstrImg));
+    //currInstr.setGraphic(new ImageView(currInstrImg));
+    nextInstr.setGraphic(new ImageView(nextInstrImg));
+    skipToEnd.setGraphic(new ImageView(skipEndImg));
+    */
     
     beginning.setOnAction((event) -> {
         System.out.println("Option 1 selected");
