@@ -16,6 +16,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Optional;
+import javafx.beans.property.SimpleStringProperty;
 
 /**
  * An abstract class representing an x86-64 instruction.
