@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import javafx.util.Pair;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
 import javafx.beans.property.SimpleStringProperty;
@@ -24,6 +25,17 @@ import javafx.beans.property.SimpleStringProperty;
  * @author Dr. Sat
  */
 public abstract class x86Instruction {
+	private static final String qRegNames = "r(ax|bx|cx|dx|si|di|bp|sp|8|9|1[0-5])";
+	private static final String lRegNames = "e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])d";
+	private static final String wRegNames = "(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])w";
+	private static final String bRegNames = "(al|ah|bl|bh|cl|ch|dl|dh|sil|dil|bpl|spl)|r(8|9|1[0-5])b";
+	private static final String allRegNames = "(" + qRegNames + "|" + lRegNames + "|" + wRegNames + "|" + bRegNames + ")";
+
+	private static final String constOpRegEx = "\\$(?<const>-?\\p{Digit}+)";
+	private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
+	private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
+	private static final String operandRegEx = "\\s*(?<operand>" + constOpRegEx + "|" + regOpRegEx + "|" + memOpRegEx + ")\\s*";
+
 	/**
 	 * The operand where the instruction will write its results.
 	 */
@@ -62,25 +74,25 @@ public abstract class x86Instruction {
 		InstructionType type;
 		OpSize size;
 
-		String validInstrNames = "^(add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test)(b|w|l|q)$";
-		String validSetInstrNames = "^(set)(e|ne|s|ns|g|ge|l|le)$";
-		if (Pattern.matches(validInstrNames, instrName)) {
-			type = InstructionType.valueOf(instrName.substring(0, instrName.length()-1).toUpperCase());
-			switch (instrName.charAt(instrName.length()-1)) {
-				case 'b':
-					System.out.println("instruction size is BYTE");
+		String validTypedInstrNames = "(?<name>add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test)(?<size>b|w|l|q)";
+		String validSetInstrNames = "(?<name>set)(?<op>e|ne|s|ns|g|ge|l|le)";
+
+		Matcher typedMatcher = Pattern.compile(validTypedInstrNames).matcher(instrName);
+		Matcher setMatcher = Pattern.compile(validSetInstrNames).matcher(instrName);
+
+		if (typedMatcher.matches()) {
+			type = InstructionType.valueOf(typedMatcher.group("name").toUpperCase());
+			switch (typedMatcher.group("size")) {
+				case "b":
 					size = OpSize.BYTE;
 					break;
-				case 'w':
-					System.out.println("instruction size is WORD");
+				case "w":
 					size = OpSize.WORD;
 					break;
-				case 'l':
-					System.out.println("instruction size is LONG");
+				case "l":
 					size = OpSize.LONG;
 					break;
-				case 'q':
-					System.out.println("instruction size is QUAD");
+				case "q":
 					size = OpSize.QUAD;
 					break;
 				default:
@@ -88,7 +100,8 @@ public abstract class x86Instruction {
 					return null;
 			}
 		}
-		else if (Pattern.matches(validSetInstrNames, instrName)) {
+		else if (setMatcher.matches()) {
+			// The SET instruction is implicitly BYTE sized.
 			type = InstructionType.valueOf(instrName.toUpperCase());
 			size = OpSize.BYTE;
 		}
@@ -101,66 +114,56 @@ public abstract class x86Instruction {
 	}
 
 	/**
-	 * Get the register name from a given string.
+	 * Get the size of the register with the given name.
 	 *
-	 * @param str The string that contains a register name, starting with %
-	 * @return A pair containing the name of the register and its size
+	 * @param name The register's name
+	 * @return The size of the register.
 	 */
-	public static Pair<String, OpSize> parseRegister(String str) {
-		System.out.println("parseRegister: " + str);
-
+	public static OpSize getRegisterSize(String name) {
 		OpSize opSize = OpSize.BYTE;
-		String longRegNames = "^\\%(e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)d)$";
-		String quadRegNames = "^\\%r(ax|bx|cx|dx|si|di|bp|sp|8|9|10|11|12|13|14|15)$";
-		String wordRegNames = "^\\%((ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)w)$";
-		String byteRegNames = "^\\%((al|ah|bl|bh|cl|ch|dl|dh|sil|dil|bpl|spl)|r(8|9|10|11|12|13|14|15)b)$";
-		if (Pattern.matches(longRegNames, str)) {
+		if (name.matches(lRegNames)) {
 			opSize = OpSize.LONG;
 		}
-		else if (Pattern.matches(quadRegNames, str)) {
+		else if (name.matches(qRegNames)) {
 			opSize = OpSize.QUAD;
 		}
-		else if (Pattern.matches(wordRegNames, str)) {
+		else if (name.matches(wRegNames)) {
 			opSize = OpSize.WORD;
 		}
-		else if (Pattern.matches(byteRegNames, str)) {
+		else if (name.matches(bRegNames)) {
 			opSize = OpSize.BYTE;
 		}
 		else {
-			System.err.println("ERROR: unknown register name");
+			System.err.println("ERROR: invalid register name: " + name);
 			return null; // TODO: throw exception
 		}
 
-		String name = str.substring(1);
-		return new Pair<String, OpSize>(name, opSize);
+		return opSize;
 	}
 
 	/**
 	 * Construct an operand based on a given string.
 	 *
 	 * @param String that contains the operand at the beginning.
-	 * @return The parsed operand and the index in str where the operand ends.
+	 * @return The parsed operand.
 	 */
-	public static Pair<Operand, Integer> parseOperand(String str, OpSize instrOpSize) {
-		System.out.println("parsing Operand in: " + str);
-
+	public static Operand parseOperand(String str, OpSize instrOpSize) {
 		Operand op = null;
-		int endPoint = 0;
 
-		if (str.charAt(0) == '$') {
+		Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
+		Matcher regMatcher = Pattern.compile(regOpRegEx).matcher(str);
+		Matcher memMatcher = Pattern.compile(memOpRegEx).matcher(str);
+
+		if (constMatcher.matches()) {
 			// constant operand
-			System.out.println("found a constant op");
-			String[] splits = str.split("[$,]");
-			op = new ConstantOperand(Integer.parseInt(splits[1])); // TODO: handle hex constant
+			op = new ConstantOperand(Integer.parseInt(constMatcher.group("const"))); // TODO: handle hex
 		}
-		else if (str.charAt(0) == '%') {
+		else if (regMatcher.matches()) {
 			// register operand
-			System.out.println("found a register op");
 			String[] splits = str.split(",");
 
-			Pair<String, OpSize> regDetails = parseRegister(splits[0]);
-			String regName = regDetails.getKey();
-			OpSize opSize = regDetails.getValue();
+			String regName = regMatcher.group("regName");
+			OpSize opSize = getRegisterSize(regName);
 
 			// TODO: move this to a "validation" method
 			if (opSize != instrOpSize) {
@@ -170,55 +173,40 @@ public abstract class x86Instruction {
 
 			op = new RegOperand(regName, opSize);
 		}
-		else {
+		else if (memMatcher.matches()) {
 			// memory operand
-			System.out.println("found a memory op");
 
-			if (str.indexOf('(') == -1 || str.indexOf(')') == -1) {
-				System.err.println("ERROR: missing ( and/or )");
-				return null; // TODO: throw exception
-			}
-
-			int opEndIndex = str.indexOf(')')+1;
-			if (opEndIndex != str.length() && str.charAt(opEndIndex) != ',') {
-				System.err.println("ERROR: missing separator between first and second operand");
-				return null;
-			}
-
-			String opString = str.substring(0, opEndIndex);
-			System.out.println("operand string: " + opString);
-
-			if (opString.indexOf('(') == -1) {
-				System.err.println("unmatched ) found");
-				return null; // TODO: throw exception
-			}
-
-			System.out.println("opString: " + opString);
-
-			String[] components = opString.split("[(),]");
-			if (components.length < 2 || components.length > 4) {
-				System.err.println("ERROR: invalid number of memory op components");
-				return null; // TODO: throw exception
-			}
-
+			// All components (e.g. offset or base reg) are optional, although
+			// at least one of them must be set.
 			int offset = 0;
-			if (!components[0].isEmpty()) {
-				System.out.println("got an offset for memory op");
-				offset = Integer.parseInt(components[0]); // TODO: handle hex
+			String offsetStr = memMatcher.group("imm");
+			if (offsetStr != null) {
+				offset = Integer.parseInt(offsetStr); // TODO: handle hex
 			}
 
-			Pair<String, OpSize> baseRegDetails = parseRegister(components[1]);
-			String baseReg = baseRegDetails.getKey();
-			//OpSize baseOpSize = baseRegDetails.getValue();
-			String indexReg = null;
-			int scale = 1;
-			if (components.length > 2) {
-				Pair<String, OpSize> indexRegDetails = parseRegister(components[2]);
-				indexReg = indexRegDetails.getKey();
-				//OpSize indexOpSize = indexRegDetails.getValue();
+			String baseReg = memMatcher.group("base");
+			if (baseReg != null) {
+				OpSize baseOpSize = getRegisterSize(baseReg);
+				if (baseOpSize != OpSize.QUAD) {
+					System.err.println("ERROR: base register must be quad sized");
+					return null;
+				}
 			}
-			if (components.length > 3) {
-				scale = Integer.parseInt(components[3]);
+
+			String indexReg = memMatcher.group("index");
+			if (indexReg != null) {
+				OpSize indexOpSize = getRegisterSize(indexReg);
+
+				if (indexOpSize != OpSize.QUAD) {
+					System.err.println("ERROR: index register must be quad sized");
+					return null;
+				}
+			}
+
+			int scale = 1;
+			String scaleStr = memMatcher.group("scale");
+			if (scaleStr != null) {
+				scale = Integer.parseInt(scaleStr);
 				if (scale != 1 && scale != 2 && scale != 4 && scale != 8) {
 					System.err.println("ERROR: invalid scaling factor: " + scale);
 					return null; // TODO: throw exception
@@ -228,20 +216,38 @@ public abstract class x86Instruction {
 			op = new MemoryOperand(baseReg, indexReg, scale, offset, instrOpSize);
 		}
 
-		if (str.charAt(0) == '$' || str.charAt(0) == '%') {
-			endPoint = str.indexOf(',');
-			if (endPoint == -1) endPoint = str.length();
-			else endPoint++;
-		}
-		else {
-			endPoint = str.indexOf(')') + 1;
+		return op;
+	}
 
-			// @tricky this should never happen, should throw exception above
-			if (endPoint == -1) return null;
-			else if (endPoint != str.length()) endPoint++;
+	public static List<Operand> parseOperands(String operandsStr, OpSize opSize) {
+		List<Operand> operands = new ArrayList<Operand>();
+
+		Matcher m = Pattern.compile(operandRegEx).matcher(operandsStr);
+		if (!m.find()) {
+			return operands;
 		}
 
-		return new Pair<Operand, Integer>(op, endPoint);
+		String opStr = m.group("operand");
+		Operand op = parseOperand(opStr, opSize);
+		int nextIndex = m.end();
+
+		operands.add(op);
+
+		m = Pattern.compile("," + operandRegEx).matcher(operandsStr);
+
+		while (m.find(nextIndex)) {
+			opStr = m.group("operand");
+			op = parseOperand(opStr, opSize);
+			nextIndex = m.end();
+			operands.add(op);
+		}
+
+		if (nextIndex != operandsStr.length()) {
+			System.err.println("ERROR: unexpected value: " + operandsStr.substring(nextIndex));
+			return null;
+		}
+
+		return operands;
 	}
 
 	/**
@@ -251,50 +257,38 @@ public abstract class x86Instruction {
 	 * @return The parsed instruction.
 	 */
 	public static x86Instruction parseInstruction(String instr) {
-		String[] tokens = instr.split("\\s+");
-		String instrName = tokens[0]; // should be instruction name, e.g. "addl"
-		System.out.println("instr name: " + instrName);
+		Matcher instMatcher = Pattern.compile("(?<inst>\\S+)\\s+(?<operands>.*)").matcher(instr);
+
+		if (!instMatcher.matches()) {
+			System.err.println("ERROR: WHAHT???");
+			return null;
+		}
+
+		String instrName = instMatcher.group("inst");
 
 		Pair<InstructionType, OpSize> instDetails = parseTypeAndSize(instrName);
 		InstructionType instrType = instDetails.getKey();
 		OpSize opSize = instDetails.getValue();
 
-		String operandsStr = String.join("",tokens).substring(tokens[0].length());
-		//System.out.println("operand str: " + operandsStr);
+		String operandsStr = instMatcher.group("operands");
 
-		Pair<Operand, Integer> firstOperandAndEndPt = parseOperand(operandsStr, opSize);
-		//System.out.println("First operand was: " + firstOperandAndEndPt.getKey());
+		List<Operand> operands = parseOperands(operandsStr, opSize);
 
-		if (instrType.numOperands() == 2) {
-			if (operandsStr.indexOf(',') == -1) {
-				System.err.println("ERROR: Couldn't find separator between first and second operand.");
-				return null; // TODO: throw exception
-			}
-
-			String secondOpStr = operandsStr.substring(firstOperandAndEndPt.getValue());
-
-			Pair<Operand, Integer> secondOperandAndEndPt = parseOperand(secondOpStr, opSize);
-
-			if (secondOperandAndEndPt.getValue() != secondOpStr.length()) {
-				System.err.println("ERROR: extra stuff left over: " + secondOpStr.substring(secondOperandAndEndPt.getValue()));
-				return null; // TODO: make this throw an exception
-			}
-
+		if (operands.size() != instrType.numOperands()) {
+			System.err.println("ERROR: too many operands (expected: " + instrType.numOperands() + ", got: " + operands.size() + ")");
+			return null;
+		}
+		else if (instrType.numOperands() == 2) {
 			return new x86BinaryInstruction(instrName.substring(0, instrName.length()-1), 
-					firstOperandAndEndPt.getKey(),
-					secondOperandAndEndPt.getKey(),
+					operands.get(0),
+					operands.get(1),
 					opSize);
 		}
 		else if (instrType.numOperands() == 1) {
-			if (firstOperandAndEndPt.getValue() != operandsStr.length()) {
-				System.err.println("ERROR: extra stuff left over: " + operandsStr.substring(firstOperandAndEndPt.getValue()));
-				return null; // TODO: make this throw an exception
-			}
-
 			if (!instrName.startsWith("set")) instrName = instrName.substring(0, instrName.length()-1);
 
 			return new x86UnaryInstruction(instrName,
-											firstOperandAndEndPt.getKey(),
+											operands.get(0),
 											opSize);
 		}
 		else {
