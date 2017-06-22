@@ -1426,6 +1426,10 @@ class MachineState {
     }
 
     /**
+	 * Returns a list of all registers.
+	 *
+	 * @param regHistory Ordered list containing a history of register usage.
+	 * @return List of Register objects for all of the registers in this state.
      */
     public List<Register> getRegisters(List<String> regHistory) {
         ArrayList<Register> arr = new ArrayList<Register>();
