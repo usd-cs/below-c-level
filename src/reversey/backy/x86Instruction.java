@@ -65,7 +65,7 @@ public abstract class x86Instruction {
 	 * @return A pair containing both the instruction type and op size
 	 * unary instruction.
 	 */
-	public static Pair<InstructionType, OpSize> parseTypeAndSize(String instrName) {
+	public static Pair<InstructionType, OpSize> parseTypeAndSize(String instrName) throws X86ParsingException {
 		InstructionType type;
 		OpSize size;
 
@@ -91,8 +91,7 @@ public abstract class x86Instruction {
 					size = OpSize.QUAD;
 					break;
 				default:
-					System.err.println("ERRRRROR: this should never happen...");
-					return null;
+					throw new X86ParsingException("unexpected size suffix", typedMatcher.start("size"), instrName.length());
 			}
 		}
 		else if (setMatcher.matches()) {
@@ -101,8 +100,7 @@ public abstract class x86Instruction {
 			size = OpSize.BYTE;
 		}
 		else {
-			System.err.println("ERROR: invalid or unsupported instruction: " + instrName);
-			return null; // TODO: throw exception
+			throw new X86ParsingException("invalid/unsupported instruction", 0, instrName.length());
 		}
 
 		return new Pair<InstructionType, OpSize>(type, size);
@@ -114,7 +112,7 @@ public abstract class x86Instruction {
 	 * @param name The register's name
 	 * @return The size of the register.
 	 */
-	public static OpSize getRegisterSize(String name) {
+	public static OpSize getRegisterSize(String name) throws X86ParsingException {
 		OpSize opSize = OpSize.BYTE;
 		if (name.matches(lRegNames)) {
 			opSize = OpSize.LONG;
@@ -129,8 +127,7 @@ public abstract class x86Instruction {
 			opSize = OpSize.BYTE;
 		}
 		else {
-			System.err.println("ERROR: invalid register name: " + name);
-			return null; // TODO: throw exception
+			throw new X86ParsingException("invalid register name", 0, name.length());
 		}
 
 		return opSize;
@@ -142,7 +139,7 @@ public abstract class x86Instruction {
 	 * @param String that contains the operand at the beginning.
 	 * @return The parsed operand.
 	 */
-	public static Operand parseOperand(String str, OpSize instrOpSize) {
+	public static Operand parseOperand(String str, OpSize instrOpSize) throws X86ParsingException {
 		Operand op = null;
 
 		Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
@@ -158,12 +155,20 @@ public abstract class x86Instruction {
 			String[] splits = str.split(",");
 
 			String regName = regMatcher.group("regName");
-			OpSize opSize = getRegisterSize(regName);
+
+			OpSize opSize = null;
+			try {
+				opSize = getRegisterSize(regName);
+			} catch (X86ParsingException e) {
+				throw new X86ParsingException(e.getMessage(),
+						regMatcher.start("regName")+e.getStartIndex(),
+						regMatcher.start("regName")+e.getEndIndex());
+			}
+
 
 			// TODO: move this to a "validation" method
 			if (opSize != instrOpSize) {
-				System.err.println("ERROR: op size mismatch (expected: " + instrOpSize + "; got: " + opSize + ")");
-				return null; // TODO: throw exception
+				throw new X86ParsingException("op size mismatch", regMatcher.start("regName"), regMatcher.end("regName"));
 			}
 
 			op = new RegOperand(regName, opSize);
@@ -181,20 +186,36 @@ public abstract class x86Instruction {
 
 			String baseReg = memMatcher.group("base");
 			if (baseReg != null) {
-				OpSize baseOpSize = getRegisterSize(baseReg);
+				OpSize baseOpSize = null;
+				try {
+					baseOpSize = getRegisterSize(baseReg);
+				} catch (X86ParsingException e) {
+					throw new X86ParsingException(e.getMessage(),
+							memMatcher.start("base")+e.getStartIndex(),
+							memMatcher.start("base")+e.getEndIndex());
+				}
 				if (baseOpSize != OpSize.QUAD) {
-					System.err.println("ERROR: base register must be quad sized");
-					return null;
+					throw new X86ParsingException("base register must be quad sized",
+						   							memMatcher.start("base"),
+													memMatcher.end("base"));
 				}
 			}
 
 			String indexReg = memMatcher.group("index");
 			if (indexReg != null) {
-				OpSize indexOpSize = getRegisterSize(indexReg);
+				OpSize indexOpSize = null;
+				try {
+					indexOpSize = getRegisterSize(indexReg);
+				} catch (X86ParsingException e) {
+					throw new X86ParsingException(e.getMessage(),
+							memMatcher.start("index")+e.getStartIndex(),
+							memMatcher.start("index")+e.getEndIndex());
+				}
 
 				if (indexOpSize != OpSize.QUAD) {
-					System.err.println("ERROR: index register must be quad sized");
-					return null;
+					throw new X86ParsingException("index register must be quad sized", 
+													memMatcher.start("index"), 
+													memMatcher.end("index"));
 				}
 			}
 
@@ -203,8 +224,9 @@ public abstract class x86Instruction {
 			if (scaleStr != null) {
 				scale = Integer.parseInt(scaleStr);
 				if (scale != 1 && scale != 2 && scale != 4 && scale != 8) {
-					System.err.println("ERROR: invalid scaling factor: " + scale);
-					return null; // TODO: throw exception
+					throw new X86ParsingException("invalid scaling factor", 
+													memMatcher.start("scale"),
+													memMatcher.end("scale"));
 				}
 			}
 
@@ -214,7 +236,7 @@ public abstract class x86Instruction {
 		return op;
 	}
 
-	public static List<Operand> parseOperands(String operandsStr, OpSize opSize) {
+	public static List<Operand> parseOperands(String operandsStr, OpSize opSize) throws X86ParsingException {
 		List<Operand> operands = new ArrayList<Operand>();
 
 		Matcher m = Pattern.compile(operandRegEx).matcher(operandsStr);
@@ -222,24 +244,30 @@ public abstract class x86Instruction {
 			return operands;
 		}
 
-		String opStr = m.group("operand");
-		Operand op = parseOperand(opStr, opSize);
-		int nextIndex = m.end();
-
-		operands.add(op);
-
-		m = Pattern.compile("," + operandRegEx).matcher(operandsStr);
-
-		while (m.find(nextIndex)) {
-			opStr = m.group("operand");
-			op = parseOperand(opStr, opSize);
+		int nextIndex = -1;
+		try {
+			String opStr = m.group("operand");
+			Operand op = parseOperand(opStr, opSize);
 			nextIndex = m.end();
+
 			operands.add(op);
+
+			m = Pattern.compile("," + operandRegEx).matcher(operandsStr);
+
+			while (m.find(nextIndex)) {
+				opStr = m.group("operand");
+				op = parseOperand(opStr, opSize);
+				nextIndex = m.end();
+				operands.add(op);
+			}
+		} catch (X86ParsingException e) {
+			throw new X86ParsingException(e.getMessage(),
+					m.start("operand")+e.getStartIndex(),
+					m.start("operand")+e.getEndIndex());
 		}
 
 		if (nextIndex != operandsStr.length()) {
-			System.err.println("ERROR: unexpected value: " + operandsStr.substring(nextIndex));
-			return null;
+			throw new X86ParsingException("unexpected value", nextIndex, operandsStr.length());
 		}
 
 		return operands;
@@ -251,27 +279,42 @@ public abstract class x86Instruction {
 	 * @param instr A string representation of the instruction.
 	 * @return The parsed instruction.
 	 */
-	public static x86Instruction parseInstruction(String instr) {
-		Matcher instMatcher = Pattern.compile("(?<inst>\\S+)\\s+(?<operands>.*)").matcher(instr);
+	public static x86Instruction parseInstruction(String instr) throws X86ParsingException {
+		Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\S+)\\s+(?<operands>.*)").matcher(instr);
 
 		if (!instMatcher.matches()) {
-			System.err.println("ERROR: WHAHT???");
-			return null;
+			throw new X86ParsingException("nonsense input", 0, instr.length());
 		}
 
 		String instrName = instMatcher.group("inst");
 
-		Pair<InstructionType, OpSize> instDetails = parseTypeAndSize(instrName);
+		Pair<InstructionType, OpSize> instDetails = null;
+		try {
+			instDetails = parseTypeAndSize(instrName);
+		} catch (X86ParsingException e) {
+			throw new X86ParsingException(e.getMessage(),
+					instMatcher.start("inst")+e.getStartIndex(),
+					instMatcher.start("inst")+e.getEndIndex());
+		}
+
 		InstructionType instrType = instDetails.getKey();
 		OpSize opSize = instDetails.getValue();
 
 		String operandsStr = instMatcher.group("operands");
 
-		List<Operand> operands = parseOperands(operandsStr, opSize);
+		List<Operand> operands = null;
+		try {
+			operands = parseOperands(operandsStr, opSize);
+		} catch (X86ParsingException e) {
+			throw new X86ParsingException(e.getMessage(),
+					instMatcher.start("operands")+e.getStartIndex(),
+					instMatcher.start("operands")+e.getEndIndex());
+		}
 
 		if (operands.size() != instrType.numOperands()) {
-			System.err.println("ERROR: too many operands (expected: " + instrType.numOperands() + ", got: " + operands.size() + ")");
-			return null;
+			throw new X86ParsingException("too many operands",
+											instMatcher.start("operands"),
+											instr.length());
 		}
 		else if (instrType.numOperands() == 2) {
 			return new x86BinaryInstruction(instrName.substring(0, instrName.length()-1), 
@@ -287,9 +330,7 @@ public abstract class x86Instruction {
 											opSize);
 		}
 		else {
-			System.err.println("ERROR: Only support binary and unary x86 instructions.");
-			System.exit(1);
-			return null;
+			throw new X86ParsingException("unsupported instruction type", 0, instrName.length());
 		}
 
 	}
@@ -1136,46 +1177,51 @@ interface UnaryX86Operation {
 class x86InstructionTester {
 	public static void main(String[] args) {
 		ArrayList<x86Instruction> instructions = new ArrayList<x86Instruction>();
-		instructions.add(x86Instruction.parseInstruction("movq $9, %rax"));
-		instructions.add(x86Instruction.parseInstruction("movq $4, %rbx"));
-		instructions.add(x86Instruction.parseInstruction("addq %rax, %rbx"));
-		instructions.add(x86Instruction.parseInstruction("pushq %rbx"));
-		instructions.add(x86Instruction.parseInstruction("popq %rcx"));
-		instructions.add(x86Instruction.parseInstruction("leaq -12(%rsp), %rdx"));
-		instructions.add(x86Instruction.parseInstruction("movl $73, (%rdx)"));
-		instructions.add(x86Instruction.parseInstruction("incl %esi"));
-		instructions.add(x86Instruction.parseInstruction("decl %edi"));
 
-		// test that smaller register only affect part of the whole register
-		instructions.add(x86Instruction.parseInstruction("movl $0, %edx"));
-		instructions.add(x86Instruction.parseInstruction("movw $-1, %dx"));
-		instructions.add(x86Instruction.parseInstruction("movb $2, %dl"));
-		instructions.add(x86Instruction.parseInstruction("movb $3, %dh"));
+		try {
+			instructions.add(x86Instruction.parseInstruction("movq $9, %rax"));
+			instructions.add(x86Instruction.parseInstruction("movq $4, %rbx"));
+			instructions.add(x86Instruction.parseInstruction("addq %rax, %rbx"));
+			instructions.add(x86Instruction.parseInstruction("pushq %rbx"));
+			instructions.add(x86Instruction.parseInstruction("popq %rcx"));
+			instructions.add(x86Instruction.parseInstruction("leaq -12(%rsp), %rdx"));
+			instructions.add(x86Instruction.parseInstruction("movl $73, (%rdx)"));
+			instructions.add(x86Instruction.parseInstruction("incl %esi"));
+			instructions.add(x86Instruction.parseInstruction("decl %edi"));
 
-		// tests for condition codes
-		instructions.add(x86Instruction.parseInstruction("movl $0, %ebp"));
-		instructions.add(x86Instruction.parseInstruction("movl $1, %ebp"));
-		instructions.add(x86Instruction.parseInstruction("sall $31, %ebp"));
-		instructions.add(x86Instruction.parseInstruction("decl %ebp"));
-		instructions.add(x86Instruction.parseInstruction("addl $0, %ebp"));
-		instructions.add(x86Instruction.parseInstruction("incl %ebp"));
-		instructions.add(x86Instruction.parseInstruction("negl %ebp"));
-		instructions.add(x86Instruction.parseInstruction("andl $0, %ebp"));
-		instructions.add(x86Instruction.parseInstruction("notl %ebp"));
-		instructions.add(x86Instruction.parseInstruction("shrl $1, %ebp"));
+			// test that smaller register only affect part of the whole register
+			instructions.add(x86Instruction.parseInstruction("movl $0, %edx"));
+			instructions.add(x86Instruction.parseInstruction("movw $-1, %dx"));
+			instructions.add(x86Instruction.parseInstruction("movb $2, %dl"));
+			instructions.add(x86Instruction.parseInstruction("movb $3, %dh"));
 
-		// more LONG registers
-		instructions.add(x86Instruction.parseInstruction("movl $1, %r8d"));
-		instructions.add(x86Instruction.parseInstruction("sall $4, %r8d"));
-		instructions.add(x86Instruction.parseInstruction("sarl $3, %r8d"));
+			// tests for condition codes
+			instructions.add(x86Instruction.parseInstruction("movl $0, %ebp"));
+			instructions.add(x86Instruction.parseInstruction("movl $1, %ebp"));
+			instructions.add(x86Instruction.parseInstruction("sall $31, %ebp"));
+			instructions.add(x86Instruction.parseInstruction("decl %ebp"));
+			instructions.add(x86Instruction.parseInstruction("addl $0, %ebp"));
+			instructions.add(x86Instruction.parseInstruction("incl %ebp"));
+			instructions.add(x86Instruction.parseInstruction("negl %ebp"));
+			instructions.add(x86Instruction.parseInstruction("andl $0, %ebp"));
+			instructions.add(x86Instruction.parseInstruction("notl %ebp"));
+			instructions.add(x86Instruction.parseInstruction("shrl $1, %ebp"));
 
-		// tests for cmp, test, and set instructions
-		instructions.add(x86Instruction.parseInstruction("movl $-5, %eax"));
-		instructions.add(x86Instruction.parseInstruction("cmpl $-5, %eax"));
-		instructions.add(x86Instruction.parseInstruction("setge %bl"));
+			// more LONG registers
+			instructions.add(x86Instruction.parseInstruction("movl $1, %r8d"));
+			instructions.add(x86Instruction.parseInstruction("sall $4, %r8d"));
+			instructions.add(x86Instruction.parseInstruction("sarl $3, %r8d"));
 
-		// TODO: more tests for cmp, test, and set instructions
+			// tests for cmp, test, and set instructions
+			instructions.add(x86Instruction.parseInstruction("movl $-5, %eax"));
+			instructions.add(x86Instruction.parseInstruction("cmpl $-5, %eax"));
+			instructions.add(x86Instruction.parseInstruction("setge %bl"));
 
+			// TODO: more tests for cmp, test, and set instructions
+		} catch (X86ParsingException e) {
+			e.printStackTrace();
+		}
+		
 		MachineState state = new MachineState();
 		System.out.println(state);
 		for (x86Instruction inst : instructions) {
@@ -1183,5 +1229,13 @@ class x86InstructionTester {
 			state = inst.eval(state);
 			System.out.println(state);
 		}
+
+		try {
+			x86Instruction.parseInstruction("movl $-5, %eax");
+			x86Instruction.parseInstruction("movl 0(%rax, %ecx, 13), %eax");
+		} catch (X86ParsingException e) {
+			e.printStackTrace();
+		}
+
 	}
 }

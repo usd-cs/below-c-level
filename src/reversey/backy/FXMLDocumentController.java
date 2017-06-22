@@ -159,22 +159,32 @@ public class FXMLDocumentController implements Initializable {
                 if (keyEvent.getCode() == KeyCode.ENTER) {
                     String text = instrText.getText();
 
-                    x86Instruction x = x86Instruction.parseInstruction(text);
+					try {
+						x86Instruction x = x86Instruction.parseInstruction(text);
 
-                    //Enter text in listView
-                    instrList.getItems().add(x);
+						instrText.setStyle("-fx-control-inner-background: white;");
 
-					// If this is the first instruction entered, "select" it and
-					// make sure it gets added to our register history list.
-                    if (instrList.getItems().size() == 1) {
-                        regHistory.addAll(x.getUsedRegisters());
-                        instrList.getSelectionModel().select(0);
+						//Enter text in listView
+						instrList.getItems().add(x);
 
-                        registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
-                        SortedList<Register> regSortedList = registerTableList.sorted(regComp);
-                        promRegTable.setItems(regSortedList);
-                    }
-                    instrText.clear();
+						// If this is the first instruction entered, "select" it and
+						// make sure it gets added to our register history list.
+						if (instrList.getItems().size() == 1) {
+							regHistory.addAll(x.getUsedRegisters());
+							instrList.getSelectionModel().select(0);
+
+							registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
+							SortedList<Register> regSortedList = registerTableList.sorted(regComp);
+							promRegTable.setItems(regSortedList);
+						}
+						instrText.clear();
+					} catch (X86ParsingException e) {
+						// If we had a parsing error, set the background to pink
+						// and select the part of the input that reported the
+						// error.
+						instrText.setStyle("-fx-control-inner-background: pink;");
+						instrText.selectRange(e.getStartIndex(), e.getEndIndex());
+					}
                 }
             }
         });
