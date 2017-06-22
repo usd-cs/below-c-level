@@ -15,14 +15,6 @@ public class X86ParsingException extends Exception {
 		this.endIndex = end;
 	}
 
-	/*
-	public X86ParsingException(String message, Throwable cause, int start, int end) {
-		super(message, cause);
-		this.startIndex = start;
-		this.endIndex = end;
-	}
-	*/
-
 	@Override
 	public String toString() { 
 		return "X86ParsingException: " + super.getMessage() + " (start = " +
