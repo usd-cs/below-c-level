@@ -317,13 +317,22 @@ public abstract class x86Instruction {
 											instr.length());
 		}
 		else if (instrType.numOperands() == 2) {
+			if (operands.get(1) instanceof ConstantOperand) {
+				// FIXME: start/end index is not right here
+				throw new X86ParsingException("destination cannot be a constant",
+												instMatcher.start("operands"),
+												instr.length());
+			}
 			return new x86BinaryInstruction(instrName.substring(0, instrName.length()-1), 
 					operands.get(0),
 					operands.get(1),
 					opSize);
 		}
 		else if (instrType.numOperands() == 1) {
-			if (!instrName.startsWith("set")) instrName = instrName.substring(0, instrName.length()-1);
+			if (!instrName.startsWith("set")) 
+				instrName = instrName.substring(0, instrName.length()-1);
+
+			// TODO: throw exception if destination is a constant
 
 			return new x86UnaryInstruction(instrName,
 											operands.get(0),
