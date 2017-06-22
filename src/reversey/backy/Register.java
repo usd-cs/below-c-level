@@ -14,13 +14,15 @@ import javafx.beans.property.SimpleStringProperty;
 public class Register {
     private SimpleStringProperty name;
     private SimpleStringProperty value;
+    private int sinceUse;
     
     public Register() {
     }
     
-    public Register (String s1, String s2) {
+    public Register (String s1, String s2, int sU) {
         name = new SimpleStringProperty(s1);
         value = new SimpleStringProperty(s2);
+        sinceUse = sU;
     }
     
     public String getName(){
@@ -37,6 +39,10 @@ public class Register {
     
     public void setValue(String s){
         value.set(s);
+    }
+    
+    public int getSinceUse(){
+        return sinceUse;
     }
 }
 

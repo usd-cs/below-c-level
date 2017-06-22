@@ -984,7 +984,7 @@ class RegOperand extends Operand {
     @Override
     public Set<String> getUsedRegisters(){ 
         HashSet<String> s = new HashSet<String>();
-        s.add(regName);
+        s.add(MachineState.getQuadName(regName));
         return s;
     }
     
@@ -1275,7 +1275,7 @@ class MachineState {
         }
     }
 
-    private static String getQuadName(String regName) {
+    public static String getQuadName(String regName) {
         String quadRegNames = "^r(ax|bx|cx|dx|si|di|bp|sp|8|9|10|11|12|13|14|15)$";
         String longRegNames = "^(e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)d)$";
         String wordRegNames = "^((ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)w)$";
@@ -1429,7 +1429,7 @@ class MachineState {
 
     /**
      */
-    public List<Register> getRegisters() {
+    public List<Register> getRegisters(List<String> regHistory) {
         ArrayList<Register> arr = new ArrayList<Register>();
         for (Map.Entry<String, byte[]> entry : registers.entrySet()) {
             BigInteger b = new BigInteger(entry.getValue());
@@ -1438,7 +1438,8 @@ class MachineState {
             for (byte i : ba) {
                 s += String.format("%02x", i);
             }
-            arr.add(new Register(entry.getKey(), s));
+            int regHist = regHistory.lastIndexOf(entry.getKey());
+            arr.add(new Register(entry.getKey(), s, regHist));
            //System.out.println(entry.getKey() + "/" + entry.getValue());
         }
         return arr;
