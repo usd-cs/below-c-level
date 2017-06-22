@@ -86,6 +86,7 @@ public class FXMLDocumentController implements Initializable {
         instrList.setMouseTransparent(true);
         instrList.setFocusTraversable(false);
 
+		// Initialize the simulation state.
         currState = new MachineState();
         ArrayList<String> regHistory = new ArrayList<String>();
 
@@ -119,9 +120,7 @@ public class FXMLDocumentController implements Initializable {
             instrList.getSelectionModel().selectNext();
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
 
-            registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
-            SortedList<Register> sorted = registerTableList.sorted(regComp);
-            promRegTable.setItems(sorted);
+            registerTableList.setAll(currState.getRegisters(regHistory));
         });
 
 		/*
