@@ -80,9 +80,9 @@ public class FXMLDocumentController implements Initializable {
         ArrayList<String> regHistory = new ArrayList<String>();
 
         Comparator<Register> regComp = (Register r1, Register r2) -> {
-            if (r1.getSinceUse() > r2.getSinceUse()) {
+            if (r1.getProminence() > r2.getProminence()) {
                 return -1;
-            } else if (r1.getSinceUse() == r2.getSinceUse()) {
+            } else if (r1.getProminence() == r2.getProminence()) {
                 return 0;
             } else {
                 return 1;

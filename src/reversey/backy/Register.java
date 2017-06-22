@@ -1,30 +1,36 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package reversey.backy;
 
 import javafx.beans.property.SimpleStringProperty;
 
 /**
+ * Class representing a register in our processor.
  *
- * @author Caitlin
+ * @author Caitlin Fanning
  */
 public class Register {
+	/**
+	 * The name of the register (e.g. "rax")
+	 */
     private SimpleStringProperty name;
+
+	/**
+	 * String representation of the register's value (in hex).
+	 */
     private SimpleStringProperty value;
-    private int sinceUse;
+
+	/**
+	 * The prominence of this register.
+	 * Larger values mean higher prominence (e.g. more recently used.)
+	 */
+    private int prominence;
     
-    public Register() {
+    public Register (String name, String value, int prom) {
+        this.name = new SimpleStringProperty(name);
+        this.value = new SimpleStringProperty(value);
+        this.prominence = prom;
     }
     
-    public Register (String s1, String s2, int sU) {
-        name = new SimpleStringProperty(s1);
-        value = new SimpleStringProperty(s2);
-        sinceUse = sU;
-    }
-    
+	// Getters and setters
     public String getName(){
         return name.get();
     }
@@ -41,8 +47,8 @@ public class Register {
         value.set(s);
     }
     
-    public int getSinceUse(){
-        return sinceUse;
+    public int getProminence(){
+        return this.prominence;
     }
 }
 
