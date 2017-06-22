@@ -12,12 +12,14 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import java.util.*;
 import java.net.*;
+import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -71,25 +73,35 @@ public class FXMLDocumentController implements Initializable {
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
+        instrList.setMouseTransparent(true);
+        instrList.setFocusTraversable(false);
 
         currState = new MachineState();
+        ArrayList<String> regHistory = new ArrayList<String>();
+
+        Comparator<Register> regComp = (Register r1, Register r2) -> {
+            if (r1.getSinceUse() > r2.getSinceUse()) {
+                return -1;
+            } else if (r1.getSinceUse() == r2.getSinceUse()) {
+                return 0;
+            } else {
+                return 1;
+            }
+        };
 
         nextInstr.setOnAction((event) -> {
             System.out.println(instrList.getSelectionModel().getSelectedItem());
             this.currState = instrList.getSelectionModel().getSelectedItem().eval(this.currState);
             System.out.println(currState);
-            
-            // get used registers for next up instruction
-            // (future) get used registers for previous two instructions
-            // get registers for current state (as a list)
-            // sort list with most prominent at beginning
-            
-            registerTableList = FXCollections.observableArrayList(currState.getRegisters());
-            promRegTable.setItems(registerTableList);
+
             instrList.getSelectionModel().selectNext();
+            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+
+            registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
+            SortedList<Register> regSortedList = registerTableList.sorted(regComp);
+            promRegTable.setItems(regSortedList);
         });
 
-        //TODO: Keep history list of previous registers HashMap
         skipToEnd.setOnAction((event) -> {
             System.out.println(instrList.getSelectionModel().getSelectedItem());
             instrList.getSelectionModel().selectLast();
@@ -104,9 +116,7 @@ public class FXMLDocumentController implements Initializable {
             System.out.println(instrList.getSelectionModel().getSelectedItem());
             instrList.getSelectionModel().selectFirst();
         });
-
-        //“Give a man a program, frustrate him for a day. 
-        //Teach a man to program, frustrate him for a lifetime.” 
+ 
         instrText.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent keyEvent) {
@@ -116,24 +126,24 @@ public class FXMLDocumentController implements Initializable {
                     x86Instruction x = x86Instruction.parseInstruction(text);
 
                     //Enter text in listView
-                    instrList.getItems().addAll(x);
+                    instrList.getItems().add(x);
+                    if (instrList.getItems().size() == 1) {
+                        regHistory.addAll(x.getUsedRegisters());
+                        instrList.getSelectionModel().select(0);
+
+                        registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
+                        SortedList<Register> regSortedList = registerTableList.sorted(regComp);
+                        promRegTable.setItems(regSortedList);
+                    }
                     instrText.clear();
                 }
             }
         });
+ 
+        registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
 
-        //TODO: if instruction is valid, do the thingy
-        //stackPane.setOnKeyPressed(new EventHandler<KeyEvent>);
-        //TODO: if the instruction uses registers, display the registers in regTable
-        /*List list = new ArrayList();
-        
-        list.add(new Register("%rax", "1"));
-        list.add(new Register("%rbx", "2"));
-        list.add(new Register("%rcx", "3"));
-        list.add(new Register("%rdx", "4"));
-         */
-        registerTableList = FXCollections.observableArrayList(currState.getRegisters());
-        promRegTable.setItems(registerTableList);
+        SortedList<Register> regSortedList = registerTableList.sorted(regComp);
+        promRegTable.setItems(regSortedList);
 
         registerName.setCellValueFactory(new PropertyValueFactory("name"));
         registerVal.setCellValueFactory(new PropertyValueFactory("value"));

@@ -9,7 +9,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<GridPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="412.0" prefWidth="616.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="reversey.backy.FXMLDocumentController">
+<GridPane fx:id="entireWindow" prefHeight="412.0" prefWidth="616.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="reversey.backy.FXMLDocumentController">
   <columnConstraints>
     <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
     <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
@@ -36,31 +36,34 @@
             <ListView fx:id="instrList" prefHeight="321.0" prefWidth="308.0" />
          </children>
       </VBox>
-      <HBox prefHeight="100.0" prefWidth="200.0" GridPane.rowIndex="1">
+      <HBox fx:id="buttonHBox" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="TOP">
          <children>
-            <Button fx:id="skipToStart" mnemonicParsing="false" text="|&lt;">
+            <Button fx:id="skipToStart" mnemonicParsing="false" HBox.hgrow="ALWAYS">
                <HBox.margin>
-                  <Insets left="75.0" />
+                  <Insets />
                </HBox.margin></Button>
-            <Button fx:id="prevInstr" mnemonicParsing="false" text="&lt;&lt;" />
-            <Button mnemonicParsing="false" text="CI" />
-            <Button fx:id="nextInstr" mnemonicParsing="false" text="&gt;&gt;" />
-            <Button fx:id="skipToEnd" mnemonicParsing="false" text="&gt;|" />
+            <Button fx:id="prevInstr" mnemonicParsing="false" />
+            <Button fx:id="currInstr" mnemonicParsing="false" />
+            <Button fx:id="nextInstr" mnemonicParsing="false" />
+            <Button fx:id="skipToEnd" mnemonicParsing="false" />
          </children>
+         <padding>
+            <Insets left="22.0" />
+         </padding>
       </HBox>
       <ListView fx:id="stackList" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" />
       <ListView fx:id="promRegList" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
       <TableView fx:id="stackTable" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1">
         <columns>
-          <TableColumn fx:id="stackAddress" prefWidth="75.0" text="Address" />
-          <TableColumn fx:id="stackVal" prefWidth="75.0" text="Value" />
-            <TableColumn prefWidth="75.0" text="Origin" />
+          <TableColumn fx:id="stackAddress" prefWidth="103.0" text="Address" />
+          <TableColumn fx:id="stackVal" prefWidth="102.0" text="Value" />
+            <TableColumn prefWidth="102.0" text="Origin" />
         </columns>
       </TableView>
       <TableView fx:id="promRegTable" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
         <columns>
-          <TableColumn fx:id="registerName" prefWidth="75.0" text="Register" />
-          <TableColumn fx:id="registerVal" prefWidth="75.0" text="Value" />
+          <TableColumn fx:id="registerName" prefWidth="152.0" text="Register" />
+          <TableColumn fx:id="registerVal" prefWidth="155.0" text="Value" />
         </columns>
       </TableView>
    </children>
