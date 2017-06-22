@@ -33,8 +33,6 @@ import javafx.scene.layout.HBox;
  */
 public class FXMLDocumentController implements Initializable {
 
-    private MachineState currState;
-
     @FXML
     private TextField instrText;
     @FXML
@@ -43,6 +41,8 @@ public class FXMLDocumentController implements Initializable {
     private MenuButton insertMenu;
     @FXML
     private HBox buttonHBox;
+
+	// Buttons
     @FXML
     private Button nextInstr;
     @FXML
@@ -53,31 +53,45 @@ public class FXMLDocumentController implements Initializable {
     private Button skipToStart;
     @FXML
     private Button currInstr;
+
+	// Fields for stack/memory table
     @FXML
     private TableView stackTable;
-    @FXML
-    private TableView promRegTable;
     @FXML
     private TableColumn stackAddress;
     @FXML
     private TableColumn stackVal;
     @FXML
     private TableColumn stackOrigin;
+
+	// Fields for the register table
     @FXML
-    private TableColumn registerName;
+    private TableView<Register> promRegTable;
     @FXML
-    private TableColumn registerVal;
+    private TableColumn<Register,String> registerName;
+    @FXML
+    private TableColumn<Register,String> registerVal;
+
+    ObservableList<Register> registerTableList;
+
     @FXML
     private GridPane entireWindow;
-    ObservableList<Register> registerTableList;
+
+    private MachineState currState;
+
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
+		// Disable user selecting arbitrary item in instruction list.
         instrList.setMouseTransparent(true);
         instrList.setFocusTraversable(false);
 
         currState = new MachineState();
         ArrayList<String> regHistory = new ArrayList<String>();
+
+		// Initialize the register table
+        registerName.setCellValueFactory(new PropertyValueFactory<Register, String>("name"));
+        registerVal.setCellValueFactory(new PropertyValueFactory<Register, String>("value"));
 
         Comparator<Register> regComp = (Register r1, Register r2) -> {
             if (r1.getProminence() > r2.getProminence()) {
@@ -89,6 +103,14 @@ public class FXMLDocumentController implements Initializable {
             }
         };
 
+        registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
+        SortedList<Register> regSortedList = registerTableList.sorted(regComp);
+        promRegTable.setItems(regSortedList);
+
+		/*
+		 * Event handler for the "next" button.
+		 * This will evaluate the current instruction and move on to the next.
+		 */
         nextInstr.setOnAction((event) -> {
             System.out.println(instrList.getSelectionModel().getSelectedItem());
             this.currState = instrList.getSelectionModel().getSelectedItem().eval(this.currState);
@@ -98,25 +120,40 @@ public class FXMLDocumentController implements Initializable {
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
 
             registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
-            SortedList<Register> regSortedList = registerTableList.sorted(regComp);
-            promRegTable.setItems(regSortedList);
+            SortedList<Register> sorted = registerTableList.sorted(regComp);
+            promRegTable.setItems(sorted);
         });
 
+		/*
+		 * TODO: Event handler for "run to completion" button.
+		 */
         skipToEnd.setOnAction((event) -> {
             System.out.println(instrList.getSelectionModel().getSelectedItem());
             instrList.getSelectionModel().selectLast();
         });
 
+		/*
+		 * TODO: Event handler for "back" button.
+		 */
         prevInstr.setOnAction((event) -> {
             System.out.println(instrList.getSelectionModel().getSelectedItem());
             instrList.getSelectionModel().selectPrevious();
         });
 
+		/*
+		 * TODO: Event handler for "return to beginning" button.
+		 * This will reset the simulation, returning to the very first
+		 * instruction.
+		 */
         skipToStart.setOnAction((event) -> {
             System.out.println(instrList.getSelectionModel().getSelectedItem());
             instrList.getSelectionModel().selectFirst();
         });
  
+		/*
+		 * Event handler for when user clicks button to insert a new
+		 * instruction.
+		 */
         instrText.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent keyEvent) {
@@ -127,6 +164,9 @@ public class FXMLDocumentController implements Initializable {
 
                     //Enter text in listView
                     instrList.getItems().add(x);
+
+					// If this is the first instruction entered, "select" it and
+					// make sure it gets added to our register history list.
                     if (instrList.getItems().size() == 1) {
                         regHistory.addAll(x.getUsedRegisters());
                         instrList.getSelectionModel().select(0);
@@ -140,21 +180,14 @@ public class FXMLDocumentController implements Initializable {
             }
         });
  
-        registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
-
-        SortedList<Register> regSortedList = registerTableList.sorted(regComp);
-        promRegTable.setItems(regSortedList);
-
-        registerName.setCellValueFactory(new PropertyValueFactory("name"));
-        registerVal.setCellValueFactory(new PropertyValueFactory("value"));
 
         //TODO: if user wants to change where the instruction should be inserted
         MenuItem beginning = insertMenu.getItems().get(0);
-        MenuItem current = insertMenu.getItems().get(1);
-        //MenuItem current
         beginning.setText("At beginning");
+        MenuItem current = insertMenu.getItems().get(1);
         current.setText("At current");
 
+		// Initialize buttons with fancy graphics.
         Image skipStartImg = new Image(getClass().getResourceAsStream("skipToStart.png"));
         Image prevInstrImg = new Image(getClass().getResourceAsStream("prevInstr.png"));
         Image currInstrImg = new Image(getClass().getResourceAsStream("currInstr.png"));
@@ -185,42 +218,44 @@ public class FXMLDocumentController implements Initializable {
         skipToEnd.setGraphic(skipToEndImgVw);
 
         //TODO: Resizing icons/nodes to pane
-        /*
-   skipToStartImgVw.fitHeightProperty().bind(skipToStart.heightProperty());
-   skipToStartImgVw.fitWidthProperty().bind(skipToStart.widthProperty());
-   prevInstrImgVw.fitHeightProperty().bind(prevInstr.heightProperty());
-   prevInstrImgVw.fitWidthProperty().bind(prevInstr.widthProperty());
-   currInstrImgVw.fitHeightProperty().bind(currInstr.heightProperty());
-   currInstrImgVw.fitWidthProperty().bind(currInstr.widthProperty());
-   nextInstrImgVw.fitHeightProperty().bind(nextInstr.heightProperty());
-   nextInstrImgVw.fitWidthProperty().bind(nextInstr.widthProperty());
-   skipToEndImgVw.fitHeightProperty().bind(skipToEnd.heightProperty());
-   skipToEndImgVw.fitWidthProperty().bind(skipToEnd.widthProperty());
-    
-    skipToStart.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-    skipToStart.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-    prevInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-    prevInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-    currInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-    currInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-    nextInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-    nextInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-    skipToEnd.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-    skipToEnd.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+		/*
+		   skipToStartImgVw.fitHeightProperty().bind(skipToStart.heightProperty());
+		   skipToStartImgVw.fitWidthProperty().bind(skipToStart.widthProperty());
+		   prevInstrImgVw.fitHeightProperty().bind(prevInstr.heightProperty());
+		   prevInstrImgVw.fitWidthProperty().bind(prevInstr.widthProperty());
+		   currInstrImgVw.fitHeightProperty().bind(currInstr.heightProperty());
+		   currInstrImgVw.fitWidthProperty().bind(currInstr.widthProperty());
+		   nextInstrImgVw.fitHeightProperty().bind(nextInstr.heightProperty());
+		   nextInstrImgVw.fitWidthProperty().bind(nextInstr.widthProperty());
+		   skipToEndImgVw.fitHeightProperty().bind(skipToEnd.heightProperty());
+		   skipToEndImgVw.fitWidthProperty().bind(skipToEnd.widthProperty());
+
+		   skipToStart.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+		   skipToStart.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+		   prevInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+		   prevInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+		   currInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+		   currInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+		   nextInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+		   nextInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+		   skipToEnd.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+		   skipToEnd.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
          */
+
+		/*
+		 * Event handler for when user picks "insert at beginning" option.
+		 */
         beginning.setOnAction((event) -> {
-            System.out.println("Option 1 selected");
+            System.out.println("Insert at Beginning selected");
         });
 
+		/*
+		 * Event handler for when user picks "insert after current" option.
+		 */
         current.setOnAction((event) -> {
-            System.out.println("Option 2 selected");
+            System.out.println("Insert at Current selected");
         });
 
-        //Highlighting selected instruction is newly added item has an index of N
-        //instrList.getSelectionModel().getSelectedItem();
-        //instrList.getFocusModel().focus(N);
-        //Highlighting scrolled then selected
-        //instrList.scrollTo(N);
         Platform.runLater(new Runnable() {
 
             @Override
