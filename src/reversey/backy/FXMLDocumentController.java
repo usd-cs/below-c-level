@@ -163,6 +163,7 @@ public class FXMLDocumentController implements Initializable {
 						x86Instruction x = x86Instruction.parseInstruction(text);
 
 						instrText.setStyle("-fx-control-inner-background: white;");
+						instrText.setTooltip(null);
 
 						//Enter text in listView
 						instrList.getItems().add(x);
@@ -184,6 +185,7 @@ public class FXMLDocumentController implements Initializable {
 						// error.
 						instrText.setStyle("-fx-control-inner-background: pink;");
 						instrText.selectRange(e.getStartIndex(), e.getEndIndex());
+						instrText.setTooltip(new Tooltip(e.getMessage()));
 					}
                 }
             }
