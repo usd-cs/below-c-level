@@ -55,9 +55,10 @@
       <ListView fx:id="promRegList" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
       <TableView fx:id="stackTable" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1">
         <columns>
-          <TableColumn fx:id="stackAddress" prefWidth="103.0" text="Address" />
-          <TableColumn fx:id="stackVal" prefWidth="102.0" text="Value" />
-            <TableColumn prefWidth="102.0" text="Origin" />
+          <TableColumn fx:id="startAddressCol" prefWidth="79.0" text="Start" />
+          <TableColumn fx:id="endAddressCol" prefWidth="73.0" text="End" />
+            <TableColumn fx:id="valCol" prefWidth="88.0" text="Value" />
+            <TableColumn fx:id="originCol" text="Origin" />
         </columns>
       </TableView>
       <TableView fx:id="promRegTable" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">

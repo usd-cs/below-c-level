@@ -27,8 +27,9 @@ public class MachineState {
     /**
      * The machine's memory.
      */
-    private Map<Long, Byte> memory;
-
+    //private Map<Long, Byte> memory;
+    private List<StackEntry> memory;
+    
     /**
      * The status flags (i.e. condition codes).
      */
@@ -40,7 +41,7 @@ public class MachineState {
      */
     public MachineState() {
         this.registers = new HashMap<String, byte[]>();
-        this.memory = new HashMap<Long, Byte>();
+        this.memory = new ArrayList<StackEntry>();
         this.statusFlags = new HashMap<String, Boolean>();
 
         String[] regNames = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
@@ -60,7 +61,7 @@ public class MachineState {
         }
     }
 
-    public MachineState(Map<String, byte[]> reg, Map<Long, Byte> mem, Map<String, Boolean> flags) {
+    public MachineState(Map<String, byte[]> reg, List<StackEntry> mem, Map<String, Boolean> flags) {
         this.registers = reg;
         this.memory = mem;
         this.statusFlags = flags;
@@ -95,25 +96,29 @@ public class MachineState {
      * from given address to given val.
      */
     public MachineState getNewState(long address, Optional<BigInteger> val, int size, Map<String, Boolean> flags) {
-        Map<Long, Byte> mem = this.memory;
+        List<StackEntry> mem = this.memory;
 
         if (val.isPresent()) {
-            mem = new HashMap<Long, Byte>(this.memory);
+            mem = new ArrayList<StackEntry>(this.memory);
             byte[] valArray = val.get().toByteArray();
-
-            long dest = address + (valArray.length - 1);
-            for (int src = 0;
-                    src < valArray.length; src++, dest++) {
-                mem.put(dest, valArray[src]);
-            }
-
-            for (long i = address + valArray.length; i < (address + size); i++) {
-                if (val.get().signum() == -1) {
-                    mem.put(i, (byte) 0xFF);
-                } else {
-                    mem.put(i, (byte) 0);
+            byte[] finalArray = new byte[size];
+            int numToFill = size - valArray.length;
+            byte toFill = 0;
+            
+                if(val.get().signum() == -1){
+                  toFill = (byte) 0xFF;  
                 }
-            }
+                
+                for(int i = 0; i < numToFill; i++){
+                    finalArray[i] = toFill;
+                }
+
+                for(int dest = numToFill, src = 0; dest < size; dest++, src++){
+                    finalArray[dest] = valArray[src];
+                }
+                      
+                StackEntry entry = new StackEntry(address, address + size - 1, finalArray, 0);
+                mem.add(entry);
         }
 
         // TODO: remove code duplication (here and in other version of
@@ -293,7 +298,6 @@ public class MachineState {
 		}
          */
         return new BigInteger(Arrays.copyOfRange(ba, startIndex, endIndex));
-        //return new BigInteger(registers.get(regName));
     }
 
     /**
@@ -302,15 +306,17 @@ public class MachineState {
      * @param address The starting address where the value is stored.
      * @param size The number of bytes of memory to read.
      */
+    //TODO: Allow addresses that aren't starting addresses but are still valid 
     public BigInteger getMemoryValue(long address, int size) {
-        byte[] val = new byte[size];
-
-        long addr = address + (size - 1);
-        for (int dest = 0; dest < size; addr--, dest++) {
-            val[dest] = memory.get(addr);
+        
+        for(StackEntry e : this.memory){
+            if(e.getStartAddress() == address){
+                return new BigInteger(e.getValueArr());
+            }
         }
-
-        return new BigInteger(val);
+        System.out.println("Error: No value at address");
+        System.exit(1);
+        return null;
     }
 
     /**
@@ -335,6 +341,10 @@ public class MachineState {
         return arr;
     }
 
+    public List<StackEntry> getStackEntries(){
+        return memory;
+    }
+    
     public String toString() {
         String s = "Registers:\n";
         for (Map.Entry<String, byte[]> entry : registers.entrySet()) {
@@ -353,10 +363,14 @@ public class MachineState {
         }
 
         s += "Memory:\n";
-        for (Map.Entry<Long, Byte> entry : memory.entrySet()) {
-            s += "\t" + Long.toHexString(entry.getKey()) + ": " + String.format("%02x", entry.getValue()) + "\n";
+        for(StackEntry e : this.memory){
+            byte [] ba = e.getValueArr();
+            s += "\t" + Long.toHexString(e.getStartAddress()) + ": ";
+            for(byte b : ba){
+                s += String.format("%02x", b);
+            }
+            s += "\n";
         }
-
         return s;
     }
 }
