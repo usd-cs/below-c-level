@@ -131,7 +131,7 @@ public class FXMLDocumentController implements Initializable {
             if (r1.getProminence() > r2.getProminence()) {
                 return -1;
             } else if (r1.getProminence() == r2.getProminence()) {
-                return 0;
+                return r1.getName().compareTo(r2.getName());
             } else {
                 return 1;
             }
