@@ -59,15 +59,15 @@ public class FXMLDocumentController implements Initializable {
 
     // Fields for stack/memory table
     @FXML
-    private TableView stackTable;
+    private TableView<StackEntry> stackTable;
     @FXML
-    private TableColumn startAddressCol;
+    private TableColumn<StackEntry, String> startAddressCol;
     @FXML
-    private TableColumn endAddressCol;
+    private TableColumn<StackEntry, String> endAddressCol;
     @FXML
-    private TableColumn valCol;
+    private TableColumn<StackEntry, String> valCol;
     @FXML
-    private TableColumn originCol;
+    private TableColumn<StackEntry, Integer> originCol;
 
     ObservableList<StackEntry> stackTableList;
 
@@ -108,16 +108,24 @@ public class FXMLDocumentController implements Initializable {
                 return new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()));
             }
         });
-        
+
         valCol.setCellValueFactory(new PropertyValueFactory<StackEntry, String>("value"));
         originCol.setCellValueFactory(new PropertyValueFactory<StackEntry, Integer>("origin"));
 
+		startAddressCol.setStyle( "-fx-alignment: CENTER;");
+		endAddressCol.setStyle( "-fx-alignment: CENTER;");
+		valCol.setStyle( "-fx-alignment: CENTER;");
+		originCol.setStyle( "-fx-alignment: CENTER;");
+        
         stackTableList = FXCollections.observableArrayList(currState.getStackEntries());
         stackTable.setItems(stackTableList);
 
         // Initialize the register table
         registerName.setCellValueFactory(new PropertyValueFactory<Register, String>("name"));
         registerVal.setCellValueFactory(new PropertyValueFactory<Register, String>("value"));
+
+		registerName.setStyle( "-fx-alignment: CENTER;");
+		registerVal.setStyle( "-fx-alignment: CENTER;");
 
         Comparator<Register> regComp = (Register r1, Register r2) -> {
             if (r1.getProminence() > r2.getProminence()) {
