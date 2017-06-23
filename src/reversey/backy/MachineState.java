@@ -27,7 +27,6 @@ public class MachineState {
     /**
      * The machine's memory.
      */
-    //private Map<Long, Byte> memory;
     private List<StackEntry> memory;
     
     /**
@@ -275,28 +274,6 @@ public class MachineState {
         int endIndex = range.getValue();
 
         ba = registers.get(quadName);
-
-        /*
-		String longRegNames = "^(e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)d)$";
-		String quadRegNames = "^r(ax|bx|cx|dx|si|di|bp|sp|8|9|10|11|12|13|14|15)$";
-		String wordRegNames = "^((ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)w)$";
-		String byteRegNames = "^((al|ah|bl|bh|cl|ch|dl|dh|sil|dil|bpl|spl)|r(8|9|10|11|12|13|14|15)b)$";
-		if (Pattern.matches(quadRegNames, regName)) {
-			ba = registers.get(regName);
-		}
-		else if (Pattern.matches(longRegNames, regName)) {
-			startIndex = 4;
-
-			if (regName.charAt(0) == 'e')
-				ba = registers.get("r" + regName.substring(1));
-			else
-				ba = registers.get(regName.substring(0, regName.length()-1));
-		}
-		else {
-			System.err.println("ERROR: WORD AND BYTE registers not yet supported.");
-			System.exit(1);
-		}
-         */
         return new BigInteger(Arrays.copyOfRange(ba, startIndex, endIndex));
     }
 
@@ -306,8 +283,8 @@ public class MachineState {
      * @param address The starting address where the value is stored.
      * @param size The number of bytes of memory to read.
      */
-    //TODO: Allow addresses that aren't starting addresses but are still valid 
     public BigInteger getMemoryValue(long address, int size) {
+    	//TODO: Allow addresses that aren't starting addresses but are still valid 
         
         for(StackEntry e : this.memory){
             if(e.getStartAddress() == address){
@@ -336,7 +313,6 @@ public class MachineState {
             }
             int regHist = regHistory.lastIndexOf(entry.getKey());
             arr.add(new Register(entry.getKey(), s, regHist));
-           //System.out.println(entry.getKey() + "/" + entry.getValue());
         }
         return arr;
     }
