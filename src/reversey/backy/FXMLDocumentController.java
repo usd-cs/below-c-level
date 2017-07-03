@@ -199,7 +199,7 @@ public class FXMLDocumentController implements Initializable {
                     String text = instrText.getText();
 
                     try {
-                        x86Instruction x = x86Instruction.parseInstruction(text);
+                        x86Instruction x = X86Parser.parseInstruction(text);
 
                         instrText.setStyle("-fx-control-inner-background: white;");
                         instrText.setTooltip(null);
