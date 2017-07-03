@@ -124,7 +124,6 @@ public class MachineState {
                 if (updateRIP) {
                     BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
                     reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
-                    System.out.println("updating rip to " + ripVal);
                 }
         }
 
@@ -253,7 +252,6 @@ public class MachineState {
             
             if (updateRIP) {
                 BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
-                System.out.println("updating rip to " + ripVal);
                 reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
             }
         }
