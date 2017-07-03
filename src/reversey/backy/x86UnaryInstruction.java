@@ -210,7 +210,7 @@ public class x86UnaryInstruction extends x86Instruction {
     
     @Override
     public String toString() {
-        return lineNum + ": " + type + " " + destination.toString();
+        return lineNum + ": \t" + getInstructionTypeString() + " " + destination.toString();
     }
 }
 

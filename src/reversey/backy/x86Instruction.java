@@ -49,5 +49,28 @@ public abstract class x86Instruction {
 	 * @return Set containing names of registers used by this instruction.
 	 */
     public abstract Set<String> getUsedRegisters();
+
 	public abstract String toString();
+
+	public String getInstructionTypeString() {
+		String s = this.type.name().toLowerCase();
+		if (!this.type.name().startsWith("SET")) {
+			switch (this.opSize) {
+				case QUAD:
+					s += "q";
+					break;
+				case LONG:
+					s += "l";
+					break;
+				case WORD:
+					s += "w";
+					break;
+				default:
+					s += "b";
+					break;
+			}
+		}
+
+		return s;
+	}
 }
