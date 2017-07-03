@@ -30,7 +30,9 @@ public abstract class x86Instruction {
 	private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
 	private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
 	private static final String operandRegEx = "\\s*(?<operand>" + constOpRegEx + "|" + regOpRegEx + "|" + memOpRegEx + ")\\s*";
-
+        
+        protected int lineNum;
+        private static int currLineNum;
 	/**
 	 * The operand where the instruction will write its results.
 	 */
@@ -326,7 +328,8 @@ public abstract class x86Instruction {
 			return new x86BinaryInstruction(instrName.substring(0, instrName.length()-1), 
 					operands.get(0),
 					operands.get(1),
-					opSize);
+					opSize,
+                                        currLineNum++);
 		}
 		else if (instrType.numOperands() == 1) {
 			if (!instrName.startsWith("set")) 
@@ -336,7 +339,8 @@ public abstract class x86Instruction {
 
 			return new x86UnaryInstruction(instrName,
 											operands.get(0),
-											opSize);
+											opSize,
+                                                                                        currLineNum++);
 		}
 		else {
 			throw new X86ParsingException("unsupported instruction type", 0, instrName.length());
@@ -371,9 +375,10 @@ class x86UnaryInstruction extends x86Instruction {
      * @param destOp Operand representing the destination of the instruction.
      * @param size Number of bytes this instruction works on.
      */
-    public x86UnaryInstruction(String instType, Operand destOp, OpSize size) {
+    public x86UnaryInstruction(String instType, Operand destOp, OpSize size, int line) {
         this.destination = destOp;
         this.opSize = size;
+        this.lineNum = line;
 
         Map<String, Boolean> flags = new HashMap<String, Boolean>();
 
@@ -396,7 +401,7 @@ class x86UnaryInstruction extends x86Instruction {
                             flags.put("zf", signum == 0);
                             flags.put("sf", signum == -1);
 
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "dec":
@@ -417,7 +422,7 @@ class x86UnaryInstruction extends x86Instruction {
                             flags.put("zf", signum == 0);
                             flags.put("sf", signum == -1);
 
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "neg":
@@ -440,7 +445,7 @@ class x86UnaryInstruction extends x86Instruction {
                             flags.put("sf", signum == -1);
                             flags.put("cf", orig.compareTo(BigInteger.ZERO) != 0);
 
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "not":
@@ -448,7 +453,7 @@ class x86UnaryInstruction extends x86Instruction {
                 this.operation
                         = (state, dest) -> {
                             BigInteger result = dest.getValue(state).not();
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "sete":
@@ -501,7 +506,7 @@ class x86UnaryInstruction extends x86Instruction {
                 this.operation
                         = (state, dest) -> {
                             BigInteger result = p.test(state) ? BigInteger.ONE : BigInteger.ZERO;
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "push":
@@ -510,11 +515,11 @@ class x86UnaryInstruction extends x86Instruction {
                         = (state, src) -> {
                             // step 1: subtract 8 from rsp
                             RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
-                            MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags);
+                            MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
 
                             // step 2: store src operand value in (%rsp)
                             MemoryOperand dest = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-                            return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags);
+                            return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags, true);
                         };
                 break;
             case "pop":
@@ -523,11 +528,11 @@ class x86UnaryInstruction extends x86Instruction {
                         = (state, dest) -> {
                             // step 1: store (%rsp) value in dest operand 
                             MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-                            MachineState tmp = dest.updateState(state, Optional.of(src.getValue(state)), flags);
+                            MachineState tmp = dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
 
                             // step 2: add 8 to rsp
                             RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
-                            return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags);
+                            return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
 
                         };
                 break;
@@ -549,7 +554,7 @@ class x86UnaryInstruction extends x86Instruction {
     
     @Override
     public String toString() {
-        return type + " " + destination.toString();
+        return lineNum + ": " + type + " " + destination.toString();
     }
 }
 
@@ -577,11 +582,12 @@ class x86BinaryInstruction extends x86Instruction {
      * @param destOp Operand representing the destination of the instruction.
      * @param size Number of bytes this instruction works on.
      */
-    public x86BinaryInstruction(String instType, Operand srcOp, Operand destOp, OpSize size) {
+    public x86BinaryInstruction(String instType, Operand srcOp, Operand destOp, OpSize size, int line) {
         this.source = srcOp;
         this.destination = destOp;
         this.opSize = size;
-
+        this.lineNum = line;
+        
         Map<String, Boolean> flags = new HashMap<String, Boolean>();
 
         switch (instType) {
@@ -606,7 +612,7 @@ class x86BinaryInstruction extends x86Instruction {
                             flags.put("zf", signum == 0);
                             flags.put("sf", signum == -1);
                             flags.put("cf", false); // FIXME: implement
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "sub":
@@ -630,7 +636,7 @@ class x86BinaryInstruction extends x86Instruction {
                             flags.put("zf", signum == 0);
                             flags.put("sf", signum == -1);
                             flags.put("cf", false); // FIXME: implement
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "cmp":
@@ -654,7 +660,7 @@ class x86BinaryInstruction extends x86Instruction {
                             flags.put("zf", signum == 0);
                             flags.put("sf", signum == -1);
                             flags.put("cf", false); // FIXME: implement
-                            return dest.updateState(state, Optional.empty(), flags);
+                            return dest.updateState(state, Optional.empty(), flags, true);
                         };
                 break;
             case "xor":
@@ -667,7 +673,7 @@ class x86BinaryInstruction extends x86Instruction {
                             flags.put("sf", signum == -1);
                             flags.put("of", false);
                             flags.put("cf", false);
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "or":
@@ -680,7 +686,7 @@ class x86BinaryInstruction extends x86Instruction {
                             flags.put("sf", signum == -1);
                             flags.put("of", false);
                             flags.put("cf", false);
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "and":
@@ -693,7 +699,7 @@ class x86BinaryInstruction extends x86Instruction {
                             flags.put("sf", signum == -1);
                             flags.put("of", false);
                             flags.put("cf", false);
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "test":
@@ -706,7 +712,7 @@ class x86BinaryInstruction extends x86Instruction {
                             flags.put("sf", signum == -1);
                             flags.put("of", false);
                             flags.put("cf", false);
-                            return dest.updateState(state, Optional.empty(), flags);
+                            return dest.updateState(state, Optional.empty(), flags, true);
                         };
                 break;
             case "sal":
@@ -744,7 +750,7 @@ class x86BinaryInstruction extends x86Instruction {
                                 result = new BigInteger(ba);
                             }
 
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "sar":
@@ -779,7 +785,7 @@ class x86BinaryInstruction extends x86Instruction {
                                 flags.put("cf", orig.testBit(shamt - 1));
                             }
 
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "shr":
@@ -837,13 +843,13 @@ class x86BinaryInstruction extends x86Instruction {
                                 flags.put("cf", orig.testBit(shamt - 1));
                             }
 
-                            return dest.updateState(state, Optional.of(result), flags);
+                            return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
             case "mov":
                 this.type = InstructionType.MOV;
                 this.operation
-                        = (state, src, dest) -> dest.updateState(state, Optional.of(src.getValue(state)), flags);
+                        = (state, src, dest) -> dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
                 break;
             case "lea":
                 this.type = InstructionType.LEA;
@@ -856,7 +862,7 @@ class x86BinaryInstruction extends x86Instruction {
                             }
 
                             MemoryOperand mo = (MemoryOperand) src;
-                            return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), flags);
+                            return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), flags, true);
                         };
                 break;
             default:
@@ -880,7 +886,7 @@ class x86BinaryInstruction extends x86Instruction {
     
     @Override
     public String toString() {
-        return type + " " + source.toString() + ", " + destination.toString();
+        return lineNum + ": " + type + " " + source.toString() + ", " + destination.toString();
     }
 }
 
@@ -979,7 +985,7 @@ abstract class Operand {
      * @return The state after updating the current state with the new value for
      * the operand.
      */
-    public abstract MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags);
+    public abstract MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP);
 
 	/**
 	 * Returns the names of the registers used by this operand.
@@ -1017,8 +1023,8 @@ class RegOperand extends Operand {
     }
 
     @Override
-    public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags) {
-        return currState.getNewState(this.regName, val, flags);
+    public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
+        return currState.getNewState(this.regName, val, flags, updateRIP);
     }
 
     @Override
@@ -1099,8 +1105,8 @@ class MemoryOperand extends Operand {
     }
 
     @Override
-    public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags) {
-        return currState.getNewState(calculateAddress(currState), val, opSize.numBytes(), flags);
+    public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
+        return currState.getNewState(calculateAddress(currState), val, opSize.numBytes(), flags, updateRIP);
     }
     
     @Override
@@ -1147,7 +1153,7 @@ class ConstantOperand extends Operand {
     }
 
     @Override
-    public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags) {
+    public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
         System.err.println("Why are you trying to set a constant?");
         // TODO: exception here?
         return currState;

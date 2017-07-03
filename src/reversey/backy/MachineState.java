@@ -22,7 +22,7 @@ public class MachineState {
     /**
      * The register file.
      */
-    private Map<String, byte[]> registers;
+    private Map<String, RegisterState> registers;
 
     /**
      * The machine's memory.
@@ -39,20 +39,20 @@ public class MachineState {
      * no memory initialization. %rsp is initialized to 0x7FFFFFFF.
      */
     public MachineState() {
-        this.registers = new HashMap<String, byte[]>();
+        this.registers = new HashMap<String, RegisterState>();
         this.memory = new ArrayList<StackEntry>();
         this.statusFlags = new HashMap<String, Boolean>();
 
-        String[] regNames = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
+        String[] regNames = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15", "rip"};
         for (String s : regNames) {
-            registers.put(s, new byte[8]);
+            registers.put(s, new RegisterState(new byte [8], -1));
         }
 
         long initRSP = 1 << 30;
         initRSP <<= 30;
         initRSP <<= 3;
         initRSP = ~initRSP;
-        registers.put("rsp", ByteBuffer.allocate(8).putLong(initRSP).array()); // rsp = 0x7FFFFFFFFFFFFFFF
+        registers.put("rsp", new RegisterState(ByteBuffer.allocate(8).putLong(initRSP).array(), -1)); // rsp = 0x7FFFFFFFFFFFFFFF
 
         String[] flagNames = {"zf", "sf", "of", "cf"};
         for (String s : flagNames) {
@@ -60,7 +60,7 @@ public class MachineState {
         }
     }
 
-    public MachineState(Map<String, byte[]> reg, List<StackEntry> mem, Map<String, Boolean> flags) {
+    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, Map<String, Boolean> flags) {
         this.registers = reg;
         this.memory = mem;
         this.statusFlags = flags;
@@ -94,11 +94,13 @@ public class MachineState {
      * @return A new state that is the same as the current but with new binding
      * from given address to given val.
      */
-    public MachineState getNewState(long address, Optional<BigInteger> val, int size, Map<String, Boolean> flags) {
+    public MachineState getNewState(long address, Optional<BigInteger> val, int size, Map<String, Boolean> flags, boolean updateRIP) {
         List<StackEntry> mem = this.memory;
+        Map<String, RegisterState> reg = this.registers;
 
         if (val.isPresent()) {
             mem = new ArrayList<StackEntry>(this.memory);
+            reg = new HashMap<String, RegisterState>(this.registers);
             byte[] valArray = val.get().toByteArray();
             byte[] finalArray = new byte[size];
             int numToFill = size - valArray.length;
@@ -116,8 +118,14 @@ public class MachineState {
                     finalArray[dest] = valArray[src];
                 }
                       
-                StackEntry entry = new StackEntry(address, address + size - 1, finalArray, 0);
+                StackEntry entry = new StackEntry(address, address + size - 1, finalArray, (new BigInteger(reg.get("rip").getValue())).intValue());
                 mem.add(entry);
+                
+                if (updateRIP) {
+                    BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
+                    reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
+                    System.out.println("updating rip to " + ripVal);
+                }
         }
 
         // TODO: remove code duplication (here and in other version of
@@ -135,7 +143,7 @@ public class MachineState {
             flags.put("cf", this.statusFlags.get("cf"));
         }
 
-        return new MachineState(this.registers, mem, flags);
+        return new MachineState(reg, mem, flags);
     }
 
     /**
@@ -213,15 +221,15 @@ public class MachineState {
      * @return A new state that is the same as the current but with new binding
      * from given register to given val
      */
-    public MachineState getNewState(String regName, Optional<BigInteger> val, Map<String, Boolean> flags) {
-        Map<String, byte[]> reg = this.registers;
+    public MachineState getNewState(String regName, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
+        Map<String, RegisterState> reg = this.registers;
         if (val.isPresent()) {
             String quadName = getQuadName(regName);
             Pair<Integer, Integer> range = getByteRange(regName);
             int startIndex = range.getKey();
             int endIndex = range.getValue();
 
-            reg = new HashMap<String, byte[]>(this.registers);
+            reg = new HashMap<String, RegisterState>(this.registers);
             byte[] valArray = val.get().toByteArray();
             byte[] newVal = new byte[endIndex - startIndex];
 
@@ -236,12 +244,18 @@ public class MachineState {
                 }
             }
 
-            byte[] newValFull = Arrays.copyOf(this.registers.get(quadName), 8);
+            byte[] newValFull = Arrays.copyOf(this.registers.get(quadName).getValue(), 8);
             for (int src = 0, dest = startIndex; dest < endIndex; src++, dest++) {
                 newValFull[dest] = newVal[src];
             }
 
-            reg.put(quadName, newValFull);
+            reg.put(quadName, new RegisterState(newValFull, (new BigInteger(reg.get("rip").getValue())).intValue()));
+            
+            if (updateRIP) {
+                BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
+                System.out.println("updating rip to " + ripVal);
+                reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
+            }
         }
 
         // TODO: remove code duplication (here and in other version of
@@ -273,7 +287,7 @@ public class MachineState {
         int startIndex = range.getKey();
         int endIndex = range.getValue();
 
-        ba = registers.get(quadName);
+        ba = registers.get(quadName).getValue();
         return new BigInteger(Arrays.copyOfRange(ba, startIndex, endIndex));
     }
 
@@ -304,15 +318,15 @@ public class MachineState {
      */
     public List<Register> getRegisters(List<String> regHistory) {
         ArrayList<Register> arr = new ArrayList<Register>();
-        for (Map.Entry<String, byte[]> entry : registers.entrySet()) {
-            BigInteger b = new BigInteger(entry.getValue());
+        for (Map.Entry<String, RegisterState> entry : registers.entrySet()) {
+            BigInteger b = new BigInteger(entry.getValue().getValue());
             byte[] ba = b.toByteArray();
             String s = "0x";
             for (byte i : ba) {
                 s += String.format("%02x", i);
             }
             int regHist = regHistory.lastIndexOf(entry.getKey());
-            arr.add(new Register(entry.getKey(), s, regHist));
+            arr.add(new Register(entry.getKey(), s, regHist, entry.getValue().getOrigin()));
         }
         return arr;
     }
@@ -323,8 +337,8 @@ public class MachineState {
     
     public String toString() {
         String s = "Registers:\n";
-        for (Map.Entry<String, byte[]> entry : registers.entrySet()) {
-            BigInteger b = new BigInteger(entry.getValue());
+        for (Map.Entry<String, RegisterState> entry : registers.entrySet()) {
+            BigInteger b = new BigInteger(entry.getValue().getValue());
             byte[] ba = b.toByteArray();
             s += "\t" + entry.getKey() + ": " + b.toString() + " (0x";
             for (byte i : ba) {

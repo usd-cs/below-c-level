@@ -1,5 +1,6 @@
 package reversey.backy;
 
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 
 /**
@@ -23,11 +24,13 @@ public class Register {
 	 * Larger values mean higher prominence (e.g. more recently used.)
 	 */
     private int prominence;
+    private SimpleIntegerProperty origin;
     
-    public Register (String name, String value, int prom) {
+    public Register (String name, String value, int prom, int origin) {
         this.name = new SimpleStringProperty(name);
         this.value = new SimpleStringProperty(value);
         this.prominence = prom;
+        this.origin = new SimpleIntegerProperty(origin);
     }
     
 	// Getters and setters
@@ -49,6 +52,14 @@ public class Register {
     
     public int getProminence(){
         return this.prominence;
+    }
+    
+    public int getOrigin(){
+        return origin.get();
+    }
+    
+    public void setOrigin(int ori){
+        origin.set(ori);
     }
 }
 

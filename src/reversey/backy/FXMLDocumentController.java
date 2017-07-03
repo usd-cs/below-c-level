@@ -78,6 +78,8 @@ public class FXMLDocumentController implements Initializable {
     private TableColumn<Register, String> registerName;
     @FXML
     private TableColumn<Register, String> registerVal;
+    @FXML
+    private TableColumn<Register, Integer> registerOrigin;
 
     ObservableList<Register> registerTableList;
 
@@ -123,9 +125,11 @@ public class FXMLDocumentController implements Initializable {
         // Initialize the register table
         registerName.setCellValueFactory(new PropertyValueFactory<Register, String>("name"));
         registerVal.setCellValueFactory(new PropertyValueFactory<Register, String>("value"));
-
+        registerOrigin.setCellValueFactory(new PropertyValueFactory<Register, Integer>("origin"));
+        
 		registerName.setStyle( "-fx-alignment: CENTER;");
 		registerVal.setStyle( "-fx-alignment: CENTER;");
+                registerOrigin.setStyle( "-fx-alignment: CENTER;");
 
         Comparator<Register> regComp = (Register r1, Register r2) -> {
             if (r1.getProminence() > r2.getProminence()) {
