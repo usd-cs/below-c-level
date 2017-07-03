@@ -31,7 +31,6 @@ public class StackEntry {
          for (byte i : val) {
                 s += String.format("%02x", i);
             }
-         System.out.println(s);
         value = new SimpleStringProperty(s);
         origin = new SimpleIntegerProperty(orig);
     }

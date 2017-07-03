@@ -150,9 +150,7 @@ public class FXMLDocumentController implements Initializable {
 		 * This will evaluate the current instruction and move on to the next.
          */
         nextInstr.setOnAction((event) -> {
-            System.out.println(instrList.getSelectionModel().getSelectedItem());
             this.currState = instrList.getSelectionModel().getSelectedItem().eval(this.currState);
-            System.out.println(currState);
 
             instrList.getSelectionModel().selectNext();
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
@@ -166,7 +164,6 @@ public class FXMLDocumentController implements Initializable {
 		 * TODO: Event handler for "run to completion" button.
          */
         skipToEnd.setOnAction((event) -> {
-            System.out.println(instrList.getSelectionModel().getSelectedItem());
             instrList.getSelectionModel().selectLast();
         });
 
@@ -174,7 +171,6 @@ public class FXMLDocumentController implements Initializable {
 		 * TODO: Event handler for "back" button.
          */
         prevInstr.setOnAction((event) -> {
-            System.out.println(instrList.getSelectionModel().getSelectedItem());
             instrList.getSelectionModel().selectPrevious();
         });
 
@@ -184,7 +180,6 @@ public class FXMLDocumentController implements Initializable {
 		 * instruction.
          */
         skipToStart.setOnAction((event) -> {
-            System.out.println(instrList.getSelectionModel().getSelectedItem());
             instrList.getSelectionModel().selectFirst();
         });
 
