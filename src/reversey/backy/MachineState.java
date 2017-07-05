@@ -210,6 +210,13 @@ public class MachineState {
         }
     }
 
+    public MachineState getNewState(){
+            Map<String, RegisterState> reg = this.registers;
+            BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
+            reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
+            return new MachineState(reg, this.memory, this.statusFlags);
+    }
+    
     /**
      * Create a new MachineState based on the current state but with an updated
      * value for a register.

@@ -39,7 +39,7 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private TextField instrText;
     @FXML
-    private ListView<x86Instruction> instrList;
+    private ListView<x86ProgramLine> instrList;
     @FXML
     private MenuButton insertMenu;
     @FXML
@@ -217,7 +217,7 @@ public class FXMLDocumentController implements Initializable {
                     String text = instrText.getText();
 
                     try {
-                        x86Instruction x = X86Parser.parseInstruction(text);
+                        x86ProgramLine x = X86Parser.parseLine(text);
 
                         instrText.setStyle("-fx-control-inner-background: white;");
                         instrText.setTooltip(null);
