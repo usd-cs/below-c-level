@@ -86,7 +86,7 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private GridPane entireWindow;
 
-    private MachineState currState;
+    private List<MachineState> stateHistory;
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
@@ -95,7 +95,8 @@ public class FXMLDocumentController implements Initializable {
         instrList.setFocusTraversable(false);
 
         // Initialize the simulation state.
-        currState = new MachineState();
+        stateHistory = new ArrayList<MachineState>();
+        stateHistory.add(new MachineState());
         ArrayList<String> regHistory = new ArrayList<String>();
 
         // Initialize stack table
@@ -119,7 +120,7 @@ public class FXMLDocumentController implements Initializable {
 		valCol.setStyle( "-fx-alignment: CENTER;");
 		originCol.setStyle( "-fx-alignment: CENTER;");
         
-        stackTableList = FXCollections.observableArrayList(currState.getStackEntries());
+        stackTableList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         stackTable.setItems(stackTableList);
 
         // Initialize the register table
@@ -141,7 +142,7 @@ public class FXMLDocumentController implements Initializable {
             }
         };
 
-        registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
+        registerTableList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         SortedList<Register> regSortedList = registerTableList.sorted(regComp);
         promRegTable.setItems(regSortedList);
 
@@ -150,37 +151,59 @@ public class FXMLDocumentController implements Initializable {
 		 * This will evaluate the current instruction and move on to the next.
          */
         nextInstr.setOnAction((event) -> {
-            this.currState = instrList.getSelectionModel().getSelectedItem().eval(this.currState);
+            this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
 
             instrList.getSelectionModel().selectNext();
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
 
-            registerTableList.setAll(currState.getRegisters(regHistory));
-            stackTableList.setAll(currState.getStackEntries());
+            registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+            stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
 
         });
 
         /*
-		 * TODO: Event handler for "run to completion" button.
+		 * Event handler for "run to completion" button.
          */
         skipToEnd.setOnAction((event) -> {
-            instrList.getSelectionModel().selectLast();
+            for(int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
+                this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
+                instrList.getSelectionModel().selectNext();
+                regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+            }
+            
+            registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+            stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         });
 
         /*
-		 * TODO: Event handler for "back" button.
+		 * Event handler for "back" button.
          */
         prevInstr.setOnAction((event) -> {
+            
+            this.stateHistory.remove((this.stateHistory.size() - 1));
+            regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+            
             instrList.getSelectionModel().selectPrevious();
+
+            registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+            stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         });
 
         /*
-		 * TODO: Event handler for "return to beginning" button.
+		 * Event handler for "return to beginning" button.
 		 * This will reset the simulation, returning to the very first
 		 * instruction.
          */
         skipToStart.setOnAction((event) -> {
             instrList.getSelectionModel().selectFirst();
+            
+            this.stateHistory.clear();
+            regHistory.clear();
+            
+            stateHistory.add(new MachineState());
+            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+            registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+            stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         });
 
         /*
@@ -208,7 +231,7 @@ public class FXMLDocumentController implements Initializable {
                             regHistory.addAll(x.getUsedRegisters());
                             instrList.getSelectionModel().select(0);
 
-                            registerTableList = FXCollections.observableArrayList(currState.getRegisters(regHistory));
+                            registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
                             SortedList<Register> regSortedList = registerTableList.sorted(regComp);
                             promRegTable.setItems(regSortedList);
                         }
