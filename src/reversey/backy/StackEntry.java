@@ -10,6 +10,7 @@ import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
 
 /**
+ * Class representing an entry in the program's stack.
  *
  * @author Caitlin
  */
