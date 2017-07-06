@@ -90,24 +90,6 @@ public class x86BinaryInstruction extends x86Instruction {
         }
     }
 
-	/**
-	 * Truncates the integral value to fit into the size of this instruction.
-	 *
-	 * @param val The value to (possibly) truncate.
-	 * @return The truncated version of val, or val if truncation was not
-	 * needed.
-	 */
-	public BigInteger truncate(BigInteger val) {
-		byte[] resArray = val.toByteArray();
-		if (resArray.length > this.opSize.numBytes()) {
-			byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
-			return new BigInteger(ba);
-		}
-		else {
-			return val;
-		}
-	}
-
 	public MachineState add(MachineState state, Operand src, Operand dest) {
 		BigInteger src1 = dest.getValue(state);
 		BigInteger src2 = src.getValue(state);
@@ -151,18 +133,6 @@ public class x86BinaryInstruction extends x86Instruction {
 		setSignAndZeroFlags(result, flags);
 		flags.put("cf", false); // FIXME: implement
 		return dest.updateState(state, Optional.empty(), flags, true);
-	}
-
-	/**
-	 * Sets the sf and zf flags based on the given value.
-	 *
-	 * @param val The value used to determine the sf and zf flags.
-	 * @param flags Set of flags to update.
-	 */
-	public void setSignAndZeroFlags(BigInteger val, Map<String, Boolean> flags) {
-		int signum = val.signum();
-		flags.put("zf", signum == 0);
-		flags.put("sf", signum == -1);
 	}
 
 	/**

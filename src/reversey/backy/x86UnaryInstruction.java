@@ -20,11 +20,15 @@ interface UnaryX86Operation {
  * @author Sat Garcia (sat@sandiego.edu)
  */
 public class x86UnaryInstruction extends x86Instruction {
-
     /**
      * The function that this instruction performs.
      */
     private UnaryX86Operation operation;
+
+	/**
+	 * An optional predicate to be used with conditional instructions.
+	 */
+	private Optional<Predicate<MachineState>> conditionCheck = Optional.empty();
 
     /**
      * @param instType String representation of the instruction's operation.
@@ -35,82 +39,20 @@ public class x86UnaryInstruction extends x86Instruction {
         this.destination = destOp;
         this.opSize = size;
         this.lineNum = line;
-
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+		this.type = InstructionType.valueOf(instType.toUpperCase());
 
         switch (instType) {
             case "inc":
-                this.type = InstructionType.INC;
-                this.operation
-                        = (state, dest) -> {
-                            BigInteger result = dest.getValue(state).add(BigInteger.ONE);
-                            flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
-
-                            // truncate if we are too long
-                            byte[] resArray = result.toByteArray();
-                            if (resArray.length > this.opSize.numBytes()) {
-                                byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
-                                result = new BigInteger(ba);
-                            }
-
-                            int signum = result.signum();
-                            flags.put("zf", signum == 0);
-                            flags.put("sf", signum == -1);
-
-                            return dest.updateState(state, Optional.of(result), flags, true);
-                        };
+                this.operation = this::inc;
                 break;
             case "dec":
-                this.type = InstructionType.DEC;
-                this.operation
-                        = (state, dest) -> {
-                            BigInteger result = dest.getValue(state).subtract(BigInteger.ONE);
-                            flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
-
-                            // truncate if we are too long
-                            byte[] resArray = result.toByteArray();
-                            if (resArray.length > this.opSize.numBytes()) {
-                                byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
-                                result = new BigInteger(ba);
-                            }
-
-                            int signum = result.signum();
-                            flags.put("zf", signum == 0);
-                            flags.put("sf", signum == -1);
-
-                            return dest.updateState(state, Optional.of(result), flags, true);
-                        };
+                this.operation = this::dec;
                 break;
             case "neg":
-                this.type = InstructionType.NEG;
-                this.operation
-                        = (state, dest) -> {
-                            BigInteger orig = dest.getValue(state);
-                            BigInteger result = orig.negate();
-                            flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
-
-                            // truncate if we are too long
-                            byte[] resArray = result.toByteArray();
-                            if (resArray.length > this.opSize.numBytes()) {
-                                byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
-                                result = new BigInteger(ba);
-                            }
-
-                            int signum = result.signum();
-                            flags.put("zf", signum == 0);
-                            flags.put("sf", signum == -1);
-                            flags.put("cf", orig.compareTo(BigInteger.ZERO) != 0);
-
-                            return dest.updateState(state, Optional.of(result), flags, true);
-                        };
+                this.operation = this::neg;
                 break;
             case "not":
-                this.type = InstructionType.NOT;
-                this.operation
-                        = (state, dest) -> {
-                            BigInteger result = dest.getValue(state).not();
-                            return dest.updateState(state, Optional.of(result), flags, true);
-                        };
+                this.operation = this::not;
                 break;
             case "sete":
             case "setne":
@@ -120,50 +62,8 @@ public class x86UnaryInstruction extends x86Instruction {
             case "setge":
             case "setl":
             case "setle":
-                final Predicate<MachineState> p;
-                switch (instType) {
-                    case "sete":
-                        this.type = InstructionType.SETE;
-                        p = state -> state.getZeroFlag();
-                        break;
-                    case "setne":
-                        this.type = InstructionType.SETNE;
-                        p = state -> !state.getZeroFlag();
-                        break;
-                    case "sets":
-                        this.type = InstructionType.SETS;
-                        p = state -> state.getSignFlag();
-                        break;
-                    case "setns":
-                        this.type = InstructionType.SETNS;
-                        p = state -> !state.getSignFlag();
-                        break;
-                    case "setg":
-                        this.type = InstructionType.SETG;
-                        p = state -> !(state.getSignFlag() ^ state.getOverflowFlag()) & !state.getZeroFlag();
-                        break;
-                    case "setge":
-                        this.type = InstructionType.SETGE;
-                        p = state -> !(state.getSignFlag() ^ state.getOverflowFlag());
-                        break;
-                    case "setl":
-                        this.type = InstructionType.SETL;
-                        p = state -> (state.getSignFlag() ^ state.getOverflowFlag());
-                        break;
-                    case "setle":
-                        this.type = InstructionType.SETLE;
-                        p = state -> (state.getSignFlag() ^ state.getOverflowFlag()) | state.getZeroFlag();
-                        break;
-                    default:
-                        p = null;
-                        System.err.println("ERROR: set that isn't a set: " + instType);
-                        System.exit(1);
-                }
-                this.operation
-                        = (state, dest) -> {
-                            BigInteger result = p.test(state) ? BigInteger.ONE : BigInteger.ZERO;
-                            return dest.updateState(state, Optional.of(result), flags, true);
-                        };
+				this.conditionCheck = Optional.of(conditions.get(instType.substring(3)));
+                this.operation = this::set;
                 break;
             case "je":
             case "jne":
@@ -173,86 +73,107 @@ public class x86UnaryInstruction extends x86Instruction {
             case "jge":
             case "jl":
             case "jle":
-                final Predicate<MachineState> pea;
-                switch (instType) {
-                    case "je":
-                        this.type = InstructionType.JE;
-                        pea = state -> state.getZeroFlag();
-                        break;
-                    case "jne":
-                        this.type = InstructionType.JNE;
-                        pea = state -> !state.getZeroFlag();
-                        break;
-                    case "js":
-                        this.type = InstructionType.JS;
-                        pea = state -> state.getSignFlag();
-                        break;
-                    case "jns":
-                        this.type = InstructionType.JNS;
-                        pea = state -> !state.getSignFlag();
-                        break;
-                    case "jg":
-                        this.type = InstructionType.JG;
-                        pea = state -> !(state.getSignFlag() ^ state.getOverflowFlag()) & !state.getZeroFlag();
-                        break;
-                    case "jge":
-                        this.type = InstructionType.JGE;
-                        pea = state -> !(state.getSignFlag() ^ state.getOverflowFlag());
-                        break;
-                    case "jl":
-                        this.type = InstructionType.JL;
-                        pea = state -> (state.getSignFlag() ^ state.getOverflowFlag());
-                        break;
-                    case "jle":
-                        this.type = InstructionType.JLE;
-                        pea = state -> (state.getSignFlag() ^ state.getOverflowFlag()) | state.getZeroFlag();
-                        break;
-                    default:
-                        pea = null;
-                        System.err.println("ERROR: jmp that isn't a jmp: " + instType);
-                        System.exit(1);
-                }
-                this.operation
-                        = (state, dest) -> {
-                            if(pea.test(state)){
-                                return dest.updateState(state, Optional.of(dest.getValue(state)), flags, false); 
-                            } else {
-                                return dest.updateState(state, Optional.empty(), flags, true); 
-                            }
-                        };
+				this.conditionCheck = Optional.of(conditions.get(instType.substring(1)));
+                this.operation = this::jump;
                 break;
             case "push":
-                this.type = InstructionType.PUSH;
-                this.operation
-                        = (state, src) -> {
-                            // step 1: subtract 8 from rsp
-                            RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
-                            MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
-
-                            // step 2: store src operand value in (%rsp)
-                            MemoryOperand dest = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-                            return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags, true);
-                        };
+                this.operation = this::push;
                 break;
             case "pop":
-                this.type = InstructionType.POP;
-                this.operation
-                        = (state, dest) -> {
-                            // step 1: store (%rsp) value in dest operand 
-                            MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-                            MachineState tmp = dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
-
-                            // step 2: add 8 to rsp
-                            RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
-                            return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
-
-                        };
+                this.operation = this::pop;
                 break;
             default:
                 System.err.println("invalid instr type for unary inst: " + instType);
                 System.exit(1);
         }
     }
+
+	public MachineState inc(MachineState state, Operand dest) {
+		BigInteger result = dest.getValue(state).add(BigInteger.ONE);
+
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
+		flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
+
+		result = truncate(result);
+		setSignAndZeroFlags(result, flags);
+
+		return dest.updateState(state, Optional.of(result), flags, true);
+	}
+
+	public MachineState dec(MachineState state, Operand dest) {
+		BigInteger result = dest.getValue(state).subtract(BigInteger.ONE);
+
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
+		flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
+
+		result = truncate(result);
+		setSignAndZeroFlags(result, flags);
+
+		return dest.updateState(state, Optional.of(result), flags, true);
+	}
+
+	public MachineState neg(MachineState state, Operand dest) {
+		BigInteger orig = dest.getValue(state);
+		BigInteger result = orig.negate();
+
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
+		flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
+
+		result = truncate(result);
+		setSignAndZeroFlags(result, flags);
+		flags.put("cf", orig.compareTo(BigInteger.ZERO) != 0);
+
+		return dest.updateState(state, Optional.of(result), flags, true);
+	}
+
+	public MachineState not(MachineState state, Operand dest) {
+		BigInteger result = dest.getValue(state).not();
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
+		return dest.updateState(state, Optional.of(result), flags, true);
+	}
+
+	public MachineState push(MachineState state, Operand src) {
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
+
+		// step 1: subtract 8 from rsp
+		RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+		MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
+
+		// step 2: store src operand value in (%rsp)
+		MemoryOperand dest = new MemoryOperand("rsp", null, 1, 0, this.opSize);
+
+		return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags, true);
+	}
+
+	public MachineState pop(MachineState state, Operand dest) {
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
+
+		// step 1: store (%rsp) value in dest operand 
+		MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
+		MachineState tmp = dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
+
+		// step 2: add 8 to rsp
+		RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+
+		return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
+	}
+
+	public MachineState set(MachineState state, Operand dest) {
+		assert this.conditionCheck.isPresent();
+		BigInteger result = this.conditionCheck.get().test(state) ? BigInteger.ONE : BigInteger.ZERO;
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
+		return dest.updateState(state, Optional.of(result), flags, true);
+	}
+
+	public MachineState jump(MachineState state, Operand dest) {
+		assert this.conditionCheck.isPresent();
+		Map<String, Boolean> flags = new HashMap<String, Boolean>();
+		if(this.conditionCheck.get().test(state)){
+			return dest.updateState(state, Optional.of(dest.getValue(state)), flags, false); 
+		} else {
+			return dest.updateState(state, Optional.empty(), flags, true); 
+		}
+	}
 
     @Override
     public MachineState eval(MachineState state) {
