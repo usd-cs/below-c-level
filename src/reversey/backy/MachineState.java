@@ -146,6 +146,7 @@ public class MachineState {
     }
 
     /**
+     * 
      * @return Pair of the start (inclusive) and end (exclusive) indices for
      * given register in its full register's byte array.
      */

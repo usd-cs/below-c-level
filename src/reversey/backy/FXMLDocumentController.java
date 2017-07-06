@@ -152,7 +152,7 @@ public class FXMLDocumentController implements Initializable {
          */
         nextInstr.setOnAction((event) -> {
             this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-
+    
             instrList.getSelectionModel().selectNext();
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
 
