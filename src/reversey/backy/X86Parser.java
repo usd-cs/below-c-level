@@ -22,8 +22,10 @@ public class X86Parser {
     private static final String constOpRegEx = "\\$(?<const>-?\\p{Digit}+)";
     private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
     private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
-    private static final String operandRegEx = "\\s*(?<operand>" + constOpRegEx + "|" + regOpRegEx + "|" + memOpRegEx + ")\\s*";
+    private static final String labelOpEx = "(?<label>\\w+)";
+    private static final String operandRegEx = "\\s*(?<operand>" + constOpRegEx + "|" + regOpRegEx + "|" + memOpRegEx + "|" + labelOpEx + ")\\s*";
 
+    
     private static int currLineNum = 0;
     private static Map<String, Label> labels = new HashMap<String, Label>();
 
@@ -39,11 +41,11 @@ public class X86Parser {
         OpSize size;
 
         String validTypedInstrNames = "(?<name>add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test)(?<size>b|w|l|q)";
-        String validSetInstrNames = "(?<name>set)(?<op>e|ne|s|ns|g|ge|l|le)";
-
+        String validSetInstrNames = "(?<name>set|j)(?<op>e|ne|s|ns|g|ge|l|le)";
+        
         Matcher typedMatcher = Pattern.compile(validTypedInstrNames).matcher(instrName);
         Matcher setMatcher = Pattern.compile(validSetInstrNames).matcher(instrName);
-
+            
         if (typedMatcher.matches()) {
             type = InstructionType.valueOf(typedMatcher.group("name").toUpperCase());
             switch (typedMatcher.group("size")) {
@@ -64,6 +66,7 @@ public class X86Parser {
             }
         } else if (setMatcher.matches()) {
             // The SET instruction is implicitly BYTE sized.
+            System.out.println("instrName: "+ instrName);
             type = InstructionType.valueOf(instrName.toUpperCase());
             size = OpSize.BYTE;
         } else {
@@ -108,6 +111,7 @@ public class X86Parser {
         Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
         Matcher regMatcher = Pattern.compile(regOpRegEx).matcher(str);
         Matcher memMatcher = Pattern.compile(memOpRegEx).matcher(str);
+        Matcher labelMatcher = Pattern.compile(labelOpEx).matcher(str);
 
         if (constMatcher.matches()) {
             // constant operand
@@ -191,8 +195,16 @@ public class X86Parser {
             }
 
             op = new MemoryOperand(baseReg, indexReg, scale, offset, instrOpSize);
+        } else if (labelMatcher.matches()) {
+            String labelName = labelMatcher.group("label");
+                op = new LabelOperand(labelName, labels.get(labelName));
+                System.out.println("Found a label operand");
+            // Instruction validation - allow instructions with labels that have not been created yet
+            // What happens when instruction with jmp label is executed but jumps to a label that hasn't been created yet?
+    } else {
+            System.out.println("Unknown type of operand");
+            System.out.println("Tried to match " + str);
         }
-
         return op;
     }
 
@@ -274,6 +286,7 @@ public class X86Parser {
             }
 
             if (operands.size() != instrType.numOperands()) {
+                System.out.println("Num operands: " + operands.size());
                 throw new X86ParsingException("too many operands",
                         instMatcher.start("operands"),
                         instr.length());
@@ -290,7 +303,7 @@ public class X86Parser {
                         opSize,
                         currLineNum++);
             } else if (instrType.numOperands() == 1) {
-                if (!instrName.startsWith("set")) {
+                if (!instrName.startsWith("set") && !instrName.startsWith("j")) {
                     instrName = instrName.substring(0, instrName.length() - 1);
                 }
 

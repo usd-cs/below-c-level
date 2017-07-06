@@ -165,6 +165,62 @@ public class x86UnaryInstruction extends x86Instruction {
                             return dest.updateState(state, Optional.of(result), flags, true);
                         };
                 break;
+            case "je":
+            case "jne":
+            case "js":
+            case "jns":
+            case "jg":
+            case "jge":
+            case "jl":
+            case "jle":
+                final Predicate<MachineState> pea;
+                switch (instType) {
+                    case "je":
+                        this.type = InstructionType.JE;
+                        pea = state -> state.getZeroFlag();
+                        break;
+                    case "jne":
+                        this.type = InstructionType.JNE;
+                        pea = state -> !state.getZeroFlag();
+                        break;
+                    case "js":
+                        this.type = InstructionType.JS;
+                        pea = state -> state.getSignFlag();
+                        break;
+                    case "jns":
+                        this.type = InstructionType.JNS;
+                        pea = state -> !state.getSignFlag();
+                        break;
+                    case "jg":
+                        this.type = InstructionType.JG;
+                        pea = state -> !(state.getSignFlag() ^ state.getOverflowFlag()) & !state.getZeroFlag();
+                        break;
+                    case "jge":
+                        this.type = InstructionType.JGE;
+                        pea = state -> !(state.getSignFlag() ^ state.getOverflowFlag());
+                        break;
+                    case "jl":
+                        this.type = InstructionType.JL;
+                        pea = state -> (state.getSignFlag() ^ state.getOverflowFlag());
+                        break;
+                    case "jle":
+                        this.type = InstructionType.JLE;
+                        pea = state -> (state.getSignFlag() ^ state.getOverflowFlag()) | state.getZeroFlag();
+                        break;
+                    default:
+                        pea = null;
+                        System.err.println("ERROR: jmp that isn't a jmp: " + instType);
+                        System.exit(1);
+                }
+                this.operation
+                        = (state, dest) -> {
+                            if(pea.test(state)){
+                                return dest.updateState(state, Optional.of(dest.getValue(state)), flags, false); 
+                            } else {
+                                return dest.updateState(state, Optional.empty(), flags, true); 
+                            }
+                        };
+                break;
             case "push":
                 this.type = InstructionType.PUSH;
                 this.operation
