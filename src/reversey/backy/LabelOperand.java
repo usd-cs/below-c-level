@@ -44,4 +44,9 @@ public class LabelOperand extends Operand {
     public Set<String> getUsedRegisters() {
         return new HashSet<String>();
     }
+    
+    public String toString() {
+        String res = "" + name;
+        return res;
+    }
 }
