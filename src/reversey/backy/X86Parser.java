@@ -361,7 +361,7 @@ public class X86Parser {
                             instr.length());
                 }
 				// TODO: check that the destination isn't a LabelOperand either
-                return new x86BinaryInstruction(instrName.substring(0, instrName.length() - 1),
+                return new x86BinaryInstruction(instrType,
                         operands.get(0),
                         operands.get(1),
                         opSize,
@@ -373,7 +373,7 @@ public class X86Parser {
 
                 // TODO: throw exception if destination is a constant (or a
 				// label for non-jump instructions)
-                return new x86UnaryInstruction(instrName,
+                return new x86UnaryInstruction(instrType,
                         operands.get(0),
                         opSize,
                         currLineNum++);

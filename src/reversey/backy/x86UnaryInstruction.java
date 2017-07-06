@@ -31,60 +31,59 @@ public class x86UnaryInstruction extends x86Instruction {
 	private Optional<Predicate<MachineState>> conditionCheck = Optional.empty();
 
     /**
-     * @param instType String representation of the instruction's operation.
+     * @param instType The type of operation performed by the instruction.
      * @param destOp Operand representing the destination of the instruction.
      * @param size Number of bytes this instruction works on.
      */
-    public x86UnaryInstruction(String instType, Operand destOp, OpSize size, int line) {
+    public x86UnaryInstruction(InstructionType instType, Operand destOp, OpSize size, int line) {
+		this.type = instType;
         this.destination = destOp;
         this.opSize = size;
         this.lineNum = line;
-		this.type = InstructionType.valueOf(instType.toUpperCase());
 
         switch (instType) {
-            case "inc":
+            case INC:
                 this.operation = this::inc;
                 break;
-            case "dec":
+            case DEC:
                 this.operation = this::dec;
                 break;
-            case "neg":
+            case NEG:
                 this.operation = this::neg;
                 break;
-            case "not":
+            case NOT:
                 this.operation = this::not;
                 break;
-            case "sete":
-            case "setne":
-            case "sets":
-            case "setns":
-            case "setg":
-            case "setge":
-            case "setl":
-            case "setle":
-				this.conditionCheck = Optional.of(conditions.get(instType.substring(3)));
+            case SETE:
+            case SETNE:
+            case SETS:
+            case SETNS:
+            case SETG:
+            case SETGE:
+            case SETL:
+            case SETLE:
+				this.conditionCheck = Optional.of(conditions.get(instType.name().toLowerCase().substring(3)));
                 this.operation = this::set;
                 break;
-            case "je":
-            case "jne":
-            case "js":
-            case "jns":
-            case "jg":
-            case "jge":
-            case "jl":
-            case "jle":
-				this.conditionCheck = Optional.of(conditions.get(instType.substring(1)));
+            case JE:
+            case JNE:
+            case JS:
+            case JNS:
+            case JG:
+            case JGE:
+            case JL:
+            case JLE:
+				this.conditionCheck = Optional.of(conditions.get(instType.name().toLowerCase().substring(1)));
                 this.operation = this::jump;
                 break;
-            case "push":
+            case PUSH:
                 this.operation = this::push;
                 break;
-            case "pop":
+            case POP:
                 this.operation = this::pop;
                 break;
             default:
-                System.err.println("invalid instr type for unary inst: " + instType);
-                System.exit(1);
+                throw new RuntimeException("unsupported instr type: " + instType);
         }
     }
 

@@ -30,63 +30,61 @@ public class x86BinaryInstruction extends x86Instruction {
      */
     private BinaryX86Operation operation;
 
-    // TODO: instType should be of type InstructionType
     /**
-     * @param instType String representation of the instruction's operation.
+     * @param instType The type of operation performed by the instruction.
      * @param srcOp A source operand of the instruction.
      * @param destOp Operand representing the destination of the instruction.
      * @param size Number of bytes this instruction works on.
      */
-    public x86BinaryInstruction(String instType, Operand srcOp, Operand destOp, OpSize size, int line) {
+    public x86BinaryInstruction(InstructionType instType, Operand srcOp, Operand destOp, OpSize size, int line) {
+		this.type = instType;
         this.source = srcOp;
         this.destination = destOp;
         this.opSize = size;
         this.lineNum = line;
-		this.type = InstructionType.valueOf(instType.toUpperCase());
         
         switch (instType) {
-            case "add":
+            case ADD:
                 this.operation = this::add;
                 break;
-            case "sub":
+            case SUB:
                 this.operation = this::sub;
                 break;
-            case "cmp":
+            case CMP:
                 this.operation = this::cmp;
                 break;
-            case "xor":
+            case XOR:
                 this.operation = this::xor;
                 break;
-            case "or":
+            case OR:
                 this.operation = this::or;
                 break;
-            case "and":
+            case AND:
                 this.operation = this::and;
                 break;
-            case "test":
+            case TEST:
                 this.operation = this::test;
                 break;
-            case "sal":
+            case SAL:
                 this.operation = this::sal;
                 break;
-            case "shl":
+            case SHL:
                 this.operation = this::sal;
                 break;
-            case "sar":
+            case SAR:
                 this.operation = this::sar;
                 break;
-            case "shr":
+            case SHR:
                 this.operation = this::shr;
                 break;
-            case "mov":
+            case MOV:
                 this.operation = this::mov;
                 break;
-            case "lea":
+            case LEA:
                 this.operation = this::lea;
                 break;
             default:
-                System.err.println("unknown instr type for binary inst: " + instType);
-                System.exit(1);
+                throw new RuntimeException("unsupported instr type: " + instType);
         }
     }
 
