@@ -38,6 +38,7 @@ public abstract class x86Instruction extends x86ProgramLine {
 	static {
 		conditions = new HashMap<String, Predicate<MachineState>>();
 		conditions.put("e", state -> state.getZeroFlag());
+                conditions.put("jmp", state -> true);
 		conditions.put("ne", state -> !state.getZeroFlag());
 		conditions.put("s", state -> state.getSignFlag());
 		conditions.put("ns", state -> !state.getSignFlag());
@@ -67,6 +68,7 @@ public abstract class x86Instruction extends x86ProgramLine {
 	public InstructionType getType() { return this.type; }
 	public OpSize getOpSize() { return this.opSize; }
 
+        public abstract void updateLabels(String labelName, Label label);
 	public abstract String toString();
 
 	/**

@@ -39,7 +39,8 @@ public enum InstructionType {
     JG(1),
     JGE(1),
     JL(1),
-    JLE(1);
+    JLE(1),
+    JMP(1);
     // TODO: set instructions for unsigned (e.g. seta)
 
     /**

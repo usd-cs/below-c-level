@@ -76,6 +76,10 @@ public class x86UnaryInstruction extends x86Instruction {
 				this.conditionCheck = Optional.of(conditions.get(instType.substring(1)));
                 this.operation = this::jump;
                 break;
+            case "jmp":
+                this.conditionCheck = Optional.of(conditions.get("jmp"));
+                this.operation = this::jump;
+                break;
             case "push":
                 this.operation = this::push;
                 break;
@@ -183,6 +187,11 @@ public class x86UnaryInstruction extends x86Instruction {
     @Override
     public Set<String> getUsedRegisters() {
         return destination.getUsedRegisters();
+    }
+    
+    @Override
+    public void updateLabels(String labelName, Label label){
+        destination.updateLabels(labelName, label);
     }
     
     @Override

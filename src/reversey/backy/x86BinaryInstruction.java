@@ -324,6 +324,12 @@ public class x86BinaryInstruction extends x86Instruction {
     }
     
     @Override
+    public void updateLabels(String labelName, Label label){
+        destination.updateLabels(labelName, label);
+        source.updateLabels(labelName, label);
+    }
+    
+    @Override
     public String toString() {
         return lineNum + ": \t" + getInstructionTypeString() + " " + source.toString() + ", " + destination.toString();
     }
