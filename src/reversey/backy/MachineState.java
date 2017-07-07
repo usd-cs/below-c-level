@@ -146,6 +146,7 @@ public class MachineState {
     }
 
     /**
+     * 
      * @return Pair of the start (inclusive) and end (exclusive) indices for
      * given register in its full register's byte array.
      */
@@ -262,11 +263,10 @@ public class MachineState {
             }
 
             reg.put(quadName, new RegisterState(newValFull, (new BigInteger(reg.get("rip").getValue())).intValue()));
-            
-            if (updateRIP) {
-                BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
-                reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
-            }
+        }
+        if (updateRIP) {
+            BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
+            reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
         }
 
         // TODO: remove code duplication (here and in other version of
@@ -287,6 +287,10 @@ public class MachineState {
         return new MachineState(reg, this.memory, flags);
     }
 
+    public BigInteger getRipRegister(){
+        return new BigInteger(registers.get("rip").getValue());
+    }
+    
     /**
      * Gets the value stored in the given register.
      */

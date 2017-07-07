@@ -33,5 +33,7 @@ public abstract class Operand {
 	 * @return Set containing names of registers used by this operand.
 	 */
     public abstract Set<String> getUsedRegisters();
+    
+    public void updateLabels(String labelName, Label label){}
 }
 

@@ -25,8 +25,24 @@ public class LabelOperand extends Operand {
         this.label = label;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public Label getLabel() {
+        return label;
+    }
+
+    public void setLabel(Label l) {
+        label = l;
+    }
+
     @Override
     public BigInteger getValue(MachineState state) {
+        if (label == null) {
+            // FIXME: change this to a special exception type
+            throw new RuntimeException("nonexistent label: " + this.name);
+        }
         String num = "" + label.getLineNum();
         return new BigInteger(num);
     }
@@ -43,5 +59,17 @@ public class LabelOperand extends Operand {
     @Override
     public Set<String> getUsedRegisters() {
         return new HashSet<String>();
+    }
+
+    @Override
+    public void updateLabels(String labelName, Label label){
+        if(this.name.equals(labelName)){
+            this.label = label;
+        }
+    }
+    
+    public String toString() {
+        String res = "" + name;
+        return res;
     }
 }
