@@ -34,6 +34,12 @@ public abstract class Operand {
      */
     public abstract Set<String> getUsedRegisters();
     
-    public void updateLabels(String labelName, Label label){}
+    /**
+     * Updates the labels in this operand with the given name to refer to the
+     * given label.
+     *
+     * @param labelName The name of the label to update.
+     * @param label The new value for the label.
+     */
+    public void updateLabels(String labelName, Label label) {}
 }
-

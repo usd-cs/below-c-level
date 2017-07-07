@@ -12,12 +12,20 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
+ * A class representing a label operand in an x86 instruction.
  *
  * @author Caitlin
  */
 public class LabelOperand extends Operand {
 
+    /**
+     * The name of the label.
+     */
     private String name;
+
+    /**
+     * The label referred to by this operand.
+     */
     private Label label;
 
     public LabelOperand(String name, Label label) {
@@ -27,14 +35,6 @@ public class LabelOperand extends Operand {
 
     public String getName() {
         return name;
-    }
-
-    public Label getLabel() {
-        return label;
-    }
-
-    public void setLabel(Label l) {
-        label = l;
     }
 
     @Override
