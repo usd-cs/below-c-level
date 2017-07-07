@@ -91,8 +91,15 @@ public class FXMLDocumentController implements Initializable {
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
         // Disable user selecting arbitrary item in instruction list.
-        instrList.setMouseTransparent(true);
-        instrList.setFocusTraversable(false);
+		instrList.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> { 
+			/*
+			if (event.getButton() == MouseButton.PRIMARY) 
+				System.out.println("left clicked"); 
+			else if (event.getButton() == MouseButton.SECONDARY) 
+				System.out.println("right clicked"); 
+			*/
+				event.consume(); 
+		});
 
         // Initialize the simulation state.
         stateHistory = new ArrayList<MachineState>();
