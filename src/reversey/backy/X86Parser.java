@@ -53,19 +53,19 @@ public class X86Parser {
         OpSize size;
 
         /* 
-		 * "sized" instructions are those that have an instruction name (e.g.
-		 * "add") followed by a single character suffix to indicate the size
-		 * (e.g. "q").
+         * "sized" instructions are those that have an instruction name (e.g.
+         * "add") followed by a single character suffix to indicate the size
+         * (e.g. "q").
          */
         String validSizedInstrNames = "(?<name>add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test)(?<size>b|w|l|q)";
         Matcher sizedInstrMatcher = Pattern.compile(validSizedInstrNames).matcher(instrName);
 
         /*
-		 * "conditional" instructions are those whose operations are determined
-		 * by the status flags (e.g. the overflow flag).
-		 * Their suffix isn't a size, rather it is the condition to check for
-		 * (e.g. "ge" for "greater than or equal")
-		 * The "size" of these instructions is implicit (e.g. byte for SET).
+         * "conditional" instructions are those whose operations are determined
+         * by the status flags (e.g. the overflow flag).
+         * Their suffix isn't a size, rather it is the condition to check for
+         * (e.g. "ge" for "greater than or equal")
+         * The "size" of these instructions is implicit (e.g. byte for SET).
          */
         String validConditionalInstrName = "((?<name>set|j)(?<op>e|ne|s|ns|g|ge|l|le)|jmp)";
         Matcher condInstrMatcher = Pattern.compile(validConditionalInstrName).matcher(instrName);

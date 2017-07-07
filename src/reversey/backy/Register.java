@@ -9,20 +9,20 @@ import javafx.beans.property.SimpleStringProperty;
  * @author Caitlin Fanning
  */
 public class Register {
-	/**
-	 * The name of the register (e.g. "rax")
-	 */
+    /**
+     * The name of the register (e.g. "rax")
+     */
     private SimpleStringProperty name;
 
-	/**
-	 * String representation of the register's value (in hex).
-	 */
+    /**
+     * String representation of the register's value (in hex).
+     */
     private SimpleStringProperty value;
 
-	/**
-	 * The prominence of this register.
-	 * Larger values mean higher prominence (e.g. more recently used.)
-	 */
+    /**
+     * The prominence of this register.
+     * Larger values mean higher prominence (e.g. more recently used.)
+     */
     private int prominence;
     private SimpleIntegerProperty origin;
     
@@ -33,7 +33,7 @@ public class Register {
         this.origin = new SimpleIntegerProperty(origin);
     }
     
-	// Getters and setters
+    // Getters and setters
     public String getName(){
         return name.get();
     }

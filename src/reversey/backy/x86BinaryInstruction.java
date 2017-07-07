@@ -37,7 +37,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @param size Number of bytes this instruction works on.
      */
     public x86BinaryInstruction(InstructionType instType, Operand srcOp, Operand destOp, OpSize size, int line) {
-		this.type = instType;
+        this.type = instType;
         this.source = srcOp;
         this.destination = destOp;
         this.opSize = size;
@@ -88,224 +88,224 @@ public class x86BinaryInstruction extends x86Instruction {
         }
     }
 
-	public MachineState add(MachineState state, Operand src, Operand dest) {
-		BigInteger src1 = dest.getValue(state);
-		BigInteger src2 = src.getValue(state);
-		BigInteger result = src1.add(src2);
+    public MachineState add(MachineState state, Operand src, Operand dest) {
+        BigInteger src1 = dest.getValue(state);
+        BigInteger src2 = src.getValue(state);
+        BigInteger result = src1.add(src2);
 
         Map<String, Boolean> flags = new HashMap<String, Boolean>();
-		flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
+        flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
-		result = truncate(result);
+        result = truncate(result);
 
-		setSignAndZeroFlags(result, flags);
-		flags.put("cf", false); // FIXME: implement
-		return dest.updateState(state, Optional.of(result), flags, true);
-	}
+        setSignAndZeroFlags(result, flags);
+        flags.put("cf", false); // FIXME: implement
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
 
-	public MachineState sub(MachineState state, Operand src, Operand dest) {
-		BigInteger src1 = dest.getValue(state);
-		BigInteger src2 = src.getValue(state);
-		BigInteger result = src1.subtract(src2);
-
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
-		flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
-
-		result = truncate(result);
-
-		setSignAndZeroFlags(result, flags);
-		flags.put("cf", false); // FIXME: implement
-		return dest.updateState(state, Optional.of(result), flags, true);
-	}
-
-	public MachineState cmp(MachineState state, Operand src, Operand dest) {
-		BigInteger src1 = dest.getValue(state);
-		BigInteger src2 = src.getValue(state);
-		BigInteger result = src1.subtract(src2);
+    public MachineState sub(MachineState state, Operand src, Operand dest) {
+        BigInteger src1 = dest.getValue(state);
+        BigInteger src2 = src.getValue(state);
+        BigInteger result = src1.subtract(src2);
 
         Map<String, Boolean> flags = new HashMap<String, Boolean>();
-		flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
+        flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
-		result = truncate(result);
+        result = truncate(result);
 
-		setSignAndZeroFlags(result, flags);
-		flags.put("cf", false); // FIXME: implement
-		return dest.updateState(state, Optional.empty(), flags, true);
-	}
+        setSignAndZeroFlags(result, flags);
+        flags.put("cf", false); // FIXME: implement
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
 
-	/**
-	 * Gets set of condition flags for a logical operation, based on the result
-	 * being val.
-	 *
-	 * @param val The result used for setting zf and sf.
-	 * @return Set of condition flags.
-	 */
-	public Map<String, Boolean> getLogicalOpFlags(BigInteger val) {
+    public MachineState cmp(MachineState state, Operand src, Operand dest) {
+        BigInteger src1 = dest.getValue(state);
+        BigInteger src2 = src.getValue(state);
+        BigInteger result = src1.subtract(src2);
 
         Map<String, Boolean> flags = new HashMap<String, Boolean>();
-		setSignAndZeroFlags(val, flags);
-		flags.put("of", false);
-		flags.put("cf", false);
+        flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
-		return flags;
-	}
+        result = truncate(result);
 
-	public MachineState xor(MachineState state, Operand src, Operand dest) {
-		BigInteger result = dest.getValue(state).xor(src.getValue(state));
-		Map<String, Boolean> flags = getLogicalOpFlags(result);
-		return dest.updateState(state, Optional.of(result), flags, true);
-	}
+        setSignAndZeroFlags(result, flags);
+        flags.put("cf", false); // FIXME: implement
+        return dest.updateState(state, Optional.empty(), flags, true);
+    }
 
-	public MachineState or(MachineState state, Operand src, Operand dest) {
-		BigInteger result = dest.getValue(state).or(src.getValue(state));
-		Map<String, Boolean> flags = getLogicalOpFlags(result);
-		return dest.updateState(state, Optional.of(result), flags, true);
-	}
+    /**
+     * Gets set of condition flags for a logical operation, based on the result
+     * being val.
+     *
+     * @param val The result used for setting zf and sf.
+     * @return Set of condition flags.
+     */
+    public Map<String, Boolean> getLogicalOpFlags(BigInteger val) {
 
-	public MachineState and(MachineState state, Operand src, Operand dest) {
-		BigInteger result = dest.getValue(state).and(src.getValue(state));
-		Map<String, Boolean> flags = getLogicalOpFlags(result);
-		return dest.updateState(state, Optional.of(result), flags, true);
-	}
+        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        setSignAndZeroFlags(val, flags);
+        flags.put("of", false);
+        flags.put("cf", false);
 
-	public MachineState test(MachineState state, Operand src, Operand dest) {
-		BigInteger result = dest.getValue(state).and(src.getValue(state));
-		Map<String, Boolean> flags = getLogicalOpFlags(result);
-		return dest.updateState(state, Optional.empty(), flags, true);
-	}
+        return flags;
+    }
 
-	public MachineState sal(MachineState state, Operand src, Operand dest) {
-		int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
-		BigInteger orig = dest.getValue(state);
-		BigInteger result = orig.shiftLeft(shamt);
+    public MachineState xor(MachineState state, Operand src, Operand dest) {
+        BigInteger result = dest.getValue(state).xor(src.getValue(state));
+        Map<String, Boolean> flags = getLogicalOpFlags(result);
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
 
-		int msbIndex = this.opSize.numBits() - 1;
+    public MachineState or(MachineState state, Operand src, Operand dest) {
+        BigInteger result = dest.getValue(state).or(src.getValue(state));
+        Map<String, Boolean> flags = getLogicalOpFlags(result);
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
 
-		Map<String, Boolean> flags = new HashMap<String, Boolean>();
-		setSignAndZeroFlags(result, flags);
+    public MachineState and(MachineState state, Operand src, Operand dest) {
+        BigInteger result = dest.getValue(state).and(src.getValue(state));
+        Map<String, Boolean> flags = getLogicalOpFlags(result);
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
 
-		if (shamt > 0 && (msbIndex + 1) >= shamt) {
-			flags.put("cf", orig.testBit((msbIndex + 1) - shamt));
-		} else if ((msbIndex + 1) >= shamt) {
-			flags.put("cf", false); // TODO: not sure if this is handled correctly
-		}
-		// overflow is only defined when shifting by 1
-		if (shamt == 1) {
-			flags.put("of", orig.testBit(msbIndex) != orig.testBit(msbIndex - 1));
-		} else {
-			// This is an undefined case... false sounds great
-			// doesn't it?
-			flags.put("of", false);
-		}
+    public MachineState test(MachineState state, Operand src, Operand dest) {
+        BigInteger result = dest.getValue(state).and(src.getValue(state));
+        Map<String, Boolean> flags = getLogicalOpFlags(result);
+        return dest.updateState(state, Optional.empty(), flags, true);
+    }
 
-		byte[] resArray = result.toByteArray();
-		if (resArray.length > this.opSize.numBytes()) {
-			byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
-			result = new BigInteger(ba);
-		}
+    public MachineState sal(MachineState state, Operand src, Operand dest) {
+        int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+        BigInteger orig = dest.getValue(state);
+        BigInteger result = orig.shiftLeft(shamt);
 
-		return dest.updateState(state, Optional.of(result), flags, true);
-	}
+        int msbIndex = this.opSize.numBits() - 1;
 
-	public MachineState sar(MachineState state, Operand src, Operand dest) {
-		int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
-		BigInteger orig = dest.getValue(state);
-		BigInteger result = orig.shiftRight(shamt);
+        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        setSignAndZeroFlags(result, flags);
 
-		assert result.bitLength() + 1 > this.opSize.numBits();
+        if (shamt > 0 && (msbIndex + 1) >= shamt) {
+            flags.put("cf", orig.testBit((msbIndex + 1) - shamt));
+        } else if ((msbIndex + 1) >= shamt) {
+            flags.put("cf", false); // TODO: not sure if this is handled correctly
+        }
+        // overflow is only defined when shifting by 1
+        if (shamt == 1) {
+            flags.put("of", orig.testBit(msbIndex) != orig.testBit(msbIndex - 1));
+        } else {
+            // This is an undefined case... false sounds great
+            // doesn't it?
+            flags.put("of", false);
+        }
 
-		Map<String, Boolean> flags = new HashMap<String, Boolean>();
-		setSignAndZeroFlags(result, flags);
+        byte[] resArray = result.toByteArray();
+        if (resArray.length > this.opSize.numBytes()) {
+            byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
+            result = new BigInteger(ba);
+        }
 
-		// overflow is false if shifting by 1, otherwise
-		// undefined
-		if (shamt == 1) {
-			flags.put("of", false);
-		} else {
-			// This is an undefined case... false sounds great
-			// doesn't it?
-			flags.put("of", false);
-		}
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
 
-		// shift by zero means CF isn't changed
-		if (shamt > 0) {
-			flags.put("cf", orig.testBit(shamt - 1));
-		}
+    public MachineState sar(MachineState state, Operand src, Operand dest) {
+        int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+        BigInteger orig = dest.getValue(state);
+        BigInteger result = orig.shiftRight(shamt);
 
-		return dest.updateState(state, Optional.of(result), flags, true);
-	}
+        assert result.bitLength() + 1 > this.opSize.numBits();
 
-	public MachineState shr(MachineState state, Operand src, Operand dest) {
-		int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
-		BigInteger orig = dest.getValue(state);
+        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        setSignAndZeroFlags(result, flags);
 
-		// BigInteger doesn't have logical right shift (>>>)
-		// so we do the ugly thing here and use the >>>
-		// operator by converting to the native types of the
-		// operators.
-		String s = null;
-		switch (this.opSize) {
-			case BYTE:
-				byte b = orig.byteValue();
-				b = (byte) (b >>> shamt);
-				s = "" + b;
-				break;
-			case WORD:
-				short w = orig.shortValue();
-				w = (short) (w >>> shamt);
-				s = "" + w;
-				break;
-			case LONG:
-				int l = orig.intValue();
-				l = l >>> shamt;
-				s = "" + l;
-				break;
-			case QUAD:
-				long q = orig.longValue();
-				q = q >>> shamt;
-				s = "" + q;
-				break;
-		}
-		BigInteger result = new BigInteger(s);
+        // overflow is false if shifting by 1, otherwise
+        // undefined
+        if (shamt == 1) {
+            flags.put("of", false);
+        } else {
+            // This is an undefined case... false sounds great
+            // doesn't it?
+            flags.put("of", false);
+        }
+
+        // shift by zero means CF isn't changed
+        if (shamt > 0) {
+            flags.put("cf", orig.testBit(shamt - 1));
+        }
+
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
+
+    public MachineState shr(MachineState state, Operand src, Operand dest) {
+        int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+        BigInteger orig = dest.getValue(state);
+
+        // BigInteger doesn't have logical right shift (>>>)
+        // so we do the ugly thing here and use the >>>
+        // operator by converting to the native types of the
+        // operators.
+        String s = null;
+        switch (this.opSize) {
+            case BYTE:
+                byte b = orig.byteValue();
+                b = (byte) (b >>> shamt);
+                s = "" + b;
+                break;
+            case WORD:
+                short w = orig.shortValue();
+                w = (short) (w >>> shamt);
+                s = "" + w;
+                break;
+            case LONG:
+                int l = orig.intValue();
+                l = l >>> shamt;
+                s = "" + l;
+                break;
+            case QUAD:
+                long q = orig.longValue();
+                q = q >>> shamt;
+                s = "" + q;
+                break;
+        }
+        BigInteger result = new BigInteger(s);
 
 
-		Map<String, Boolean> flags = new HashMap<String, Boolean>();
-		setSignAndZeroFlags(result, flags);
+        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        setSignAndZeroFlags(result, flags);
 
-		// overflow is the most sig bit of original if shifting by 1, otherwise
-		// undefined
-		if (shamt == 1) {
-			flags.put("of", orig.testBit(this.opSize.numBytes() * 8 - 1));
-		} else {
-			// This is an undefined case... false sounds great
-			// doesn't it?
-			flags.put("of", false);
-		}
+        // overflow is the most sig bit of original if shifting by 1, otherwise
+        // undefined
+        if (shamt == 1) {
+            flags.put("of", orig.testBit(this.opSize.numBytes() * 8 - 1));
+        } else {
+            // This is an undefined case... false sounds great
+            // doesn't it?
+            flags.put("of", false);
+        }
 
-		if (shamt > 0) {
-			// shift by zero means CF isn't changed
-			flags.put("cf", orig.testBit(shamt - 1));
-		}
+        if (shamt > 0) {
+            // shift by zero means CF isn't changed
+            flags.put("cf", orig.testBit(shamt - 1));
+        }
 
-		return dest.updateState(state, Optional.of(result), flags, true);
-	}
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
 
-	public MachineState mov(MachineState state, Operand src, Operand dest) {
+    public MachineState mov(MachineState state, Operand src, Operand dest) {
         Map<String, Boolean> flags = new HashMap<String, Boolean>();
         return dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
-	}
+    }
 
-	public MachineState lea(MachineState state, Operand src, Operand dest) {
-		// TODO: Use polymorophism to avoid this instanceof junk
-		if (!(src instanceof MemoryOperand)) {
-			System.err.println("ERROR: lea src must be a memory operand");
-			return null;
-		}
+    public MachineState lea(MachineState state, Operand src, Operand dest) {
+        // TODO: Use polymorophism to avoid this instanceof junk
+        if (!(src instanceof MemoryOperand)) {
+            System.err.println("ERROR: lea src must be a memory operand");
+            return null;
+        }
 
-		MemoryOperand mo = (MemoryOperand) src;
+        MemoryOperand mo = (MemoryOperand) src;
         Map<String, Boolean> flags = new HashMap<String, Boolean>();
-		return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), flags, true);
-	}
+        return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), flags, true);
+    }
 
 
     @Override

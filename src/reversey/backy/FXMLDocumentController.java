@@ -91,15 +91,15 @@ public class FXMLDocumentController implements Initializable {
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
         // Disable user selecting arbitrary item in instruction list.
-		instrList.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> { 
-			/*
-			if (event.getButton() == MouseButton.PRIMARY) 
-				System.out.println("left clicked"); 
-			else if (event.getButton() == MouseButton.SECONDARY) 
-				System.out.println("right clicked"); 
-			*/
-				event.consume(); 
-		});
+        instrList.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> { 
+            /*
+            if (event.getButton() == MouseButton.PRIMARY) 
+                System.out.println("left clicked"); 
+            else if (event.getButton() == MouseButton.SECONDARY) 
+                System.out.println("right clicked"); 
+            */
+                event.consume(); 
+        });
 
         // Initialize the simulation state.
         stateHistory = new ArrayList<MachineState>();
@@ -122,10 +122,10 @@ public class FXMLDocumentController implements Initializable {
         valCol.setCellValueFactory(new PropertyValueFactory<StackEntry, String>("value"));
         originCol.setCellValueFactory(new PropertyValueFactory<StackEntry, Integer>("origin"));
 
-		startAddressCol.setStyle( "-fx-alignment: CENTER;");
-		endAddressCol.setStyle( "-fx-alignment: CENTER;");
-		valCol.setStyle( "-fx-alignment: CENTER;");
-		originCol.setStyle( "-fx-alignment: CENTER;");
+        startAddressCol.setStyle( "-fx-alignment: CENTER;");
+        endAddressCol.setStyle( "-fx-alignment: CENTER;");
+        valCol.setStyle( "-fx-alignment: CENTER;");
+        originCol.setStyle( "-fx-alignment: CENTER;");
         
         stackTableList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         stackTable.setItems(stackTableList);
@@ -135,8 +135,8 @@ public class FXMLDocumentController implements Initializable {
         registerVal.setCellValueFactory(new PropertyValueFactory<Register, String>("value"));
         registerOrigin.setCellValueFactory(new PropertyValueFactory<Register, Integer>("origin"));
         
-		registerName.setStyle( "-fx-alignment: CENTER;");
-		registerVal.setStyle( "-fx-alignment: CENTER;");
+        registerName.setStyle( "-fx-alignment: CENTER;");
+        registerVal.setStyle( "-fx-alignment: CENTER;");
                 registerOrigin.setStyle( "-fx-alignment: CENTER;");
 
         Comparator<Register> regComp = (Register r1, Register r2) -> {
@@ -154,8 +154,8 @@ public class FXMLDocumentController implements Initializable {
         promRegTable.setItems(regSortedList);
 
         /*
-		 * Event handler for the "next" button.
-		 * This will evaluate the current instruction and move on to the next.
+         * Event handler for the "next" button.
+         * This will evaluate the current instruction and move on to the next.
          */
         nextInstr.setOnAction((event) -> {
             this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
@@ -169,7 +169,7 @@ public class FXMLDocumentController implements Initializable {
         });
 
         /*
-		 * Event handler for "run to completion" button.
+         * Event handler for "run to completion" button.
          */
         skipToEnd.setOnAction((event) -> {
             for(int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
@@ -183,7 +183,7 @@ public class FXMLDocumentController implements Initializable {
         });
 
         /*
-		 * Event handler for "back" button.
+         * Event handler for "back" button.
          */
         prevInstr.setOnAction((event) -> {
             
@@ -197,9 +197,9 @@ public class FXMLDocumentController implements Initializable {
         });
 
         /*
-		 * Event handler for "return to beginning" button.
-		 * This will reset the simulation, returning to the very first
-		 * instruction.
+         * Event handler for "return to beginning" button.
+         * This will reset the simulation, returning to the very first
+         * instruction.
          */
         skipToStart.setOnAction((event) -> {
             instrList.getSelectionModel().selectFirst();
@@ -214,8 +214,8 @@ public class FXMLDocumentController implements Initializable {
         });
 
         /*
-		 * Event handler for when user clicks button to insert a new
-		 * instruction.
+         * Event handler for when user clicks button to insert a new
+         * instruction.
          */
         instrText.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
@@ -293,38 +293,38 @@ public class FXMLDocumentController implements Initializable {
 
         //TODO: Resizing icons/nodes to pane
         /*
-		   skipToStartImgVw.fitHeightProperty().bind(skipToStart.heightProperty());
-		   skipToStartImgVw.fitWidthProperty().bind(skipToStart.widthProperty());
-		   prevInstrImgVw.fitHeightProperty().bind(prevInstr.heightProperty());
-		   prevInstrImgVw.fitWidthProperty().bind(prevInstr.widthProperty());
-		   currInstrImgVw.fitHeightProperty().bind(currInstr.heightProperty());
-		   currInstrImgVw.fitWidthProperty().bind(currInstr.widthProperty());
-		   nextInstrImgVw.fitHeightProperty().bind(nextInstr.heightProperty());
-		   nextInstrImgVw.fitWidthProperty().bind(nextInstr.widthProperty());
-		   skipToEndImgVw.fitHeightProperty().bind(skipToEnd.heightProperty());
-		   skipToEndImgVw.fitWidthProperty().bind(skipToEnd.widthProperty());
+           skipToStartImgVw.fitHeightProperty().bind(skipToStart.heightProperty());
+           skipToStartImgVw.fitWidthProperty().bind(skipToStart.widthProperty());
+           prevInstrImgVw.fitHeightProperty().bind(prevInstr.heightProperty());
+           prevInstrImgVw.fitWidthProperty().bind(prevInstr.widthProperty());
+           currInstrImgVw.fitHeightProperty().bind(currInstr.heightProperty());
+           currInstrImgVw.fitWidthProperty().bind(currInstr.widthProperty());
+           nextInstrImgVw.fitHeightProperty().bind(nextInstr.heightProperty());
+           nextInstrImgVw.fitWidthProperty().bind(nextInstr.widthProperty());
+           skipToEndImgVw.fitHeightProperty().bind(skipToEnd.heightProperty());
+           skipToEndImgVw.fitWidthProperty().bind(skipToEnd.widthProperty());
 
-		   skipToStart.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-		   skipToStart.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-		   prevInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-		   prevInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-		   currInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-		   currInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-		   nextInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-		   nextInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-		   skipToEnd.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-		   skipToEnd.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-         */
+           skipToStart.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+           skipToStart.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+           prevInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+           prevInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+           currInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+           currInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+           nextInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+           nextInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+           skipToEnd.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
+           skipToEnd.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+           */
 
- /*
-		 * Event handler for when user picks "insert at beginning" option.
+        /*
+         * Event handler for when user picks "insert at beginning" option.
          */
         beginning.setOnAction((event) -> {
             System.out.println("Insert at Beginning selected");
         });
 
         /*
-		 * Event handler for when user picks "insert after current" option.
+         * Event handler for when user picks "insert after current" option.
          */
         current.setOnAction((event) -> {
             System.out.println("Insert at Current selected");

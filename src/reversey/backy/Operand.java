@@ -27,11 +27,11 @@ public abstract class Operand {
      */
     public abstract MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP);
 
-	/**
-	 * Returns the names of the registers used by this operand.
-	 *
-	 * @return Set containing names of registers used by this operand.
-	 */
+    /**
+     * Returns the names of the registers used by this operand.
+     *
+     * @return Set containing names of registers used by this operand.
+     */
     public abstract Set<String> getUsedRegisters();
     
     public void updateLabels(String labelName, Label label){}
