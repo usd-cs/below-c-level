@@ -25,10 +25,13 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.text.Font;
 import javafx.util.Callback;
+import javafx.scene.shape.Circle;
 
 /**
  *
@@ -91,14 +94,48 @@ public class FXMLDocumentController implements Initializable {
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
         // Disable user selecting arbitrary item in instruction list.
-        instrList.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> { 
+        instrList.setCellFactory(lv -> {
+            ListCell<x86ProgramLine> cell = new ListCell<x86ProgramLine>() {
+                @Override
+                protected void updateItem(x86ProgramLine item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setText(null);
+                    } else {
+                        setFont(new Font("Courier", 14));
+                        setText(item.toString());
+                        if (lv.getSelectionModel().getSelectedItems().contains(item))
+                            setGraphic(new Circle(5.0f));
+                    }
+                }
+            };
+
             /*
-            if (event.getButton() == MouseButton.PRIMARY) 
-                System.out.println("left clicked"); 
-            else if (event.getButton() == MouseButton.SECONDARY) 
-                System.out.println("right clicked"); 
+            ContextMenu cM = new ContextMenu();
+            MenuItem deleteItem = new MenuItem("Delete");
+            deleteItem.setOnAction( event -> {
+                lv.getItems().remove(cell.getItem());
+                int i = 0;
+                for (x86ProgramLine line : lv.getItems()) {
+                    line.setLineNum(i);
+                    i++;
+                }
+            });
+            cM.getItems().addAll(deleteItem);
+            deleteItem.setDisable(true);
             */
-                event.consume(); 
+
+            cell.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+                if (event.getButton()== MouseButton.SECONDARY && !cell.isEmpty()) {
+                    //lv.getFocusModel().focus(lv.getItems().indexOf(cell.getItem()));
+                    lv.getFocusModel().focus(1);
+                    //x86ProgramLine item = cell.getItem();
+                    //System.out.println("Right clicked: " + item);
+                    //cell.setContextMenu(cM);
+                }
+                event.consume();
+            });
+            return cell ;
         });
 
         // Initialize the simulation state.
