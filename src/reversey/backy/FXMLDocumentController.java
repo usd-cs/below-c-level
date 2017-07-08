@@ -172,14 +172,24 @@ public class FXMLDocumentController implements Initializable {
          * Event handler for "run to completion" button.
          */
         skipToEnd.setOnAction((event) -> {
+            // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
+            // appear to be stuck in an infinite loop?
             for(int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
                 this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-                instrList.getSelectionModel().selectNext();
+                instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() -1).getRipRegister().intValue());
                 regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
             }
             
             registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
             stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        });
+
+        /*
+         * Event handler for "scroll back to current instruction" button.
+         */
+        currInstr.setOnAction( event -> {
+            ObservableList<Integer> selectedIndices = instrList.getSelectionModel().getSelectedIndices();
+            if (!selectedIndices.isEmpty()) instrList.scrollTo(selectedIndices.get(0));
         });
 
         /*

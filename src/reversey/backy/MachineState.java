@@ -146,7 +146,9 @@ public class MachineState {
     }
 
     /**
-     * 
+     * Determines which parts of the full 8-byte register will be used by the
+     * given register.
+     *
      * @return Pair of the start (inclusive) and end (exclusive) indices for
      * given register in its full register's byte array.
      */
@@ -173,12 +175,22 @@ public class MachineState {
         }
     }
 
+    /**
+     * Determine the name of the 8-byte register used by the given register
+     * name.
+     * For example: "eax", "ax", "ah", and "al" are all part of the "rax"
+     * register.
+     *
+     * @param regName The name of the register to find.
+     * @return Name of the 8-byte register that the given register was part of.
+     */
     public static String getQuadName(String regName) {
         String quadRegNames = "^r(ax|bx|cx|dx|si|di|bp|sp|8|9|10|11|12|13|14|15)$";
         String longRegNames = "^(e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)d)$";
         String wordRegNames = "^((ax|bx|cx|dx|si|di|bp|sp)|r(8|9|10|11|12|13|14|15)w)$";
         String byteLowRegNames = "^((al|bl|cl|dl|sil|dil|bpl|spl)|r(8|9|10|11|12|13|14|15)b)$";
         String byteHighRegNames = "^(ah|bh|ch|dh)$";
+
         if (Pattern.matches(quadRegNames, regName)) {
             return regName;
         } else if (Pattern.matches(longRegNames, regName)) {
@@ -211,6 +223,13 @@ public class MachineState {
         }
     }
 
+    /**
+     * Creates a new MachineState that is the same as the calling object but
+     * with the rip register incremented by 1.
+     *
+     * @return A new MachineState that is identical to the calling object except
+     * for the incremented rip register.
+     */
     public MachineState getNewState(){
             Map<String, RegisterState> reg = this.registers;
             BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
@@ -218,6 +237,14 @@ public class MachineState {
             return new MachineState(reg, this.memory, this.statusFlags);
     }
     
+    /**
+     * Creates a new MachineState that is the same as the calling object but
+     * with the rip register set to the given value.
+     *
+     * @param lineNum The value used by the rip register in the new state.
+     * @return A new MachineState that is identical to the calling object except
+     * for updated rip register.
+     */
     public MachineState getNewState(BigInteger lineNum){
             Map<String, RegisterState> reg = this.registers;
             reg.put("rip", new RegisterState(lineNum.toByteArray(), lineNum.intValue()));
@@ -287,6 +314,9 @@ public class MachineState {
         return new MachineState(reg, this.memory, flags);
     }
 
+    /**
+     * @return The BigInteger representation of the value in the rip register.
+     */
     public BigInteger getRipRegister(){
         return new BigInteger(registers.get("rip").getValue());
     }
@@ -346,6 +376,9 @@ public class MachineState {
         return arr;
     }
 
+    /**
+     * Returns a list of stack entries.
+     */
     public List<StackEntry> getStackEntries(){
         return memory;
     }
