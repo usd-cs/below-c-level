@@ -19,6 +19,11 @@ interface UnaryX86Operation {
  */
 public class x86UnaryInstruction extends x86Instruction {
     /**
+     * The operand where the instruction will write its results.
+     */
+    protected Operand destination;
+    
+    /**
      * The function that this instruction performs.
      */
     private UnaryX86Operation operation;

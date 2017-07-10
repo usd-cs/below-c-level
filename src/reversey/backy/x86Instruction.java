@@ -12,12 +12,6 @@ import java.math.BigInteger;
  * @author Dr. Sat
  */
 public abstract class x86Instruction extends x86ProgramLine {
-
-    /**
-     * The operand where the instruction will write its results.
-     */
-    protected Operand destination;
-
     /**
      * The type of instruction (e.g. add)
      */

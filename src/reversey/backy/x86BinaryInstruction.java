@@ -18,7 +18,11 @@ interface BinaryX86Operation {
  * @author Sat Garcia (sat@sandiego.edu)
  */
 public class x86BinaryInstruction extends x86Instruction {
-
+    /**
+     * The operand where the instruction will write its results.
+     */
+    protected Operand destination;
+    
     /**
      * An operand used solely as a source for the operation.
      */
