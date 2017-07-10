@@ -1,7 +1,6 @@
 package reversey.backy;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
@@ -33,6 +32,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @param instType The type of operation performed by the instruction.
      * @param destOp Operand representing the destination of the instruction.
      * @param size Number of bytes this instruction works on.
+     * @param line The line number associated with this instruction.
      */
     public x86UnaryInstruction(InstructionType instType, Operand destOp, OpSize size, int line) {
         this.type = instType;
@@ -96,7 +96,7 @@ public class x86UnaryInstruction extends x86Instruction {
     public MachineState inc(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).add(BigInteger.ONE);
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
@@ -108,7 +108,7 @@ public class x86UnaryInstruction extends x86Instruction {
     public MachineState dec(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).subtract(BigInteger.ONE);
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
@@ -121,7 +121,7 @@ public class x86UnaryInstruction extends x86Instruction {
         BigInteger orig = dest.getValue(state);
         BigInteger result = orig.negate();
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
@@ -133,12 +133,12 @@ public class x86UnaryInstruction extends x86Instruction {
 
     public MachineState not(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).not();
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
     public MachineState push(MachineState state, Operand src) {
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: subtract 8 from rsp
         RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
@@ -151,7 +151,7 @@ public class x86UnaryInstruction extends x86Instruction {
     }
 
     public MachineState pop(MachineState state, Operand dest) {
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: store (%rsp) value in dest operand 
         MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
@@ -166,13 +166,12 @@ public class x86UnaryInstruction extends x86Instruction {
     public MachineState set(MachineState state, Operand dest) {
         assert this.conditionCheck.isPresent();
         BigInteger result = this.conditionCheck.get().test(state) ? BigInteger.ONE : BigInteger.ZERO;
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
-        return dest.updateState(state, Optional.of(result), flags, true);
+        return dest.updateState(state, Optional.of(result), new HashMap<>(), true);
     }
 
     public MachineState jump(MachineState state, Operand dest) {
         assert this.conditionCheck.isPresent();
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         if(this.conditionCheck.get().test(state)){
             return dest.updateState(state, Optional.of(dest.getValue(state)), flags, false); 
         } else {
@@ -181,7 +180,7 @@ public class x86UnaryInstruction extends x86Instruction {
     }
     
     public MachineState call(MachineState state, Operand dest) {
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         
         // step 1: subtract 8 from rsp
         RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);

@@ -9,7 +9,6 @@ import java.util.Set;
 
 @FunctionalInterface
 interface BinaryX86Operation {
-
     MachineState apply(MachineState state, Operand src, Operand dest);
 }
 
@@ -35,6 +34,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @param srcOp A source operand of the instruction.
      * @param destOp Operand representing the destination of the instruction.
      * @param size Number of bytes this instruction works on.
+     * @param line The line number associated with this instruction.
      */
     public x86BinaryInstruction(InstructionType instType, Operand srcOp, Operand destOp, OpSize size, int line) {
         this.type = instType;
@@ -93,7 +93,7 @@ public class x86BinaryInstruction extends x86Instruction {
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.add(src2);
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
@@ -108,7 +108,7 @@ public class x86BinaryInstruction extends x86Instruction {
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.subtract(src2);
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
@@ -123,7 +123,7 @@ public class x86BinaryInstruction extends x86Instruction {
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.subtract(src2);
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
@@ -142,7 +142,7 @@ public class x86BinaryInstruction extends x86Instruction {
      */
     public Map<String, Boolean> getLogicalOpFlags(BigInteger val) {
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         setSignAndZeroFlags(val, flags);
         flags.put("of", false);
         flags.put("cf", false);
@@ -181,7 +181,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
         int msbIndex = this.opSize.numBits() - 1;
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         setSignAndZeroFlags(result, flags);
 
         if (shamt > 0 && (msbIndex + 1) >= shamt) {
@@ -214,7 +214,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
         assert result.bitLength() + 1 > this.opSize.numBits();
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         setSignAndZeroFlags(result, flags);
 
         // overflow is false if shifting by 1, otherwise
@@ -269,7 +269,7 @@ public class x86BinaryInstruction extends x86Instruction {
         BigInteger result = new BigInteger(s);
 
 
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        Map<String, Boolean> flags = new HashMap<>();
         setSignAndZeroFlags(result, flags);
 
         // overflow is the most sig bit of original if shifting by 1, otherwise
@@ -291,8 +291,7 @@ public class x86BinaryInstruction extends x86Instruction {
     }
 
     public MachineState mov(MachineState state, Operand src, Operand dest) {
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
-        return dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
+        return dest.updateState(state, Optional.of(src.getValue(state)), new HashMap<>(), true);
     }
 
     public MachineState lea(MachineState state, Operand src, Operand dest) {
@@ -303,8 +302,7 @@ public class x86BinaryInstruction extends x86Instruction {
         }
 
         MemoryOperand mo = (MemoryOperand) src;
-        Map<String, Boolean> flags = new HashMap<String, Boolean>();
-        return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), flags, true);
+        return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), new HashMap<>(), true);
     }
 
 
