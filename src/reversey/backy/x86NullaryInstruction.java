@@ -14,13 +14,13 @@ import java.util.Set;
 
 @FunctionalInterface
 interface NullaryX86Operation {
-
     MachineState apply(MachineState state);
 }
 
 /**
- *
- * @author sat
+ * Class representing an x86 instruction with no operands.
+ * 
+ * @author Sat Garcia
  */
 public class x86NullaryInstruction extends x86Instruction {
 
