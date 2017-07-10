@@ -6,8 +6,15 @@ package reversey.backy;
  * Class representing an exception in parsing an X86 instruction.
  */
 public class X86ParsingException extends Exception {
-	private int startIndex;
-	private int endIndex;
+	/**
+         * The index in the string where the error began.
+         */
+        private final int startIndex;
+        
+        /**
+         * The index in the string where the error ended.
+         */
+	private final int endIndex;
 
 	public X86ParsingException(String message, int start, int end) {
 		super(message);

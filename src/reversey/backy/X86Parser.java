@@ -35,9 +35,9 @@ public class X86Parser {
     /**
      * Map for keeping track of all the labels we have parsed so far.
      */
-    private static Map<String, x86Label> labels = new HashMap<String, x86Label>();
+    private static final Map<String, x86Label> labels = new HashMap<>();
 
-    private static Map<String, List<x86Instruction>> labelUsers = new HashMap<String, List<x86Instruction>>();
+    private static final Map<String, List<x86Instruction>> labelUsers = new HashMap<>();
 
     /**
      * Checks that instruction is a valid, supported x86 instruction.
@@ -100,7 +100,7 @@ public class X86Parser {
             throw new X86ParsingException("invalid/unsupported instruction", 0, instrName.length());
         }
 
-        return new Pair<InstructionType, OpSize>(type, size);
+        return new Pair<>(type, size);
     }
 
     /**
@@ -252,13 +252,13 @@ public class X86Parser {
      * Parse all the operands in the given string. These operands should be
      * comma separated.
      *
-     * @param operandsString The string to parse for operands.
+     * @param operandsStr The string to parse for operands.
      * @param opSize The expected size of the operand.
      * @return The list of operands that were parsed.
      * @throws X86ParsingException There was a problem parsing the operands.
      */
     public static List<Operand> parseOperands(String operandsStr, OpSize opSize) throws X86ParsingException {
-        List<Operand> operands = new ArrayList<Operand>();
+        List<Operand> operands = new ArrayList<>();
 
         Matcher m = Pattern.compile(operandRegEx).matcher(operandsStr);
         if (!m.find()) {
@@ -304,6 +304,7 @@ public class X86Parser {
      *
      * @param instr A string representation of the instruction.
      * @return The parsed instruction.
+     * @throws X86ParsingException There was a problem parsing the line.
      */
     public static x86ProgramLine parseLine(String instr) throws X86ParsingException {
         Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
@@ -370,10 +371,6 @@ public class X86Parser {
                             opSize,
                             currLineNum++);
                 } else if (instrType.numOperands() == 1) {
-                    if (!instrName.startsWith("set") && !instrName.startsWith("j")) {
-                        instrName = instrName.substring(0, instrName.length() - 1);
-                    }
-
                     // TODO: throw exception if destination is a constant (or a
                     // label for non-jump instructions)
                     x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
@@ -387,7 +384,7 @@ public class X86Parser {
                         if (labelUsers.containsKey(loName)) {
                             labelUsers.get(loName).add(inst);
                         } else {
-                            List<x86Instruction> l = new ArrayList<x86Instruction>();
+                            List<x86Instruction> l = new ArrayList<>();
                             l.add(inst);
                             labelUsers.put(loName, l);
                         }
@@ -417,9 +414,9 @@ public class X86Parser {
             x86Label l = new x86Label(labelName, currLineNum++);
             labels.put(labelName, l);
             if (labelUsers.containsKey(labelName)) {
-                for (x86Instruction inst : labelUsers.get(labelName)) {
+                labelUsers.get(labelName).forEach((inst) -> {
                     inst.updateLabels(labelName, l);
-                }
+                });
             }
             return l;
         }
