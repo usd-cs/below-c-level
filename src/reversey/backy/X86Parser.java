@@ -72,6 +72,15 @@ public class X86Parser {
 
         if (sizedInstrMatcher.matches()) {
             type = InstructionType.valueOf(sizedInstrMatcher.group("name").toUpperCase());
+            
+            // some instructions can only be quad sized so check for that first
+            if (sizedInstrMatcher.group("name").matches("(lea|push|pop|call|ret)")
+                    && !sizedInstrMatcher.group("size").equals("q")) {
+                throw new X86ParsingException("instruction must have quad suffix (i.e. q)",
+                            sizedInstrMatcher.start("size"),
+                            instrName.length());
+            }
+            
             switch (sizedInstrMatcher.group("size")) {
                 case "b":
                     size = OpSize.BYTE;
