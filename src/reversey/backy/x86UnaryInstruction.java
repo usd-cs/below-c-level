@@ -208,7 +208,7 @@ public class x86UnaryInstruction extends x86Instruction {
     }
     
     @Override
-    public void updateLabels(String labelName, Label label){
+    public void updateLabels(String labelName, x86Label label){
         destination.updateLabels(labelName, label);
     }
     

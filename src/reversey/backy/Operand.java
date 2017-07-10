@@ -42,5 +42,5 @@ public abstract class Operand {
      * @param labelName The name of the label to update.
      * @param label The new value for the label.
      */
-    public void updateLabels(String labelName, Label label) {}
+    public void updateLabels(String labelName, x86Label label) {}
 }

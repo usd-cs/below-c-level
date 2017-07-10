@@ -35,7 +35,7 @@ public class X86Parser {
     /**
      * Map for keeping track of all the labels we have parsed so far.
      */
-    private static Map<String, Label> labels = new HashMap<String, Label>();
+    private static Map<String, x86Label> labels = new HashMap<String, x86Label>();
 
     private static Map<String, List<x86Instruction>> labelUsers = new HashMap<String, List<x86Instruction>>();
 
@@ -414,7 +414,7 @@ public class X86Parser {
                         labelMatcher.end("label"));
             }
 
-            Label l = new Label(labelName, currLineNum++);
+            x86Label l = new x86Label(labelName, currLineNum++);
             labels.put(labelName, l);
             if (labelUsers.containsKey(labelName)) {
                 for (x86Instruction inst : labelUsers.get(labelName)) {

@@ -68,7 +68,7 @@ public abstract class x86Instruction extends x86ProgramLine {
     public InstructionType getType() { return this.type; }
     public OpSize getOpSize() { return this.opSize; }
 
-        public abstract void updateLabels(String labelName, Label label);
+        public abstract void updateLabels(String labelName, x86Label label);
     public abstract String toString();
 
     /**

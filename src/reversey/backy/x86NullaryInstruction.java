@@ -61,7 +61,7 @@ public class x86NullaryInstruction extends x86Instruction {
     }
     
     @Override
-    public void updateLabels(String labelName, Label label) {}
+    public void updateLabels(String labelName, x86Label label) {}
     
     @Override
     public String toString() {

@@ -26,9 +26,9 @@ public class LabelOperand extends Operand {
     /**
      * The label referred to by this operand.
      */
-    private Label label;
+    private x86Label label;
 
-    public LabelOperand(String name, Label label) {
+    public LabelOperand(String name, x86Label label) {
         this.name = name;
         this.label = label;
     }
@@ -62,7 +62,7 @@ public class LabelOperand extends Operand {
     }
 
     @Override
-    public void updateLabels(String labelName, Label label){
+    public void updateLabels(String labelName, x86Label label){
         if(this.name.equals(labelName)){
             this.label = label;
         }
