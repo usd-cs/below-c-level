@@ -1,6 +1,5 @@
 package reversey.backy;
 
-import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.function.Predicate;
@@ -30,25 +29,25 @@ public abstract class x86Instruction extends x86ProgramLine {
     protected OpSize opSize;
 
     /**
-     * A Map from condition code (e.g. "g") to a function that determines whether
-     * that condition is true.
+     * A Map from condition code (e.g. "g") to a function that determines
+     * whether that condition is true.
      */
     protected static final Map<String, Predicate<MachineState>> conditions;
 
     static {
-        conditions = new HashMap<String, Predicate<MachineState>>();
+        conditions = new HashMap<>();
         conditions.put("e", state -> state.getZeroFlag());
         conditions.put("jmp", state -> true);
         conditions.put("ne", state -> !state.getZeroFlag());
         conditions.put("s", state -> state.getSignFlag());
         conditions.put("ns", state -> !state.getSignFlag());
-        conditions.put("g", 
+        conditions.put("g",
                 state -> !(state.getSignFlag() ^ state.getOverflowFlag()) & !state.getZeroFlag());
-        conditions.put("ge", 
+        conditions.put("ge",
                 state -> !(state.getSignFlag() ^ state.getOverflowFlag()));
-        conditions.put("l", 
+        conditions.put("l",
                 state -> (state.getSignFlag() ^ state.getOverflowFlag()));
-        conditions.put("le", 
+        conditions.put("le",
                 state -> (state.getSignFlag() ^ state.getOverflowFlag()) | state.getZeroFlag());
     }
 
@@ -65,10 +64,17 @@ public abstract class x86Instruction extends x86ProgramLine {
     }
 
     // Getters
-    public InstructionType getType() { return this.type; }
-    public OpSize getOpSize() { return this.opSize; }
+    public InstructionType getType() {
+        return this.type;
+    }
 
-        public abstract void updateLabels(String labelName, x86Label label);
+    public OpSize getOpSize() {
+        return this.opSize;
+    }
+
+    public abstract void updateLabels(String labelName, x86Label label);
+
+    @Override
     public abstract String toString();
 
     /**
@@ -78,7 +84,7 @@ public abstract class x86Instruction extends x86ProgramLine {
     public String getInstructionTypeString() {
         String s = this.type.name().toLowerCase();
         if (!this.type.name().startsWith("SET")
-            && !this.type.name().startsWith("J")) {
+                && !this.type.name().startsWith("J")) {
             switch (this.opSize) {
                 case QUAD:
                     s += "q";
@@ -110,8 +116,7 @@ public abstract class x86Instruction extends x86ProgramLine {
         if (resArray.length > this.opSize.numBytes()) {
             byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
             return new BigInteger(ba);
-        }
-        else {
+        } else {
             return val;
         }
     }
