@@ -15,23 +15,25 @@ import javafx.beans.property.SimpleStringProperty;
  * @author Caitlin
  */
 public class StackEntry {
-    private SimpleLongProperty startAddress;
-    private SimpleLongProperty endAddress;
-    private SimpleStringProperty value;
-    private SimpleIntegerProperty origin;
-    private byte[] valueArr;
-    
-    public StackEntry() {
-    }
+    private final SimpleLongProperty startAddress;
+    private final SimpleLongProperty endAddress;
+    private final SimpleStringProperty value;
+    private final SimpleIntegerProperty origin;
+    private final byte[] valueArr;
     
     public StackEntry (long l1, long l2, byte[] val, int orig) {
         startAddress = new SimpleLongProperty(l1);
         endAddress = new SimpleLongProperty(l2);
         valueArr = val;
+        
+        // Convert the value to a hex string, stripping off any leading 0's
         String s = "";
-         for (byte i : val) {
-                s += String.format("%02x", i);
-            }
+        for (byte i : val) {
+            s += String.format("%02x", i);
+        }
+        if (s.charAt(0) == '0') s = s.replaceFirst("0+", "");
+        s = "0x" + s;
+        
         value = new SimpleStringProperty(s);
         origin = new SimpleIntegerProperty(orig);
     }
