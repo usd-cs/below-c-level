@@ -21,7 +21,6 @@ import javafx.collections.transformation.SortedList;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.shape.*;
 import javafx.scene.paint.Color;
@@ -33,6 +32,13 @@ import javafx.scene.paint.Color;
  */
 public class FXMLDocumentController implements Initializable {
 
+    @FXML
+    private MenuItem exitMenuItem;
+    @FXML
+    private MenuItem loadMenuItem;
+    @FXML
+    private MenuItem saveMenuItem;
+    
     @FXML
     private TextField instrText;
     @FXML
@@ -88,9 +94,6 @@ public class FXMLDocumentController implements Initializable {
      * List of registers values in our current state.
      */
     private ObservableList<Register> registerTableList;
-
-    @FXML
-    private GridPane entireWindow;
 
     /**
      * The history of execution states in our simulation.
@@ -267,6 +270,15 @@ public class FXMLDocumentController implements Initializable {
                 }
             }
         });
+        
+        // Set up actions for the menubar
+        exitMenuItem.setOnAction((event) -> System.exit(0));
+        
+        // TODO: implement load program from file
+        loadMenuItem.setOnAction(null);
+        
+        // TODO: implement save program to file
+        saveMenuItem.setOnAction(null);
 
         //TODO: if user wants to change where the instruction should be inserted
         MenuItem beginning = insertMenu.getItems().get(0);
