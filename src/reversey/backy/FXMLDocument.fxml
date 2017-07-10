@@ -16,7 +16,6 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-
 <BorderPane minWidth="500.0" prefHeight="486.0" prefWidth="753.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="reversey.backy.FXMLDocumentController">
    <left>
       <VBox BorderPane.alignment="CENTER">
@@ -40,6 +39,11 @@
                   </MenuButton>
                </children>
             </HBox>
+            <Label fx:id="parseErrorText" minWidth="20.0" prefHeight="17.0" prefWidth="348.0">
+               <VBox.margin>
+                  <Insets bottom="5.0" top="5.0" />
+               </VBox.margin>
+            </Label>
             <ListView fx:id="instrList" prefHeight="444.0" prefWidth="353.0">
                <VBox.margin>
                   <Insets bottom="5.0" top="5.0" />

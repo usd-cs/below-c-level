@@ -10,6 +10,7 @@ import javafx.fxml.FXML;
 import javafx.scene.input.*;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
 import javafx.application.Platform;
@@ -22,6 +23,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.shape.*;
+import javafx.scene.paint.Color;
 
 /**
  * Class that controls the main FXML file.
@@ -36,6 +39,9 @@ public class FXMLDocumentController implements Initializable {
     private ListView<x86ProgramLine> instrList;
     @FXML
     private MenuButton insertMenu;
+
+    @FXML
+    private Label parseErrorText;
     @FXML
     private HBox buttonHBox;
 
@@ -232,9 +238,12 @@ public class FXMLDocumentController implements Initializable {
                 try {
                     x86ProgramLine x = X86Parser.parseLine(text);
                     instrText.setStyle("-fx-control-inner-background: white;");
-                    instrText.setTooltip(null);
+                    parseErrorText.setText(null);
+                    parseErrorText.setGraphic(null);
+
                     //Enter text in listView
                     instrList.getItems().add(x);
+
                     // If this is the first instruction entered, "select" it and
                     // make sure it gets added to our register history list.
                     if (instrList.getItems().size() == 1) {
@@ -246,12 +255,15 @@ public class FXMLDocumentController implements Initializable {
                     }
                     instrText.clear();
                 } catch (X86ParsingException e) {
-                    // If we had a parsing error, set the background to pink
-                    // and select the part of the input that reported the
-                    // error.
+                    // If we had a parsing error, set the background to pink,
+                    // select the part of the input that reported the error,
+                    // and set the error label's text.
                     instrText.setStyle("-fx-control-inner-background: pink;");
                     instrText.selectRange(e.getStartIndex(), e.getEndIndex());
-                    instrText.setTooltip(new Tooltip(e.getMessage()));
+                    parseErrorText.setText(e.getMessage());
+                    Polygon error = new Polygon(4.0, 0.0, 0.0, 8.0, 8.0, 8.0);
+                    error.setFill(Color.RED);
+                    parseErrorText.setGraphic(error);
                 }
             }
         });
