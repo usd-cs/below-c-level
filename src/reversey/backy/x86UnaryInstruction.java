@@ -85,6 +85,9 @@ public class x86UnaryInstruction extends x86Instruction {
             case POP:
                 this.operation = this::pop;
                 break;
+            case CALL:
+                this.operation = this::call;
+                break;
             default:
                 throw new RuntimeException("unsupported instr type: " + instType);
         }
@@ -175,6 +178,23 @@ public class x86UnaryInstruction extends x86Instruction {
         } else {
             return dest.updateState(state, Optional.empty(), flags, true); 
         }
+    }
+    
+    public MachineState call(MachineState state, Operand dest) {
+        Map<String, Boolean> flags = new HashMap<String, Boolean>();
+        
+        // step 1: subtract 8 from rsp
+        RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+        MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
+        
+        BigInteger returnAddr = tmp.getRipRegister().add(BigInteger.ONE);
+
+        // step 2: store return address in (%rsp)
+        MemoryOperand rspMemOperand = new MemoryOperand("rsp", null, 1, 0, this.opSize);
+        tmp = rspMemOperand.updateState(tmp, Optional.of(returnAddr), flags, false);
+
+        // return new state with rip set to beginning of callee
+        return dest.updateState(tmp, Optional.of(dest.getValue(state)), flags, false); 
     }
 
     @Override

@@ -57,7 +57,7 @@ public class X86Parser {
          * "add") followed by a single character suffix to indicate the size
          * (e.g. "q").
          */
-        String validSizedInstrNames = "(?<name>add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test)(?<size>b|w|l|q)";
+        String validSizedInstrNames = "(?<name>add|sub|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret)(?<size>b|w|l|q)";
         Matcher sizedInstrMatcher = Pattern.compile(validSizedInstrNames).matcher(instrName);
 
         /*
@@ -306,7 +306,7 @@ public class X86Parser {
      * @return The parsed instruction.
      */
     public static x86ProgramLine parseLine(String instr) throws X86ParsingException {
-        Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\S+)\\s+(?<operands>.*)").matcher(instr);
+        Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
         Matcher labelMatcher = Pattern.compile("\\s*(?<label>\\w+):\\s*").matcher(instr);
 
         // The line should be either a label or an instruction
@@ -338,62 +338,69 @@ public class X86Parser {
             // those operands plus the instruction type to create a new
             // X86Instruction.
             String operandsStr = instMatcher.group("operands");
+            if (operandsStr != null) {
 
-            List<Operand> operands = null;
-            try {
-                operands = parseOperands(operandsStr, opSize);
-            } catch (X86ParsingException e) {
-                throw new X86ParsingException(e.getMessage(),
-                        instMatcher.start("operands") + e.getStartIndex(),
-                        instMatcher.start("operands") + e.getEndIndex());
-            }
+                List<Operand> operands = null;
+                try {
+                    operands = parseOperands(operandsStr, opSize);
+                } catch (X86ParsingException e) {
+                    throw new X86ParsingException(e.getMessage(),
+                            instMatcher.start("operands") + e.getStartIndex(),
+                            instMatcher.start("operands") + e.getEndIndex());
+                }
 
-            if (operands.size() != instrType.numOperands()) {
-                throw new X86ParsingException("wrong number of operands",
-                        instMatcher.start("operands"),
-                        instr.length());
-            } else if (instrType.numOperands() == 2) {
-                // This is a binary instruction (e.g. add), then second operand
-                // should be something we can write to (i.e. not a constant or a
-                // label)
-                if (operands.get(1) instanceof ConstantOperand) {
-                    // FIXME: start/end index is not right here
-                    throw new X86ParsingException("destination cannot be a constant",
+                if (operands.size() != instrType.numOperands()) {
+                    throw new X86ParsingException("wrong number of operands",
                             instMatcher.start("operands"),
                             instr.length());
-                }
-                // TODO: check that the destination isn't a LabelOperand either
-                return new x86BinaryInstruction(instrType,
-                        operands.get(0),
-                        operands.get(1),
-                        opSize,
-                        currLineNum++);
-            } else if (instrType.numOperands() == 1) {
-                if (!instrName.startsWith("set") && !instrName.startsWith("j")) {
-                    instrName = instrName.substring(0, instrName.length() - 1);
-                }
-
-                // TODO: throw exception if destination is a constant (or a
-                // label for non-jump instructions)
-                x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
-                        operands.get(0),
-                        opSize,
-                        currLineNum++);
-
-                if (operands.get(0) instanceof LabelOperand) {
-                    LabelOperand lo = (LabelOperand) operands.get(0);
-                    String loName = lo.getName();
-                    if (labelUsers.containsKey(loName)) {
-                        labelUsers.get(loName).add(inst);
-                    } else {
-                        List<x86Instruction> l = new ArrayList<x86Instruction>();
-                        l.add(inst);
-                        labelUsers.put(loName, l);
+                } else if (instrType.numOperands() == 2) {
+                    // This is a binary instruction (e.g. add), then second operand
+                    // should be something we can write to (i.e. not a constant or a
+                    // label)
+                    if (operands.get(1) instanceof ConstantOperand) {
+                        // FIXME: start/end index is not right here
+                        throw new X86ParsingException("destination cannot be a constant",
+                                instMatcher.start("operands"),
+                                instr.length());
                     }
+                    // TODO: check that the destination isn't a LabelOperand either
+                    return new x86BinaryInstruction(instrType,
+                            operands.get(0),
+                            operands.get(1),
+                            opSize,
+                            currLineNum++);
+                } else if (instrType.numOperands() == 1) {
+                    if (!instrName.startsWith("set") && !instrName.startsWith("j")) {
+                        instrName = instrName.substring(0, instrName.length() - 1);
+                    }
+
+                    // TODO: throw exception if destination is a constant (or a
+                    // label for non-jump instructions)
+                    x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
+                            operands.get(0),
+                            opSize,
+                            currLineNum++);
+
+                    if (operands.get(0) instanceof LabelOperand) {
+                        LabelOperand lo = (LabelOperand) operands.get(0);
+                        String loName = lo.getName();
+                        if (labelUsers.containsKey(loName)) {
+                            labelUsers.get(loName).add(inst);
+                        } else {
+                            List<x86Instruction> l = new ArrayList<x86Instruction>();
+                            l.add(inst);
+                            labelUsers.put(loName, l);
+                        }
+                    }
+                    return inst;
                 }
-                return inst;
+                return null; // FIXME: throw exception
+            } else {
+                // nullary skullduggery
+                return new x86NullaryInstruction(instrType,
+                        opSize,
+                        currLineNum++);
             }
-            return null; // FIXME: throw exception
         } else {
             // This line contains a label
             String labelName = labelMatcher.group("label");

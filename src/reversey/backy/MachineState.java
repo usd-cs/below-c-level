@@ -263,7 +263,22 @@ public class MachineState {
      */
     public MachineState getNewState(String regName, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
         Map<String, RegisterState> reg = this.registers;
+        List<StackEntry> mem = this.memory;
         if (val.isPresent()) {
+            if (regName.equals("rsp") && val.get().compareTo(getRegisterValue("rsp")) == 1) {
+                mem = new ArrayList<StackEntry>(this.memory);
+                // reduced size of stack, so need to remove stack entries?!?!?
+                List<StackEntry> toRemove = new ArrayList<StackEntry>();
+                for (StackEntry se : this.memory) {
+                    long seStartAddr = se.getStartAddress();
+                    if (seStartAddr >= getRegisterValue("rsp").longValue()
+                            && seStartAddr < val.get().longValue()) {
+                        // need to remove this entry... eventually
+                        toRemove.add(se);
+                    }
+                }
+                mem.removeAll(toRemove);
+            }
             String quadName = getQuadName(regName);
             Pair<Integer, Integer> range = getByteRange(regName);
             int startIndex = range.getKey();
@@ -311,7 +326,7 @@ public class MachineState {
             flags.put("cf", this.statusFlags.get("cf"));
         }
 
-        return new MachineState(reg, this.memory, flags);
+        return new MachineState(reg, mem, flags);
     }
 
     /**
