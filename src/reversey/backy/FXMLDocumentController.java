@@ -12,26 +12,20 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import java.util.*;
 import java.net.*;
-import java.util.stream.Collectors;
 import javafx.application.Platform;
-import javafx.beans.property.ListProperty;
-import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.util.Callback;
 
 /**
- *
+ * Class that controls the main FXML file.
+ * 
  * @author Caitlin
  */
 public class FXMLDocumentController implements Initializable {
@@ -69,6 +63,9 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private TableColumn<StackEntry, Integer> originCol;
 
+    /**
+     * List of stack entries in our current state.
+     */
     ObservableList<StackEntry> stackTableList;
 
     // Fields for the register table
@@ -81,63 +78,63 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private TableColumn<Register, Integer> registerOrigin;
 
-    ObservableList<Register> registerTableList;
+    /**
+     * List of registers values in our current state.
+     */
+    private ObservableList<Register> registerTableList;
 
     @FXML
     private GridPane entireWindow;
 
+    /**
+     * The history of execution states in our simulation.
+     */
     private List<MachineState> stateHistory;
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
         // Disable user selecting arbitrary item in instruction list.
-        instrList.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> { 
+        instrList.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
             /*
             if (event.getButton() == MouseButton.PRIMARY) 
                 System.out.println("left clicked"); 
             else if (event.getButton() == MouseButton.SECONDARY) 
                 System.out.println("right clicked"); 
-            */
-                event.consume(); 
+             */
+            event.consume();
         });
 
         // Initialize the simulation state.
-        stateHistory = new ArrayList<MachineState>();
+        stateHistory = new ArrayList<>();
         stateHistory.add(new MachineState());
-        ArrayList<String> regHistory = new ArrayList<String>();
+        ArrayList<String> regHistory = new ArrayList<>();
 
         // Initialize stack table
-        startAddressCol.setCellValueFactory(new Callback<CellDataFeatures<StackEntry, String>, ObservableValue<String>>() {
-            public ObservableValue<String> call(CellDataFeatures<StackEntry, String> p) {
-                return new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()));
-            }
-        });
+        startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
+                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress())));
 
-        endAddressCol.setCellValueFactory(new Callback<CellDataFeatures<StackEntry, String>, ObservableValue<String>>() {
-            public ObservableValue<String> call(CellDataFeatures<StackEntry, String> p) {
-                return new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()));
-            }
-        });
+        endAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
+                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress())));
 
-        valCol.setCellValueFactory(new PropertyValueFactory<StackEntry, String>("value"));
-        originCol.setCellValueFactory(new PropertyValueFactory<StackEntry, Integer>("origin"));
+        valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
+        originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
 
-        startAddressCol.setStyle( "-fx-alignment: CENTER;");
-        endAddressCol.setStyle( "-fx-alignment: CENTER;");
-        valCol.setStyle( "-fx-alignment: CENTER;");
-        originCol.setStyle( "-fx-alignment: CENTER;");
-        
+        startAddressCol.setStyle("-fx-alignment: CENTER;");
+        endAddressCol.setStyle("-fx-alignment: CENTER;");
+        valCol.setStyle("-fx-alignment: CENTER;");
+        originCol.setStyle("-fx-alignment: CENTER;");
+
         stackTableList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         stackTable.setItems(stackTableList);
 
         // Initialize the register table
-        registerName.setCellValueFactory(new PropertyValueFactory<Register, String>("name"));
-        registerVal.setCellValueFactory(new PropertyValueFactory<Register, String>("value"));
-        registerOrigin.setCellValueFactory(new PropertyValueFactory<Register, Integer>("origin"));
-        
-        registerName.setStyle( "-fx-alignment: CENTER;");
-        registerVal.setStyle( "-fx-alignment: CENTER;");
-                registerOrigin.setStyle( "-fx-alignment: CENTER;");
+        registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
+        registerVal.setCellValueFactory(new PropertyValueFactory<>("value"));
+        registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
+
+        registerName.setStyle("-fx-alignment: CENTER;");
+        registerVal.setStyle("-fx-alignment: CENTER;");
+        registerOrigin.setStyle("-fx-alignment: CENTER;");
 
         Comparator<Register> regComp = (Register r1, Register r2) -> {
             if (r1.getProminence() > r2.getProminence()) {
@@ -159,8 +156,8 @@ public class FXMLDocumentController implements Initializable {
          */
         nextInstr.setOnAction((event) -> {
             this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-    
-            instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() -1).getRipRegister().intValue());
+
+            instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
 
             registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
@@ -174,12 +171,12 @@ public class FXMLDocumentController implements Initializable {
         skipToEnd.setOnAction((event) -> {
             // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
             // appear to be stuck in an infinite loop?
-            for(int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
+            for (int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
                 this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-                instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() -1).getRipRegister().intValue());
+                instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
                 regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
             }
-            
+
             registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
             stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         });
@@ -187,19 +184,21 @@ public class FXMLDocumentController implements Initializable {
         /*
          * Event handler for "scroll back to current instruction" button.
          */
-        currInstr.setOnAction( event -> {
+        currInstr.setOnAction(event -> {
             ObservableList<Integer> selectedIndices = instrList.getSelectionModel().getSelectedIndices();
-            if (!selectedIndices.isEmpty()) instrList.scrollTo(selectedIndices.get(0));
+            if (!selectedIndices.isEmpty()) {
+                instrList.scrollTo(selectedIndices.get(0));
+            }
         });
 
         /*
          * Event handler for "back" button.
          */
         prevInstr.setOnAction((event) -> {
-            
+
             this.stateHistory.remove((this.stateHistory.size() - 1));
             regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-            
+
             instrList.getSelectionModel().selectPrevious();
 
             registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
@@ -213,10 +212,10 @@ public class FXMLDocumentController implements Initializable {
          */
         skipToStart.setOnAction((event) -> {
             instrList.getSelectionModel().selectFirst();
-            
+
             this.stateHistory.clear();
             regHistory.clear();
-            
+
             stateHistory.add(new MachineState());
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
             registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
@@ -227,40 +226,32 @@ public class FXMLDocumentController implements Initializable {
          * Event handler for when user clicks button to insert a new
          * instruction.
          */
-        instrText.setOnKeyPressed(new EventHandler<KeyEvent>() {
-            @Override
-            public void handle(KeyEvent keyEvent) {
-                if (keyEvent.getCode() == KeyCode.ENTER) {
-                    String text = instrText.getText();
-
-                    try {
-                        x86ProgramLine x = X86Parser.parseLine(text);
-
-                        instrText.setStyle("-fx-control-inner-background: white;");
-                        instrText.setTooltip(null);
-
-                        //Enter text in listView
-                        instrList.getItems().add(x);
-
-                        // If this is the first instruction entered, "select" it and
-                        // make sure it gets added to our register history list.
-                        if (instrList.getItems().size() == 1) {
-                            regHistory.addAll(x.getUsedRegisters());
-                            instrList.getSelectionModel().select(0);
-
-                            registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
-                            SortedList<Register> regSortedList = registerTableList.sorted(regComp);
-                            promRegTable.setItems(regSortedList);
-                        }
-                        instrText.clear();
-                    } catch (X86ParsingException e) {
-                        // If we had a parsing error, set the background to pink
-                        // and select the part of the input that reported the
-                        // error.
-                        instrText.setStyle("-fx-control-inner-background: pink;");
-                        instrText.selectRange(e.getStartIndex(), e.getEndIndex());
-                        instrText.setTooltip(new Tooltip(e.getMessage()));
+        instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
+            if (keyEvent.getCode() == KeyCode.ENTER) {
+                String text = instrText.getText();
+                try {
+                    x86ProgramLine x = X86Parser.parseLine(text);
+                    instrText.setStyle("-fx-control-inner-background: white;");
+                    instrText.setTooltip(null);
+                    //Enter text in listView
+                    instrList.getItems().add(x);
+                    // If this is the first instruction entered, "select" it and
+                    // make sure it gets added to our register history list.
+                    if (instrList.getItems().size() == 1) {
+                        regHistory.addAll(x.getUsedRegisters());
+                        instrList.getSelectionModel().select(0);
+                        registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
+                        SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
+                        promRegTable.setItems(regSortedList1);
                     }
+                    instrText.clear();
+                } catch (X86ParsingException e) {
+                    // If we had a parsing error, set the background to pink
+                    // and select the part of the input that reported the
+                    // error.
+                    instrText.setStyle("-fx-control-inner-background: pink;");
+                    instrText.selectRange(e.getStartIndex(), e.getEndIndex());
+                    instrText.setTooltip(new Tooltip(e.getMessage()));
                 }
             }
         });
@@ -324,9 +315,9 @@ public class FXMLDocumentController implements Initializable {
            nextInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
            skipToEnd.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
            skipToEnd.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-           */
+         */
 
-        /*
+ /*
          * Event handler for when user picks "insert at beginning" option.
          */
         beginning.setOnAction((event) -> {
@@ -340,13 +331,9 @@ public class FXMLDocumentController implements Initializable {
             System.out.println("Insert at Current selected");
         });
 
-        Platform.runLater(new Runnable() {
-
-            @Override
-            public void run() {
-                // instrList.scrollTo(N);
-                // instrList.getSelectionModel().select(N);
-            }
+        Platform.runLater(() -> {
+            // instrList.scrollTo(N);
+            // instrList.getSelectionModel().select(N);
         });
 
     }
