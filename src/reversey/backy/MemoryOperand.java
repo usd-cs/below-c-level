@@ -16,27 +16,27 @@ class MemoryOperand extends Operand {
     /**
      * Name of the base register.
      */
-    private String baseReg;
+    private final String baseReg;
 
     /**
      * Name of the index register.
      */
-    private String indexReg;
+    private final String indexReg;
 
     /**
      * The scaling factor for the index register.
      */
-    private int scale;
+    private final int scale;
 
     /**
      * The offset amount.
      */
-    private int offset;
+    private final int offset;
 
     /**
      * The size of the operand.
      */
-    private OpSize opSize;
+    private final OpSize opSize;
 
     public MemoryOperand(String baseReg, String indexReg, int scale, int offset, OpSize opSize) {
         this.baseReg = baseReg;
@@ -77,7 +77,7 @@ class MemoryOperand extends Operand {
     
     @Override
     public Set<String> getUsedRegisters() {
-        HashSet<String> s = new HashSet<String>();
+        HashSet<String> s = new HashSet<>();
         if (baseReg != null) // TODO: OPTIONAL!!!
             s.add(baseReg);
         if (indexReg != null)

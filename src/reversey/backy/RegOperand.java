@@ -16,12 +16,12 @@ public class RegOperand extends Operand {
     /**
      * The name of the register, sans % (e.g. "eax")
      */
-    private String regName;
+    private final String regName;
 
     /**
      * The size of the operand.
      */
-    private OpSize opSize;
+    private final OpSize opSize;
 
     public RegOperand(String regName, OpSize opSize) {
         this.regName = regName;
@@ -40,7 +40,7 @@ public class RegOperand extends Operand {
 
     @Override
     public Set<String> getUsedRegisters(){ 
-        HashSet<String> s = new HashSet<String>();
+        HashSet<String> s = new HashSet<>();
         s.add(MachineState.getQuadName(regName));
         return s;
     }
@@ -50,4 +50,3 @@ public class RegOperand extends Operand {
         return "%" + regName;
     }
 }
-

@@ -22,6 +22,7 @@ public abstract class Operand {
      * @param currState The current state of the machine.
      * @param val The value to update the operand with.
      * @param flags The condition flags to be set in the new state.
+     * @param updateRIP Flag indicating whether we should increment the rip register
      * @return The state after updating the current state with the new value for
      * the operand.
      */

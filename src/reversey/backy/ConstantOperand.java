@@ -16,7 +16,7 @@ public class ConstantOperand extends Operand {
     /**
      * The operand's value.
      */
-    private long constant;
+    private final long constant;
 
     public ConstantOperand(long val) {
         this.constant = val;
@@ -29,14 +29,12 @@ public class ConstantOperand extends Operand {
 
     @Override
     public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
-        System.err.println("Why are you trying to set a constant?");
-        // TODO: exception here?
-        return currState;
+        throw new RuntimeException("Update of constant operand.");
     }
     
     @Override
     public Set<String> getUsedRegisters() {
-        HashSet<String> s = new HashSet<String>();
+        HashSet<String> s = new HashSet<>();
         return s;
     }
 

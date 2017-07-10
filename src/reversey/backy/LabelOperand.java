@@ -21,7 +21,7 @@ public class LabelOperand extends Operand {
     /**
      * The name of the label.
      */
-    private String name;
+    private final String name;
 
     /**
      * The label referred to by this operand.
@@ -68,6 +68,7 @@ public class LabelOperand extends Operand {
         }
     }
     
+    @Override
     public String toString() {
         String res = "" + name;
         return res;
