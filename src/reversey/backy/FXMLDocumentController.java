@@ -18,6 +18,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
+import javafx.event.Event;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
@@ -32,26 +33,36 @@ import javafx.scene.paint.Color;
  */
 public class FXMLDocumentController implements Initializable {
 
+    // menu bar items
     @FXML
     private MenuItem exitMenuItem;
     @FXML
     private MenuItem loadMenuItem;
     @FXML
     private MenuItem saveMenuItem;
+    @FXML
+    private MenuItem forwardMenuItem;
+    @FXML
+    private MenuItem backwardMenuItem;
+    @FXML
+    private MenuItem runMenuItem;
+    @FXML
+    private MenuItem restartMenuItem;
+    @FXML
+    private MenuItem aboutMenuItem;
     
+    // UI elements for adding new instructions
     @FXML
     private TextField instrText;
     @FXML
-    private ListView<x86ProgramLine> instrList;
-    @FXML
     private MenuButton insertMenu;
-
     @FXML
     private Label parseErrorText;
+    
     @FXML
-    private HBox buttonHBox;
+    private ListView<x86ProgramLine> instrList;
 
-    // Buttons
+    // Simulation Control Buttons
     @FXML
     private Button nextInstr;
     @FXML
@@ -99,6 +110,13 @@ public class FXMLDocumentController implements Initializable {
      * The history of execution states in our simulation.
      */
     private List<MachineState> stateHistory;
+    
+    /**
+     * History of registers used by the simulation.
+     * This list may contain duplicates as one is added for each register used
+     * by an instruction when it is executed.
+     */
+    private List<String> regHistory;
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
@@ -116,7 +134,7 @@ public class FXMLDocumentController implements Initializable {
         // Initialize the simulation state.
         stateHistory = new ArrayList<>();
         stateHistory.add(new MachineState());
-        ArrayList<String> regHistory = new ArrayList<>();
+        regHistory = new ArrayList<>();
 
         // Initialize stack table
         startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
@@ -159,36 +177,14 @@ public class FXMLDocumentController implements Initializable {
         SortedList<Register> regSortedList = registerTableList.sorted(regComp);
         promRegTable.setItems(regSortedList);
 
-        /*
-         * Event handler for the "next" button.
-         * This will evaluate the current instruction and move on to the next.
-         */
-        nextInstr.setOnAction((event) -> {
-            this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
 
-            instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
-            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        // Set up handlers for simulation control, both via buttons and menu
+        // items.
+        nextInstr.setOnAction(this::stepForward);
+        forwardMenuItem.setOnAction(this::stepForward);
 
-            registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-            stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-
-        });
-
-        /*
-         * Event handler for "run to completion" button.
-         */
-        skipToEnd.setOnAction((event) -> {
-            // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
-            // appear to be stuck in an infinite loop?
-            for (int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
-                this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-                instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
-                regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-            }
-
-            registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-            stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        });
+        skipToEnd.setOnAction(this::runForward);
+        runMenuItem.setOnAction(this::runForward);
 
         /*
          * Event handler for "scroll back to current instruction" button.
@@ -200,36 +196,11 @@ public class FXMLDocumentController implements Initializable {
             }
         });
 
-        /*
-         * Event handler for "back" button.
-         */
-        prevInstr.setOnAction((event) -> {
+        prevInstr.setOnAction(this::stepBackward);
+        backwardMenuItem.setOnAction(this::stepBackward);
 
-            this.stateHistory.remove((this.stateHistory.size() - 1));
-            regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-
-            instrList.getSelectionModel().selectPrevious();
-
-            registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-            stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        });
-
-        /*
-         * Event handler for "return to beginning" button.
-         * This will reset the simulation, returning to the very first
-         * instruction.
-         */
-        skipToStart.setOnAction((event) -> {
-            instrList.getSelectionModel().selectFirst();
-
-            this.stateHistory.clear();
-            regHistory.clear();
-
-            stateHistory.add(new MachineState());
-            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-            registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-            stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        });
+        skipToStart.setOnAction(this::restartSim);
+        restartMenuItem.setOnAction(this::restartSim);
 
         /*
          * Event handler for when user clicks button to insert a new
@@ -361,4 +332,70 @@ public class FXMLDocumentController implements Initializable {
         });
 
     }
+    
+    /**
+     * Executes the next instruction in our simulation.
+     * 
+     * @param event The event that triggered this action.
+     */
+    private void stepForward(Event event) {
+        this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
+
+        instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
+        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+
+        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+    }
+    
+    /**
+     * Executes instructions until it reaches the end of the program (TODO: or a breakpoint).
+     * 
+     * @param event The event that triggered this action.
+     */
+    private void runForward(Event event) {
+        // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
+        // appear to be stuck in an infinite loop?
+        for (int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
+            this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
+            instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
+            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        }
+
+        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+    }
+
+    /**
+     * Undoes the previous instruction in our simulation.
+     * 
+     * @param event The event that triggered this action.
+     */
+    private void stepBackward(Event event) {
+        this.stateHistory.remove((this.stateHistory.size() - 1));
+        regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+
+        instrList.getSelectionModel().selectPrevious();
+
+        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+    }
+    
+    /**
+     * Restarts simulation back to its starting state.
+     * 
+     * @param event The event that triggered this action.
+     */
+    private void restartSim(Event event) {
+        instrList.getSelectionModel().selectFirst();
+
+        this.stateHistory.clear();
+        regHistory.clear();
+
+        stateHistory.add(new MachineState());
+        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+    }
+
 }

@@ -49,7 +49,7 @@
                   <Insets bottom="5.0" top="5.0" />
                </VBox.margin>
             </ListView>
-            <HBox fx:id="buttonHBox" alignment="CENTER" prefHeight="26.0" prefWidth="353.0">
+            <HBox alignment="CENTER" prefHeight="26.0" prefWidth="353.0">
                <children>
                   <Button fx:id="skipToStart" mnemonicParsing="false" HBox.hgrow="ALWAYS">
                      <HBox.margin>
@@ -81,9 +81,17 @@
               <MenuItem fx:id="exitMenuItem" mnemonicParsing="false" text="Exit" />
             </items>
           </Menu>
+            <Menu mnemonicParsing="false" text="Simulation">
+              <items>
+                <MenuItem fx:id="forwardMenuItem" mnemonicParsing="false" text="Step Forward" />
+                  <MenuItem fx:id="backwardMenuItem" mnemonicParsing="false" text="Step Backward" />
+                  <MenuItem fx:id="runMenuItem" mnemonicParsing="false" text="Run to End" />
+                  <MenuItem fx:id="restartMenuItem" mnemonicParsing="false" text="Restart" />
+              </items>
+            </Menu>
           <Menu mnemonicParsing="false" text="Help">
             <items>
-              <MenuItem mnemonicParsing="false" text="About" />
+              <MenuItem fx:id="aboutMenuItem" mnemonicParsing="false" text="About" />
             </items>
           </Menu>
         </menus>
