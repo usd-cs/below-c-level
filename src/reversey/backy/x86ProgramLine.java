@@ -23,6 +23,11 @@ public abstract class x86ProgramLine {
         return lineNum;
     }
 
+    public void setLineNum(int lineNum) {
+        if (this.lineNum >= 0)
+            this.lineNum = lineNum;
+    }
+
     /**
      * Perform the operation specific to this line.
      * 
