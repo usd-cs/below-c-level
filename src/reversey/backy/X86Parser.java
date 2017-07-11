@@ -72,15 +72,15 @@ public class X86Parser {
 
         if (sizedInstrMatcher.matches()) {
             type = InstructionType.valueOf(sizedInstrMatcher.group("name").toUpperCase());
-            
+
             // some instructions can only be quad sized so check for that first
             if (sizedInstrMatcher.group("name").matches("(lea|push|pop|call|ret)")
                     && !sizedInstrMatcher.group("size").equals("q")) {
                 throw new X86ParsingException("instruction must have quad suffix (i.e. q)",
-                            sizedInstrMatcher.start("size"),
-                            instrName.length());
+                        sizedInstrMatcher.start("size"),
+                        instrName.length());
             }
-            
+
             switch (sizedInstrMatcher.group("size")) {
                 case "b":
                     size = OpSize.BYTE;
@@ -413,7 +413,7 @@ public class X86Parser {
 
             // Make sure this label doesn't already exist
             if (labels.containsKey(labelName)) {
-                System.out.println("Duplicate label");
+                System.out.println("Duplicate label: " + labelName);
                 System.exit(1);
                 throw new X86ParsingException("Duplicate label name",
                         labelMatcher.start("label"),
@@ -430,5 +430,10 @@ public class X86Parser {
             return l;
         }
         // TODO: allow lines that contain both a label and an instruction?
+    }
+
+    // TODO: Find a better solution for this
+    public static void clear() {
+        labels.clear();
     }
 }

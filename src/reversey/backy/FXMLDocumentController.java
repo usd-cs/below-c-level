@@ -1,10 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package reversey.backy;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import javafx.scene.image.Image;
 import javafx.fxml.FXML;
 import javafx.scene.input.*;
@@ -21,37 +22,48 @@ import javafx.collections.transformation.SortedList;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.shape.*;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 
 /**
  * Class that controls the main FXML file.
- * 
+ *
  * @author Caitlin
  */
 public class FXMLDocumentController implements Initializable {
 
+    // Fields for the menu bar
     @FXML
     private MenuItem exitMenuItem;
     @FXML
     private MenuItem loadMenuItem;
     @FXML
     private MenuItem saveMenuItem;
-    
+    @FXML
+    private MenuBar menuOptionsBar;
+    @FXML
+    private Menu fileOption;
+    @FXML
+    private Menu helpOption;
+
     @FXML
     private TextField instrText;
     @FXML
     private ListView<x86ProgramLine> instrList;
     @FXML
     private MenuButton insertMenu;
+    @FXML
+    private BorderPane entirePane;
 
     @FXML
     private Label parseErrorText;
     @FXML
     private HBox buttonHBox;
 
-    // Buttons
+    // Fields for buttons
     @FXML
     private Button nextInstr;
     @FXML
@@ -270,15 +282,97 @@ public class FXMLDocumentController implements Initializable {
                 }
             }
         });
-        
+
         // Set up actions for the menubar
         exitMenuItem.setOnAction((event) -> System.exit(0));
-        
-        // TODO: implement load program from file
-        loadMenuItem.setOnAction(null);
-        
-        // TODO: implement save program to file
-        saveMenuItem.setOnAction(null);
+
+        /*
+         * Event handler for "loadMenuItem" menu.
+         * This will reset the simulation, returning to the very first
+         * instruction of the loaded text file.
+         */
+        loadMenuItem.setOnAction((event) -> {
+            // TODO: What here is unecessary?
+            // Force user to reset? All previously entered instructions are removed currently
+            X86Parser.clear();
+            stateHistory.clear();
+            instrList.getItems().clear();
+            regHistory.clear();
+            stateHistory.add(new MachineState());
+
+            FileChooser loadFileChoice = new FileChooser();
+            loadFileChoice.setTitle("Open File");
+
+            // Filter only allows user to choose a text file
+            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+            loadFileChoice.getExtensionFilters().add(extFilter);
+            File loadFile = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
+            if (loadFile != null) {
+                BufferedReader bufferedReader = null;
+                ArrayList<String> instrTmp = new ArrayList<>();
+                try {
+                    bufferedReader = new BufferedReader(new FileReader(loadFile));
+                    String tmp;
+                    while ((tmp = bufferedReader.readLine()) != null) {
+                        instrTmp.add(tmp.trim());
+                    }
+                } catch (FileNotFoundException e) {
+                    System.out.println("File does not exist: please choose a valid text file.");
+                } catch (IOException e) {
+                    System.out.println("Invalid file.");
+                } finally {
+                    try {
+                        bufferedReader.close();
+                    } catch (IOException e) {
+                        System.out.println("Invalid file.");
+                    }
+                }
+                try {
+                    for (String e : instrTmp) {
+                        x86ProgramLine x = X86Parser.parseLine(e);
+                        instrList.getItems().add(x);
+                    }
+                    //Enter text in listView and select first instruction... is if statement necessary? blank file is never chosen
+                    if (instrList.getItems().size() >= 1) {
+                        instrList.getSelectionModel().select(0);
+                        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+                        registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
+                        SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
+                        promRegTable.setItems(regSortedList1);
+                    }
+                } catch (X86ParsingException e) {
+                    // If we had a parsing error, report what? File "line"? In which case numbers must remain
+                    System.out.println("Loaded file parsing error");
+                }
+            }
+        });
+
+        /*
+         * Event handler for "saveMenuItem" menu.
+         * This will save the current simulation to a text file specified 
+         * by the user.
+         */
+        saveMenuItem.setOnAction((event) -> {
+            FileChooser saveFileChoice = new FileChooser();
+
+            // Filter only allows user to choose text files
+            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+            saveFileChoice.getExtensionFilters().add(extFilter);
+            File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
+            if (file != null) {
+                try {
+                    FileWriter fileWriter = new FileWriter(file);
+                    for (int i = 0; i < instrList.getItems().size(); i++) {
+                        // Formatting okay?
+                        fileWriter.write(instrList.getItems().get(i).toString().substring(3) + "\n");
+                    }
+                    fileWriter.close();
+                } catch (IOException ex) {
+                    //TODO: ?
+                    System.out.println("Unable to save to file.");
+                }
+            }
+        });
 
         //TODO: if user wants to change where the instruction should be inserted
         MenuItem beginning = insertMenu.getItems().get(0);
