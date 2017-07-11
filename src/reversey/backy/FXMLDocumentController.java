@@ -24,9 +24,6 @@ import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.shape.*;
-import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
 /**
@@ -56,7 +53,7 @@ public class FXMLDocumentController implements Initializable {
     private MenuItem aboutMenuItem;
     
     
-
+    @FXML
     private MenuBar menuOptionsBar;
     @FXML
     private Menu fileOption;
@@ -250,9 +247,9 @@ public class FXMLDocumentController implements Initializable {
                     instrText.setStyle("-fx-control-inner-background: pink;");
                     instrText.selectRange(e.getStartIndex(), e.getEndIndex());
                     parseErrorText.setText(e.getMessage());
-                    Polygon error = new Polygon(4.0, 0.0, 0.0, 8.0, 8.0, 8.0);
-                    error.setFill(Color.RED);
-                    parseErrorText.setGraphic(error);
+                    ImageView errorPic = new ImageView(
+                            new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
+                    parseErrorText.setGraphic(errorPic);
                 }
             }
         });
