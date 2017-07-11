@@ -133,6 +133,16 @@ public class FXMLDocumentController implements Initializable {
      * by an instruction when it is executed.
      */
     private List<String> regHistory;
+    
+    private final Comparator<Register> regComp = (Register r1, Register r2) -> {
+        if (r1.getProminence() > r2.getProminence()) {
+            return -1;
+        } else if (r1.getProminence() == r2.getProminence()) {
+            return r1.getName().compareTo(r2.getName());
+        } else {
+            return 1;
+        }
+    };
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
@@ -147,15 +157,16 @@ public class FXMLDocumentController implements Initializable {
                     } else {
                         setFont(new Font("Courier", 14));
                         setText(item.toString());
-                        if (lv.getSelectionModel().getSelectedItems().contains(item))
-                            setGraphic(new Circle(5.0f));
+                        //if (lv.getSelectionModel().getSelectedItems().contains(item))
+                        //    setGraphic(new Circle(5.0f));
                     }
                 }
             };
 
-            /*
+            
             ContextMenu cM = new ContextMenu();
             MenuItem deleteItem = new MenuItem("Delete");
+            
             deleteItem.setOnAction( event -> {
                 lv.getItems().remove(cell.getItem());
                 int i = 0;
@@ -163,10 +174,59 @@ public class FXMLDocumentController implements Initializable {
                     line.setLineNum(i);
                     i++;
                 }
+                X86Parser.setCurrLineNum(i);
+                this.restartSim(null);
+                
             });
             cM.getItems().addAll(deleteItem);
-            deleteItem.setDisable(true);
-            */
+            
+            MenuItem editItem = new MenuItem("Edit");
+            editItem.setOnAction( event -> {
+                instrText.setStyle("-fx-control-inner-background: #77c0f4;");
+                instrText.setText(cell.getItem().toString().substring(3).trim());
+                
+                // Change instruction entry box to replace instruction rather
+                // than adding a new one at the end.
+                instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
+                    if (keyEvent.getCode() == KeyCode.ENTER) {
+                        String text = instrText.getText();
+                        try {
+                            x86ProgramLine x = X86Parser.parseLine(text);
+                            instrText.setStyle("-fx-control-inner-background: white;");
+                            parseErrorText.setText(null);
+                            parseErrorText.setGraphic(null);
+
+                            // Find where the existing instruction was and replace
+                            // it with the new instruction.
+                            int i = 0;
+                            for (x86ProgramLine line : lv.getItems()) {
+                                if (line == cell.getItem()) {
+                                    X86Parser.setCurrLineNum(x.getLineNum());
+                                    x.setLineNum(i);
+                                    instrList.getItems().remove(cell.getItem());
+                                    instrList.getItems().add(i, x);                               
+                                    break;
+                                }
+                                i++;
+                            }
+                            
+                            instrText.clear();
+                            instrText.setOnKeyPressed(this::parseAndAddInstruction);
+                        } catch (X86ParsingException e) {
+                            // If we had a parsing error, set the background to pink,
+                            // select the part of the input that reported the error,
+                            // and set the error label's text.
+                            instrText.setStyle("-fx-control-inner-background: pink;");
+                            instrText.selectRange(e.getStartIndex(), e.getEndIndex());
+                            parseErrorText.setText(e.getMessage());
+                            ImageView errorPic = new ImageView(
+                                    new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
+                            parseErrorText.setGraphic(errorPic);
+                        }
+                    }
+                });
+            });
+            cM.getItems().addAll(editItem);
 
             cell.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
                 if (event.getButton()== MouseButton.SECONDARY && !cell.isEmpty()) {
@@ -174,7 +234,7 @@ public class FXMLDocumentController implements Initializable {
                     lv.getFocusModel().focus(1);
                     //x86ProgramLine item = cell.getItem();
                     //System.out.println("Right clicked: " + item);
-                    //cell.setContextMenu(cM);
+                    cell.setContextMenu(cM);
                 }
                 event.consume();
             });
@@ -256,41 +316,7 @@ public class FXMLDocumentController implements Initializable {
          * Event handler for when user clicks button to insert a new
          * instruction.
          */
-        instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
-            if (keyEvent.getCode() == KeyCode.ENTER) {
-                String text = instrText.getText();
-                try {
-                    x86ProgramLine x = X86Parser.parseLine(text);
-                    instrText.setStyle("-fx-control-inner-background: white;");
-                    parseErrorText.setText(null);
-                    parseErrorText.setGraphic(null);
-
-                    //Enter text in listView
-                    instrList.getItems().add(x);
-
-                    // If this is the first instruction entered, "select" it and
-                    // make sure it gets added to our register history list.
-                    if (instrList.getItems().size() == 1) {
-                        regHistory.addAll(x.getUsedRegisters());
-                        instrList.getSelectionModel().select(0);
-                        registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
-                        SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
-                        promRegTable.setItems(regSortedList1);
-                    }
-                    instrText.clear();
-                } catch (X86ParsingException e) {
-                    // If we had a parsing error, set the background to pink,
-                    // select the part of the input that reported the error,
-                    // and set the error label's text.
-                    instrText.setStyle("-fx-control-inner-background: pink;");
-                    instrText.selectRange(e.getStartIndex(), e.getEndIndex());
-                    parseErrorText.setText(e.getMessage());
-                    ImageView errorPic = new ImageView(
-                            new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
-                    parseErrorText.setGraphic(errorPic);
-                }
-            }
-        });
+        instrText.setOnKeyPressed(this::parseAndAddInstruction);
 
         // Set up actions for the menubar
         exitMenuItem.setOnAction((event) -> System.exit(0));
@@ -529,6 +555,42 @@ public class FXMLDocumentController implements Initializable {
         regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+    }
+    
+    private void parseAndAddInstruction(KeyEvent keyEvent) {
+        if (keyEvent.getCode() == KeyCode.ENTER) {
+            String text = instrText.getText();
+            try {
+                x86ProgramLine x = X86Parser.parseLine(text);
+                instrText.setStyle("-fx-control-inner-background: white;");
+                parseErrorText.setText(null);
+                parseErrorText.setGraphic(null);
+
+                //Enter text in listView
+                instrList.getItems().add(x);
+
+                // If this is the first instruction entered, "select" it and
+                // make sure it gets added to our register history list.
+                if (instrList.getItems().size() == 1) {
+                    regHistory.addAll(x.getUsedRegisters());
+                    instrList.getSelectionModel().select(0);
+                    registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
+                    SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
+                    promRegTable.setItems(regSortedList1);
+                }
+                instrText.clear();
+            } catch (X86ParsingException e) {
+                // If we had a parsing error, set the background to pink,
+                // select the part of the input that reported the error,
+                // and set the error label's text.
+                instrText.setStyle("-fx-control-inner-background: pink;");
+                instrText.selectRange(e.getStartIndex(), e.getEndIndex());
+                parseErrorText.setText(e.getMessage());
+                ImageView errorPic = new ImageView(
+                        new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
+                parseErrorText.setGraphic(errorPic);
+            }
+        }
     }
 
 }

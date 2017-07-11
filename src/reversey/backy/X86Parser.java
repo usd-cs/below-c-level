@@ -438,4 +438,8 @@ public class X86Parser {
         labelUsers.clear();
         currLineNum = 0;
     }
+    
+    public static void setCurrLineNum(int l) {
+        if (l >= 0) currLineNum = l;
+    }
 }
