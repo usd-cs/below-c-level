@@ -435,5 +435,7 @@ public class X86Parser {
     // TODO: Find a better solution for this
     public static void clear() {
         labels.clear();
+        labelUsers.clear();
+        currLineNum = 0;
     }
 }

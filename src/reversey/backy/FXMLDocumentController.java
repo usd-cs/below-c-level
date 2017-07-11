@@ -342,6 +342,7 @@ public class FXMLDocumentController implements Initializable {
                     }
                 } catch (X86ParsingException e) {
                     // If we had a parsing error, report what? File "line"? In which case numbers must remain
+                    // TODO: Pop-up window for error in file
                     System.out.println("Loaded file parsing error");
                 }
             }
