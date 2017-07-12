@@ -18,7 +18,12 @@ public abstract class x86ProgramLine {
      * The line number where this instruction is located.
      */
     protected int lineNum;
-
+    
+    /**
+     * Whether this line has a breakpoint or not.
+     */
+    protected boolean hasBreakpoint;
+    
     public int getLineNum() {
         return lineNum;
     }
@@ -26,6 +31,10 @@ public abstract class x86ProgramLine {
     public void setLineNum(int lineNum) {
         if (this.lineNum >= 0)
             this.lineNum = lineNum;
+    }
+    
+    public boolean getBreakpoint(){
+        return hasBreakpoint;
     }
 
     /**
@@ -44,4 +53,8 @@ public abstract class x86ProgramLine {
      * @return Set containing names of registers used by this instruction.
      */
     public abstract Set<String> getUsedRegisters();
+    
+    public void toggleBreakpoint(){
+        hasBreakpoint = !hasBreakpoint;
+    }
 }

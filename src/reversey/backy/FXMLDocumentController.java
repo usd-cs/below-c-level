@@ -14,21 +14,33 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.scene.text.Font;
 import javafx.util.Callback;
 import javafx.scene.shape.Circle;
+import javafx.scene.text.Text;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 /**
  * Class that controls the main FXML file.
@@ -37,7 +49,6 @@ import javafx.scene.shape.Circle;
  */
 public class FXMLDocumentController implements Initializable {
 
-
     // Fields for the menu bar
     @FXML
     private MenuItem exitMenuItem;
@@ -45,6 +56,8 @@ public class FXMLDocumentController implements Initializable {
     private MenuItem loadMenuItem;
     @FXML
     private MenuItem saveMenuItem;
+    @FXML
+    private MenuItem saveAsMenuItem;
     @FXML
     private MenuItem forwardMenuItem;
     @FXML
@@ -57,15 +70,22 @@ public class FXMLDocumentController implements Initializable {
     private MenuItem clearProgramMenuItem;
     @FXML
     private MenuItem aboutMenuItem;
-    
-    
+    @FXML
+    private MenuItem undoMenuItem;
+    @FXML
+    private MenuItem redoMenuItem;
+    @FXML
+    private MenuItem reorderMenuItem;
+
     @FXML
     private MenuBar menuOptionsBar;
     @FXML
     private Menu fileOption;
     @FXML
     private Menu helpOption;
-    
+    @FXML
+    private Menu editOption;
+
     @FXML
     private BorderPane entirePane;
 
@@ -73,10 +93,10 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private TextField instrText;
     @FXML
-    private MenuButton insertMenu;
+    private Label entryStatusLabel;
     @FXML
     private Label parseErrorText;
-    
+
     @FXML
     private ListView<x86ProgramLine> instrList;
 
@@ -118,6 +138,16 @@ public class FXMLDocumentController implements Initializable {
     private TableColumn<Register, String> registerVal;
     @FXML
     private TableColumn<Register, Integer> registerOrigin;
+    
+    // Fields for status flag labels
+    @FXML
+    private Label sfLabel;
+    @FXML
+    private Label zfLabel;
+    @FXML
+    private Label ofLabel;
+    @FXML
+    private Label cfLabel;
 
     /**
      * List of registers values in our current state.
@@ -128,14 +158,18 @@ public class FXMLDocumentController implements Initializable {
      * The history of execution states in our simulation.
      */
     private List<MachineState> stateHistory;
-    
+
     /**
-     * History of registers used by the simulation.
-     * This list may contain duplicates as one is added for each register used
-     * by an instruction when it is executed.
+     * History of registers used by the simulation. This list may contain
+     * duplicates as one is added for each register used by an instruction when
+     * it is executed.
      */
     private List<String> regHistory;
-    
+    /**
+     * Current file name.
+     */
+    private String lastLoadedFileName;
+
     private final Comparator<Register> regComp = (Register r1, Register r2) -> {
         if (r1.getProminence() > r2.getProminence()) {
             return -1;
@@ -159,17 +193,19 @@ public class FXMLDocumentController implements Initializable {
                     } else {
                         setFont(new Font("Courier", 14));
                         setText(item.toString());
+                        Circle circle = new Circle(4);
+                        circle.setFill(Color.TRANSPARENT);
+                        setGraphic(circle);
                         //if (lv.getSelectionModel().getSelectedItems().contains(item))
                         //    setGraphic(new Circle(5.0f));
                     }
                 }
             };
 
-            
             ContextMenu cM = new ContextMenu();
             MenuItem deleteItem = new MenuItem("Delete");
-            
-            deleteItem.setOnAction( event -> {
+
+            deleteItem.setOnAction(event -> {
                 lv.getItems().remove(cell.getItem());
                 int i = 0;
                 for (x86ProgramLine line : lv.getItems()) {
@@ -178,17 +214,16 @@ public class FXMLDocumentController implements Initializable {
                 }
                 X86Parser.setCurrLineNum(i);
                 this.restartSim(null);
-                
+
             });
             cM.getItems().addAll(deleteItem);
-            
+
             MenuItem editItem = new MenuItem("Edit");
-            editItem.setOnAction( event -> {
+            editItem.setOnAction(event -> {
                 instrText.setStyle("-fx-control-inner-background: #77c0f4;");
-                
-                // TODO: robustify
-                instrText.setText(cell.getItem().toString().substring(3).trim());
-                
+                instrText.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
+                entryStatusLabel.setText("Editing line " + cell.getItem().getLineNum());
+                cell.setStyle("-fx-background-color: #77c0f4;");
                 // Change instruction entry box to replace instruction rather
                 // than adding a new one at the end.
                 instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
@@ -199,6 +234,8 @@ public class FXMLDocumentController implements Initializable {
                             instrText.setStyle("-fx-control-inner-background: white;");
                             parseErrorText.setText(null);
                             parseErrorText.setGraphic(null);
+                            entryStatusLabel.setText(null);
+                            cell.setStyle("");
 
                             // Find where the existing instruction was and replace
                             // it with the new instruction.
@@ -208,12 +245,12 @@ public class FXMLDocumentController implements Initializable {
                                     X86Parser.setCurrLineNum(x.getLineNum());
                                     x.setLineNum(i);
                                     instrList.getItems().remove(cell.getItem());
-                                    instrList.getItems().add(i, x);                               
+                                    instrList.getItems().add(i, x);
                                     break;
                                 }
                                 i++;
                             }
-                            
+
                             instrText.clear();
                             instrText.setOnKeyPressed(this::parseAndAddInstruction);
                         } catch (X86ParsingException e) {
@@ -232,8 +269,22 @@ public class FXMLDocumentController implements Initializable {
             });
             cM.getItems().addAll(editItem);
 
+            MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
+
+            toggleBreakpointItem.setOnAction(event -> {
+                cell.getItem().toggleBreakpoint();
+                if (cell.getItem().getBreakpoint() == true) {
+                    cell.setGraphic(new Circle(4));
+                } else {
+                    Circle c = new Circle(4);
+                    c.setFill(Color.TRANSPARENT);
+                    cell.setGraphic(c);
+                }
+            });
+            cM.getItems().addAll(toggleBreakpointItem);
+
             cell.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
-                if (event.getButton()== MouseButton.SECONDARY && !cell.isEmpty()) {
+                if (event.getButton() == MouseButton.SECONDARY && !cell.isEmpty()) {
                     //lv.getFocusModel().focus(lv.getItems().indexOf(cell.getItem()));
                     lv.getFocusModel().focus(1);
                     //x86ProgramLine item = cell.getItem();
@@ -242,7 +293,7 @@ public class FXMLDocumentController implements Initializable {
                 }
                 event.consume();
             });
-            return cell ;
+            return cell;
         });
 
         // Initialize the simulation state.
@@ -291,7 +342,6 @@ public class FXMLDocumentController implements Initializable {
         SortedList<Register> regSortedList = registerTableList.sorted(regComp);
         promRegTable.setItems(regSortedList);
 
-
         // Set up handlers for simulation control, both via buttons and menu
         // items.
         nextInstr.setOnAction(this::stepForward);
@@ -315,11 +365,10 @@ public class FXMLDocumentController implements Initializable {
 
         skipToStart.setOnAction(this::restartSim);
         restartMenuItem.setOnAction(this::restartSim);
-        
-        // TODO: handler for clearing program
-        clearProgramMenuItem.setOnAction(null);
 
-        /*
+        clearProgramMenuItem.setOnAction(this::clearProgram);
+
+        /**
          * Event handler for when user clicks button to insert a new
          * instruction.
          */
@@ -327,126 +376,44 @@ public class FXMLDocumentController implements Initializable {
 
         // Set up actions for the menubar
         exitMenuItem.setOnAction((event) -> System.exit(0));
-
-        /*
-         * Event handler for "loadMenuItem" menu.
-         * This will reset the simulation, returning to the very first
-         * instruction of the loaded text file.
-         */
-        loadMenuItem.setOnAction((event) -> {
-            // TODO: What here is unecessary?
-            // Force user to reset? All previously entered instructions are removed currently
-            X86Parser.clear();
-            stateHistory.clear();
-            instrList.getItems().clear();
-            regHistory.clear();
-            stateHistory.add(new MachineState());
-
-            FileChooser loadFileChoice = new FileChooser();
-            loadFileChoice.setTitle("Open File");
-
-            // Filter only allows user to choose a text file
-            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
-            loadFileChoice.getExtensionFilters().add(extFilter);
-            File loadFile = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
-            if (loadFile != null) {
-                BufferedReader bufferedReader = null;
-                ArrayList<String> instrTmp = new ArrayList<>();
-                try {
-                    bufferedReader = new BufferedReader(new FileReader(loadFile));
-                    String tmp;
-                    while ((tmp = bufferedReader.readLine()) != null) {
-                        instrTmp.add(tmp.trim());
-                    }
-                } catch (FileNotFoundException e) {
-                    System.out.println("File does not exist: please choose a valid text file.");
-                } catch (IOException e) {
-                    System.out.println("Invalid file.");
-                } finally {
-                    try {
-                        bufferedReader.close();
-                    } catch (IOException e) {
-                        System.out.println("Invalid file.");
-                    }
-                }
-                try {
-                    for (String e : instrTmp) {
-                        x86ProgramLine x = X86Parser.parseLine(e);
-                        instrList.getItems().add(x);
-                    }
-                    //Enter text in listView and select first instruction... is if statement necessary? blank file is never chosen
-                    if (instrList.getItems().size() >= 1) {
-                        instrList.getSelectionModel().select(0);
-                        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-                        registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
-                        SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
-                        promRegTable.setItems(regSortedList1);
-                    }
-                } catch (X86ParsingException e) {
-                    // If we had a parsing error, report what? File "line"? In which case numbers must remain
-                    // TODO: Pop-up window for error in file
-                    System.out.println("Loaded file parsing error");
-                }
-            }
-        });
+        loadMenuItem.setOnAction(this::loadFile);
+        saveAsMenuItem.setOnAction(this::saveFileAs);
+        undoMenuItem.setOnAction(this::undoPrevious);
+        redoMenuItem.setOnAction(this::redoPrevious);
+        // TODO: reorderMenuItem
 
         /*
          * Event handler for "saveMenuItem" menu.
          * This will save the current simulation to a text file specified 
-         * by the user.
+         * by the user if file does not exist, and save changes to existing file.
          */
         saveMenuItem.setOnAction((event) -> {
-            FileChooser saveFileChoice = new FileChooser();
-
-            // Filter only allows user to choose text files
-            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
-            saveFileChoice.getExtensionFilters().add(extFilter);
-            File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
-            if (file != null) {
+            if (lastLoadedFileName != null) {
                 try {
-                    FileWriter fileWriter = new FileWriter(file);
+                    File file = new File(lastLoadedFileName);
+                    FileWriter fW = new FileWriter(file);
                     for (int i = 0; i < instrList.getItems().size(); i++) {
-                        // Formatting okay?
-                        // TODO: more robust stripping of line number
-                        fileWriter.write(instrList.getItems().get(i).toString().substring(3) + "\n");
+                        fW.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                     }
-                    fileWriter.close();
-                } catch (IOException ex) {
-                    //TODO: ?
-                    System.out.println("Unable to save to file.");
+                    fW.close();
+                } catch (IOException e) {
+                    System.out.println("File cannot be saved.");
                 }
+            } else {
+                saveFileAs(event);
             }
         });
 
-        //TODO: if user wants to change where the instruction should be inserted
-        MenuItem beginning = insertMenu.getItems().get(0);
-        beginning.setText("At beginning");
-        MenuItem current = insertMenu.getItems().get(1);
-        current.setText("At current");
-
+        //TODO: Resizing icons/nodes to pane
         // Initialize buttons with fancy graphics.
-        Image skipStartImg = new Image(getClass().getResourceAsStream("skipToStart.png"));
-        Image prevInstrImg = new Image(getClass().getResourceAsStream("prevInstr.png"));
-        Image currInstrImg = new Image(getClass().getResourceAsStream("currInstr.png"));
-        Image nextInstrImg = new Image(getClass().getResourceAsStream("nextInstr.png"));
-        Image skipEndImg = new Image(getClass().getResourceAsStream("skipToEnd.png"));
+        ImageView skipToStartImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToStart.png")));
+        ImageView prevInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("prevInstr.png")));
+        ImageView currInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("currInstr.png")));
+        ImageView nextInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("nextInstr.png")));
+        ImageView skipToEndImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToEnd.png")));
 
-        ImageView skipToStartImgVw = new ImageView(skipStartImg);
-        ImageView prevInstrImgVw = new ImageView(prevInstrImg);
-        ImageView currInstrImgVw = new ImageView(currInstrImg);
-        ImageView nextInstrImgVw = new ImageView(nextInstrImg);
-        ImageView skipToEndImgVw = new ImageView(skipEndImg);
-
-        skipToStartImgVw.setFitHeight(35);
-        skipToStartImgVw.setFitWidth(35);
-        prevInstrImgVw.setFitHeight(35);
-        prevInstrImgVw.setFitWidth(35);
-        currInstrImgVw.setFitHeight(35);
-        currInstrImgVw.setFitWidth(35);
-        nextInstrImgVw.setFitHeight(35);
-        nextInstrImgVw.setFitWidth(35);
-        skipToEndImgVw.setFitHeight(35);
-        skipToEndImgVw.setFitWidth(35);
+        this.setIconsFitHeightAndWidth(skipToStartImgVw, prevInstrImgVw, currInstrImgVw,
+                nextInstrImgVw, skipToEndImgVw, 35);
 
         skipToStart.setGraphic(skipToStartImgVw);
         prevInstr.setGraphic(prevInstrImgVw);
@@ -454,55 +421,14 @@ public class FXMLDocumentController implements Initializable {
         nextInstr.setGraphic(nextInstrImgVw);
         skipToEnd.setGraphic(skipToEndImgVw);
 
-        //TODO: Resizing icons/nodes to pane
-        /*
-           skipToStartImgVw.fitHeightProperty().bind(skipToStart.heightProperty());
-           skipToStartImgVw.fitWidthProperty().bind(skipToStart.widthProperty());
-           prevInstrImgVw.fitHeightProperty().bind(prevInstr.heightProperty());
-           prevInstrImgVw.fitWidthProperty().bind(prevInstr.widthProperty());
-           currInstrImgVw.fitHeightProperty().bind(currInstr.heightProperty());
-           currInstrImgVw.fitWidthProperty().bind(currInstr.widthProperty());
-           nextInstrImgVw.fitHeightProperty().bind(nextInstr.heightProperty());
-           nextInstrImgVw.fitWidthProperty().bind(nextInstr.widthProperty());
-           skipToEndImgVw.fitHeightProperty().bind(skipToEnd.heightProperty());
-           skipToEndImgVw.fitWidthProperty().bind(skipToEnd.widthProperty());
-
-           skipToStart.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-           skipToStart.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-           prevInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-           prevInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-           currInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-           currInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-           nextInstr.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-           nextInstr.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-           skipToEnd.setMinSize(buttonHBox.getPrefWidth(), buttonHBox.getPrefHeight());
-           skipToEnd.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-         */
-
- /*
-         * Event handler for when user picks "insert at beginning" option.
-         */
-        beginning.setOnAction((event) -> {
-            System.out.println("Insert at Beginning selected");
-        });
-
-        /*
-         * Event handler for when user picks "insert after current" option.
-         */
-        current.setOnAction((event) -> {
-            System.out.println("Insert at Current selected");
-        });
-
         Platform.runLater(() -> {
-            // instrList.scrollTo(N);
-            // instrList.getSelectionModel().select(N);
         });
 
     }
-    
+
     /**
      * Executes the next instruction in our simulation.
-     * 
+     *
      * @param event The event that triggered this action.
      */
     private void stepForward(Event event) {
@@ -513,11 +439,13 @@ public class FXMLDocumentController implements Initializable {
 
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
-    
+
     /**
-     * Executes instructions until it reaches the end of the program (TODO: or a breakpoint).
-     * 
+     * Executes instructions until it reaches the end of the program (TODO: or a
+     * breakpoint).
+     *
      * @param event The event that triggered this action.
      */
     private void runForward(Event event) {
@@ -527,15 +455,19 @@ public class FXMLDocumentController implements Initializable {
             this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
             instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+            if (instrList.getSelectionModel().getSelectedItem().getBreakpoint()) {
+                break;
+            }
         }
 
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
 
     /**
      * Undoes the previous instruction in our simulation.
-     * 
+     *
      * @param event The event that triggered this action.
      */
     private void stepBackward(Event event) {
@@ -546,11 +478,12 @@ public class FXMLDocumentController implements Initializable {
 
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
-    
+
     /**
      * Restarts simulation back to its starting state.
-     * 
+     *
      * @param event The event that triggered this action.
      */
     private void restartSim(Event event) {
@@ -563,8 +496,9 @@ public class FXMLDocumentController implements Initializable {
         regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
-    
+
     /**
      * Gets input from instruction entry text field, parses it, and (if successful)
      * adds it to the end of the instruction list.
@@ -607,4 +541,163 @@ public class FXMLDocumentController implements Initializable {
         }
     }
 
+    /**
+     * This will reset the simulation, returning to the very first instruction
+     * of the loaded text file.
+     *
+     * @param event The event that triggered this action.
+     */
+    private void loadFile(Event event) {
+        // Force user to reset? All previously entered instructions are removed currently
+        clearSim();
+
+        FileChooser loadFileChoice = new FileChooser();
+        loadFileChoice.setTitle("Open File");
+
+        // Filter only allows user to choose a text file
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+        loadFileChoice.getExtensionFilters().add(extFilter);
+        File loadFile = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
+        if (loadFile != null) {
+            lastLoadedFileName = loadFile.getAbsolutePath();
+            Stage s = (Stage)instrText.getScene().getWindow();
+            s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
+            BufferedReader bufferedReader = null;
+            ArrayList<String> instrTmp = new ArrayList<>();
+            try {
+                bufferedReader = new BufferedReader(new FileReader(loadFile));
+                String tmp;
+                while ((tmp = bufferedReader.readLine()) != null) {
+                    instrTmp.add(tmp.trim());
+                }
+            } catch (FileNotFoundException e) {
+                System.out.println("File does not exist: please choose a valid text file.");
+            } catch (IOException e) {
+                System.out.println("Invalid file.");
+            } finally {
+                try {
+                    bufferedReader.close();
+                } catch (IOException e) {
+                    System.out.println("Invalid file.");
+                }
+            }
+            try {
+                for (String e : instrTmp) {
+                    x86ProgramLine x = X86Parser.parseLine(e);
+                    instrList.getItems().add(x);
+                }
+                //Enter text in listView and select first instruction
+                if (instrList.getItems().size() >= 1) {
+                    instrList.getSelectionModel().select(0);
+                    regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+                    registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
+                    SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
+                    promRegTable.setItems(regSortedList1);
+                }
+            } catch (X86ParsingException e) {
+                // TODO: If we had a parsing error, report what? File "line"? In which case numbers must remain
+                Alert fileLoadingError = new Alert(AlertType.ERROR);
+                fileLoadingError.setTitle("File Loading Error");
+                fileLoadingError.setHeaderText("Error Loading File");
+                fileLoadingError.setContentText("Unable to load file. Verify that the file is of the correct type (i.e. .txt) and is not invalid.");
+                fileLoadingError.showAndWait();
+            }
+        }
+    }
+
+    /**
+     * Saves current instrList as text file.
+     *
+     * @param event The event that triggered this action.
+     */
+    private void saveFileAs(Event event) {
+        FileChooser saveFileChoice = new FileChooser();
+
+        // Filter only allows user to choose text files
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+        saveFileChoice.getExtensionFilters().add(extFilter);
+        File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
+        lastLoadedFileName = file.getAbsolutePath();
+        Stage s = (Stage) instrText.getScene().getWindow();
+        s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
+        if (file != null) {
+            try {
+                FileWriter fileWriter = new FileWriter(file);
+                for (int i = 0; i < instrList.getItems().size(); i++) {
+                    fileWriter.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
+                }
+                fileWriter.close();
+            } catch (IOException ex) {
+                //TODO: ?
+                System.out.println("Unable to save to file.");
+            }
+        }
+    }
+
+    private void undoPrevious(Event event) {
+        this.stateHistory.remove((this.stateHistory.size() - 1));
+        regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+
+        instrList.getSelectionModel().selectPrevious();
+
+        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+    }
+
+    private void redoPrevious(Event event) {
+
+    }
+
+    /**
+     * Clears current simulation with pop-up window.
+     *
+     * @param event The event that triggered this action.
+     */
+    private void clearProgram(ActionEvent event) {
+        Alert clearProgramPopUp = new Alert(AlertType.CONFIRMATION);
+        clearProgramPopUp.setTitle("Clear Program Confirmation");
+        clearProgramPopUp.setHeaderText("Clearing program will remove all instructions");
+        clearProgramPopUp.setContentText("Are you okay with this?");
+
+        Optional<ButtonType> result = clearProgramPopUp.showAndWait();
+        if (result.get() == ButtonType.OK) {
+            clearSim();
+        } else {
+            // user chose CANCEL or closed the dialog
+        }
+    }
+
+    private void clearSim() {
+        X86Parser.clear();
+        stateHistory.clear();
+        instrList.getItems().clear();
+        regHistory.clear();
+        stateHistory.add(new MachineState());
+        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
+    }
+
+    private void setIconsFitHeightAndWidth(ImageView i, ImageView j, ImageView k,
+            ImageView l, ImageView m, int size) {
+        i.setFitHeight(size);
+        i.setFitWidth(size);
+        j.setFitHeight(size);
+        j.setFitWidth(size);
+        k.setFitHeight(size);
+        k.setFitWidth(size);
+        l.setFitHeight(size);
+        l.setFitWidth(size);
+        m.setFitHeight(size);
+        m.setFitWidth(size);
+    }
+    
+    private void setStatusFlagLabels(){
+        MachineState state = stateHistory.get(stateHistory.size() - 1);
+        sfLabel.setText("SF: " + (state.getSignFlag() ? "1" : "0"));
+        zfLabel.setText("ZF: " + (state.getZeroFlag() ? "1" : "0"));
+        ofLabel.setText("OF: " + (state.getOverflowFlag() ? "1" : "0"));
+        cfLabel.setText("CF: " + (state.getCarryFlag() ? "1" : "0"));
+    }
 }
+
