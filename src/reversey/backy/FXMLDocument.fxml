@@ -134,6 +134,33 @@
                   <Insets top="20.0" />
                </VBox.margin>
             </TableView>
+            <HBox alignment="CENTER" prefHeight="68.0" prefWidth="370.0">
+               <children>
+                  <Label fx:id="sfLabel" text="SF: 0">
+                     <opaqueInsets>
+                        <Insets />
+                     </opaqueInsets>
+                     <HBox.margin>
+                        <Insets left="5.0" right="5.0" />
+                     </HBox.margin>
+                  </Label>
+                  <Label fx:id="zfLabel" text="ZF: 0">
+                     <padding>
+                        <Insets left="5.0" right="5.0" />
+                     </padding>
+                  </Label>
+                  <Label fx:id="ofLabel" text="OF: 0">
+                     <padding>
+                        <Insets left="5.0" right="5.0" />
+                     </padding>
+                  </Label>
+                  <Label fx:id="cfLabel" text="CF: 0">
+                     <HBox.margin>
+                        <Insets left="5.0" right="5.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+            </HBox>
          </children>
          <BorderPane.margin>
             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />

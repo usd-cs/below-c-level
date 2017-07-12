@@ -138,6 +138,16 @@ public class FXMLDocumentController implements Initializable {
     private TableColumn<Register, String> registerVal;
     @FXML
     private TableColumn<Register, Integer> registerOrigin;
+    
+    // Fields for status flag labels
+    @FXML
+    private Label sfLabel;
+    @FXML
+    private Label zfLabel;
+    @FXML
+    private Label ofLabel;
+    @FXML
+    private Label cfLabel;
 
     /**
      * List of registers values in our current state.
@@ -429,6 +439,7 @@ public class FXMLDocumentController implements Initializable {
 
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
 
     /**
@@ -451,6 +462,7 @@ public class FXMLDocumentController implements Initializable {
 
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
 
     /**
@@ -466,6 +478,7 @@ public class FXMLDocumentController implements Initializable {
 
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
 
     /**
@@ -483,6 +496,7 @@ public class FXMLDocumentController implements Initializable {
         regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
 
     private void parseAndAddInstruction(KeyEvent keyEvent) {
@@ -540,6 +554,8 @@ public class FXMLDocumentController implements Initializable {
         File loadFile = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
         if (loadFile != null) {
             lastLoadedFileName = loadFile.getAbsolutePath();
+            Stage s = (Stage)instrText.getScene().getWindow();
+            s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
             BufferedReader bufferedReader = null;
             ArrayList<String> instrTmp = new ArrayList<>();
             try {
@@ -596,6 +612,8 @@ public class FXMLDocumentController implements Initializable {
         saveFileChoice.getExtensionFilters().add(extFilter);
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
         lastLoadedFileName = file.getAbsolutePath();
+        Stage s = (Stage) instrText.getScene().getWindow();
+        s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
         if (file != null) {
             try {
                 FileWriter fileWriter = new FileWriter(file);
@@ -649,6 +667,9 @@ public class FXMLDocumentController implements Initializable {
         instrList.getItems().clear();
         regHistory.clear();
         stateHistory.add(new MachineState());
+        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
+        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
+        setStatusFlagLabels();
     }
 
     private void setIconsFitHeightAndWidth(ImageView i, ImageView j, ImageView k,
@@ -664,4 +685,13 @@ public class FXMLDocumentController implements Initializable {
         m.setFitHeight(size);
         m.setFitWidth(size);
     }
+    
+    private void setStatusFlagLabels(){
+        MachineState state = stateHistory.get(stateHistory.size() - 1);
+        sfLabel.setText("SF: " + (state.getSignFlag() ? "1" : "0"));
+        zfLabel.setText("ZF: " + (state.getZeroFlag() ? "1" : "0"));
+        ofLabel.setText("OF: " + (state.getOverflowFlag() ? "1" : "0"));
+        cfLabel.setText("CF: " + (state.getCarryFlag() ? "1" : "0"));
+    }
 }
+
