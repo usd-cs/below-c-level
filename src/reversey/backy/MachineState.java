@@ -304,6 +304,10 @@ public class MachineState {
             byte[] valArray = val.get().toByteArray();
             byte[] newVal = new byte[endIndex - startIndex];
 
+            // The value may be small enough that it doesn't need all of the
+            // bytes available in newVal. We'll start the process of filling
+            // in newVal by copying over what bytes we have at the appropriate
+            // offset (since java is big endian).
             for (int src = 0, dest = (newVal.length - valArray.length);
                     src < valArray.length; src++, dest++) {
                 newVal[dest] = valArray[src];
