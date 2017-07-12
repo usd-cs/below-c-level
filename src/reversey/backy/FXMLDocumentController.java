@@ -565,6 +565,12 @@ public class FXMLDocumentController implements Initializable {
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
     }
     
+    /**
+     * Gets input from instruction entry text field, parses it, and (if successful)
+     * adds it to the end of the instruction list.
+     * 
+     * @param keyEvent The event that caused the handler to engage.
+     */
     private void parseAndAddInstruction(KeyEvent keyEvent) {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             String text = instrText.getText();
