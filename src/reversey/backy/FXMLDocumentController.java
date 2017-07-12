@@ -505,6 +505,28 @@ public class FXMLDocumentController implements Initializable {
         setStatusFlagLabels();
     }
 
+    
+    private void parseLine(String line) throws X86ParsingException {
+        x86ProgramLine x = X86Parser.parseLine(line);
+        instrText.setStyle("-fx-control-inner-background: white;");
+        parseErrorText.setText(null);
+        parseErrorText.setGraphic(null);
+
+        //Enter text in listView
+        instrList.getItems().add(x);
+
+        // If this is the first instruction entered, "select" it and
+        // make sure it gets added to our register history list.
+        if (instrList.getItems().size() == 1) {
+            regHistory.addAll(x.getUsedRegisters());
+            instrList.getSelectionModel().select(0);
+            registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
+            SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
+            promRegTable.setItems(regSortedList1);
+        }
+        instrText.clear();
+    }
+    
     /**
      * Gets input from instruction entry text field, parses it, and (if successful)
      * adds it to the end of the instruction list.
@@ -515,23 +537,13 @@ public class FXMLDocumentController implements Initializable {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             String text = instrText.getText();
             try {
-                x86ProgramLine x = X86Parser.parseLine(text);
+                this.parseLine(text);
+                
+                // If we reach this point, the parsing was successful so get
+                // rid of any error indicators that may have been set up.
                 instrText.setStyle("-fx-control-inner-background: white;");
                 parseErrorText.setText(null);
                 parseErrorText.setGraphic(null);
-
-                //Enter text in listView
-                instrList.getItems().add(x);
-
-                // If this is the first instruction entered, "select" it and
-                // make sure it gets added to our register history list.
-                if (instrList.getItems().size() == 1) {
-                    regHistory.addAll(x.getUsedRegisters());
-                    instrList.getSelectionModel().select(0);
-                    registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
-                    SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
-                    promRegTable.setItems(regSortedList1);
-                }
                 instrText.clear();
             } catch (X86ParsingException e) {
                 // If we had a parsing error, set the background to pink,
@@ -587,26 +599,22 @@ public class FXMLDocumentController implements Initializable {
                     System.out.println("Invalid file.");
                 }
             }
-            try {
-                for (String e : instrTmp) {
-                    x86ProgramLine x = X86Parser.parseLine(e);
-                    instrList.getItems().add(x);
+            
+            for (String instrLine : instrTmp) {
+                try {
+                    this.parseLine(instrLine);
+                } catch (X86ParsingException e) {
+                    clearSim();
+                    // TODO: If we had a parsing error, report what? File "line"? In which case numbers must remain
+                    Alert fileLoadingError = new Alert(AlertType.ERROR);
+                    fileLoadingError.setTitle("File Loading Error");
+                    fileLoadingError.setHeaderText("Error Loading File");
+                    fileLoadingError.setContentText("Unable to parse the following line:" 
+                            + "\n\n" + instrLine 
+                            + "\n\nReason: " + e.getMessage());
+                    fileLoadingError.showAndWait();
+                    break;
                 }
-                //Enter text in listView and select first instruction
-                if (instrList.getItems().size() >= 1) {
-                    instrList.getSelectionModel().select(0);
-                    regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-                    registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
-                    SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
-                    promRegTable.setItems(regSortedList1);
-                }
-            } catch (X86ParsingException e) {
-                // TODO: If we had a parsing error, report what? File "line"? In which case numbers must remain
-                Alert fileLoadingError = new Alert(AlertType.ERROR);
-                fileLoadingError.setTitle("File Loading Error");
-                fileLoadingError.setHeaderText("Error Loading File");
-                fileLoadingError.setContentText("Unable to load file. Verify that the file is of the correct type (i.e. .txt) and is not invalid.");
-                fileLoadingError.showAndWait();
             }
         }
     }
@@ -679,9 +687,7 @@ public class FXMLDocumentController implements Initializable {
         instrList.getItems().clear();
         regHistory.clear();
         stateHistory.add(new MachineState());
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        setStatusFlagLabels();
+        updateStateDisplays();
     }
 
     private void setIconsFitHeightAndWidth(ImageView i, ImageView j, ImageView k,
