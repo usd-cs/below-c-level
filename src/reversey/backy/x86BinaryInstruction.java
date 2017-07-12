@@ -179,7 +179,8 @@ public class x86BinaryInstruction extends x86Instruction {
     }
 
     public MachineState sal(MachineState state, Operand src, Operand dest) {
-        int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+        // FIXME: max shift amount should based on size of dest
+        int shamt = src.getValue(state).intValue() % 64; // max shift amount is 63
         BigInteger orig = dest.getValue(state);
         BigInteger result = orig.shiftLeft(shamt);
 
@@ -201,12 +202,8 @@ public class x86BinaryInstruction extends x86Instruction {
             // doesn't it?
             flags.put("of", false);
         }
-
-        byte[] resArray = result.toByteArray();
-        if (resArray.length > this.opSize.numBytes()) {
-            byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
-            result = new BigInteger(ba);
-        }
+        
+        result = truncate(result);
 
         return dest.updateState(state, Optional.of(result), flags, true);
     }
