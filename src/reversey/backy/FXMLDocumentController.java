@@ -54,6 +54,8 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private MenuItem restartMenuItem;
     @FXML
+    private MenuItem clearProgramMenuItem;
+    @FXML
     private MenuItem aboutMenuItem;
     
     
@@ -183,6 +185,8 @@ public class FXMLDocumentController implements Initializable {
             MenuItem editItem = new MenuItem("Edit");
             editItem.setOnAction( event -> {
                 instrText.setStyle("-fx-control-inner-background: #77c0f4;");
+                
+                // TODO: robustify
                 instrText.setText(cell.getItem().toString().substring(3).trim());
                 
                 // Change instruction entry box to replace instruction rather
@@ -311,6 +315,9 @@ public class FXMLDocumentController implements Initializable {
 
         skipToStart.setOnAction(this::restartSim);
         restartMenuItem.setOnAction(this::restartSim);
+        
+        // TODO: handler for clearing program
+        clearProgramMenuItem.setOnAction(null);
 
         /*
          * Event handler for when user clicks button to insert a new
@@ -400,6 +407,7 @@ public class FXMLDocumentController implements Initializable {
                     FileWriter fileWriter = new FileWriter(file);
                     for (int i = 0; i < instrList.getItems().size(); i++) {
                         // Formatting okay?
+                        // TODO: more robust stripping of line number
                         fileWriter.write(instrList.getItems().get(i).toString().substring(3) + "\n");
                     }
                     fileWriter.close();
