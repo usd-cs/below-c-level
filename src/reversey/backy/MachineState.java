@@ -91,6 +91,7 @@ public class MachineState {
      * @param val The new value of the given memory address.
      * @param size The number of bytes to write to memory.
      * @param flags The condition flags to modify for the new state.
+     * @param incrementRIP Whether to increment RIP or not.
      * @return A new state that is the same as the current but with new binding
      * from given address to given val.
      */
@@ -98,7 +99,7 @@ public class MachineState {
                                                 Optional<BigInteger> val,
                                                 int size, Map<String,
                                                 Boolean> flags,
-                                                boolean updateRIP) {
+                                                boolean incrementRIP) {
         List<StackEntry> mem = this.memory;
         Map<String, RegisterState> reg = this.registers;
 
@@ -125,10 +126,12 @@ public class MachineState {
                 StackEntry entry = new StackEntry(address, address + size - 1, finalArray, (new BigInteger(reg.get("rip").getValue())).intValue());
                 mem.add(entry);
                 
-                if (updateRIP) {
-                    BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
-                    reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
-                }
+                
+        }
+        
+        if (incrementRIP) {
+            BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
+            reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
         }
 
         // TODO: remove code duplication (here and in other version of
@@ -262,13 +265,14 @@ public class MachineState {
      * @param regName The register that will be updated.
      * @param val The new value of the given register.
      * @param flags The condition flags to modify for the new state.
+     * @param incrementRIP Whether to increment the RIP or not.
      * @return A new state that is the same as the current but with new binding
      * from given register to given val
      */
     public MachineState cloneWithUpdatedRegister(String regName,
                                                     Optional<BigInteger> val,
                                                     Map<String, Boolean> flags,
-                                                    boolean updateRIP) {
+                                                    boolean incrementRIP) {
         Map<String, RegisterState> reg = this.registers;
         List<StackEntry> mem = this.memory;
         if (val.isPresent()) {
@@ -344,7 +348,7 @@ public class MachineState {
                                     (new BigInteger(reg.get("rip").getValue())).intValue()));
         }
 
-        if (updateRIP) {
+        if (incrementRIP) {
             BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
         }
