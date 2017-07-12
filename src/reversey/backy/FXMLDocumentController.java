@@ -313,11 +313,6 @@ public class FXMLDocumentController implements Initializable {
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
         originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
 
-        startAddressCol.setStyle("-fx-alignment: CENTER;");
-        endAddressCol.setStyle("-fx-alignment: CENTER;");
-        valCol.setStyle("-fx-alignment: CENTER;");
-        originCol.setStyle("-fx-alignment: CENTER;");
-
         stackTableList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         stackTable.setItems(stackTableList);
 
@@ -325,10 +320,6 @@ public class FXMLDocumentController implements Initializable {
         registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
         registerVal.setCellValueFactory(new PropertyValueFactory<>("value"));
         registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
-
-        registerName.setStyle("-fx-alignment: CENTER;");
-        registerVal.setStyle("-fx-alignment: CENTER;");
-        registerOrigin.setStyle("-fx-alignment: CENTER;");
 
         Comparator<Register> regComp = (Register r1, Register r2) -> {
             if (r1.getProminence() > r2.getProminence()) {
