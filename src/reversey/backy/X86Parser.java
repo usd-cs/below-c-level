@@ -432,7 +432,6 @@ public class X86Parser {
         // TODO: allow lines that contain both a label and an instruction?
     }
 
-    // TODO: Find a better solution for this
     public static void clear() {
         labels.clear();
         labelUsers.clear();
