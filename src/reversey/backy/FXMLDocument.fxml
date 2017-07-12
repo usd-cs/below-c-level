@@ -32,16 +32,7 @@
                         <Insets right="10.0" />
                      </HBox.margin>
                   </TextField>
-                 
-                                                <MenuButton fx:id="insertMenu" mnemonicParsing="false" text="Insert">
-                    <items>
-                      <MenuItem mnemonicParsing="false" text="Action 1" />
-                      <MenuItem mnemonicParsing="false" text="Action 2" />
-                    </items>
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </MenuButton>
+                  <Label fx:id="entryStatusLabel" prefHeight="34.0" prefWidth="98.0" />
                </children>
             </HBox>
             <Label fx:id="parseErrorText" minWidth="20.0" prefHeight="17.0" prefWidth="348.0">
