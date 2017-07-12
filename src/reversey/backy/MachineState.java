@@ -265,10 +265,17 @@ public class MachineState {
         Map<String, RegisterState> reg = this.registers;
         List<StackEntry> mem = this.memory;
         if (val.isPresent()) {
-            if (regName.equals("rsp") && val.get().compareTo(getRegisterValue("rsp")) == 1) {
-                mem = new ArrayList<StackEntry>(this.memory);
-                // reduced size of stack, so need to remove stack entries?!?!?
-                List<StackEntry> toRemove = new ArrayList<StackEntry>();
+            /* 
+             * If we are incrementing rsp, that means we are reducing the size
+             * of the stack. As a result, we may need to remove some entries
+             * from the stack.
+             */
+            if (regName.equals("rsp") 
+                    && val.get().compareTo(getRegisterValue("rsp")) == 1) {
+
+                // We've reduced the size of the stack, so look for entries to
+                // remove.
+                List<StackEntry> toRemove = new ArrayList<>();
                 for (StackEntry se : this.memory) {
                     long seStartAddr = se.getStartAddress();
                     if (seStartAddr >= getRegisterValue("rsp").longValue()
@@ -277,14 +284,25 @@ public class MachineState {
                         toRemove.add(se);
                     }
                 }
-                mem.removeAll(toRemove);
+
+                // If we found entries to remove, we'll clone the memory and
+                // make changes to that clone.
+                if (!toRemove.isEmpty()) {
+                    mem = new ArrayList<>(this.memory);
+                    mem.removeAll(toRemove);
+                }
             }
+
+            // The register file contains only the quad sized registers (e.g.
+            // rax). All other register updates need to be translated to one of
+            // these quad register names and given an appropriate part of the
+            // register to update.
             String quadName = getQuadName(regName);
             Pair<Integer, Integer> range = getByteRange(regName);
             int startIndex = range.getKey();
             int endIndex = range.getValue();
 
-            reg = new HashMap<String, RegisterState>(this.registers);
+            reg = new HashMap<>(this.registers);
             byte[] valArray = val.get().toByteArray();
             byte[] newVal = new byte[endIndex - startIndex];
 
@@ -293,19 +311,32 @@ public class MachineState {
                 newVal[dest] = valArray[src];
             }
 
+            // Fill in unused parts of newVal by sign extending.
+            // Note that all bytes newVal are initialized to 0 so we only need
+            // to make changes when this is a negative number.
             if (val.get().signum() == -1) {
                 for (int i = 0; i < newVal.length - valArray.length; i++) {
                     newVal[i] = (byte) 0xFF;
                 }
             }
 
-            byte[] newValFull = Arrays.copyOf(this.registers.get(quadName).getValue(), 8);
+            byte[] newValQuad = Arrays.copyOf(this.registers.get(quadName).getValue(), 8);
             for (int src = 0, dest = startIndex; dest < endIndex; src++, dest++) {
-                newValFull[dest] = newVal[src];
+                newValQuad[dest] = newVal[src];
             }
 
-            reg.put(quadName, new RegisterState(newValFull, (new BigInteger(reg.get("rip").getValue())).intValue()));
+            // Long word registers (e.g. eax) are special in that we zero extend
+            // them to fill the whole quad word. Other register sizes don't get
+            // extended (e.g. al only modifies the least significant byte).
+            if (startIndex == 4 && endIndex == 7) {
+                for (int i = 0; i < 4; i++)
+                    newValQuad[i] = 0;
+            }
+
+            reg.put(quadName, new RegisterState(newValQuad, 
+                                    (new BigInteger(reg.get("rip").getValue())).intValue()));
         }
+
         if (updateRIP) {
             BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
