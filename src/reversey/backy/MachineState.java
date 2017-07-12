@@ -94,7 +94,11 @@ public class MachineState {
      * @return A new state that is the same as the current but with new binding
      * from given address to given val.
      */
-    public MachineState getNewState(long address, Optional<BigInteger> val, int size, Map<String, Boolean> flags, boolean updateRIP) {
+    public MachineState cloneWithUpdatedMemory(long address,
+                                                Optional<BigInteger> val,
+                                                int size, Map<String,
+                                                Boolean> flags,
+                                                boolean updateRIP) {
         List<StackEntry> mem = this.memory;
         Map<String, RegisterState> reg = this.registers;
 
@@ -230,7 +234,7 @@ public class MachineState {
      * @return A new MachineState that is identical to the calling object except
      * for the incremented rip register.
      */
-    public MachineState getNewState(){
+    public MachineState cloneWithIncrementedRIP(){
             Map<String, RegisterState> reg = this.registers;
             BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
@@ -241,13 +245,13 @@ public class MachineState {
      * Creates a new MachineState that is the same as the calling object but
      * with the rip register set to the given value.
      *
-     * @param lineNum The value used by the rip register in the new state.
+     * @param newRIPVal The value used by the rip register in the new state.
      * @return A new MachineState that is identical to the calling object except
      * for updated rip register.
      */
-    public MachineState getNewState(BigInteger lineNum){
+    public MachineState cloneWithNewRIP(BigInteger newRIPVal){
             Map<String, RegisterState> reg = this.registers;
-            reg.put("rip", new RegisterState(lineNum.toByteArray(), lineNum.intValue()));
+            reg.put("rip", new RegisterState(newRIPVal.toByteArray(), newRIPVal.intValue()));
             return new MachineState(reg, this.memory, this.statusFlags);
     }
     
@@ -261,7 +265,10 @@ public class MachineState {
      * @return A new state that is the same as the current but with new binding
      * from given register to given val
      */
-    public MachineState getNewState(String regName, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
+    public MachineState cloneWithUpdatedRegister(String regName,
+                                                    Optional<BigInteger> val,
+                                                    Map<String, Boolean> flags,
+                                                    boolean updateRIP) {
         Map<String, RegisterState> reg = this.registers;
         List<StackEntry> mem = this.memory;
         if (val.isPresent()) {

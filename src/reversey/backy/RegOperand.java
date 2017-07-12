@@ -35,7 +35,7 @@ public class RegOperand extends Operand {
 
     @Override
     public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
-        return currState.getNewState(this.regName, val, flags, updateRIP);
+        return currState.cloneWithUpdatedRegister(this.regName, val, flags, updateRIP);
     }
 
     @Override
