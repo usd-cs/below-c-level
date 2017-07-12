@@ -425,21 +425,28 @@ public class FXMLDocumentController implements Initializable {
         });
 
     }
+    
+    /**
+     * Evaluates the current instruction, adding the newly produced state to our
+     * history and selecting the next instruction.
+     */
+    private void evalCurrentInstruction() {
+        // evaluate the current instruction, adding its new state to our history
+        stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(stateHistory.get(stateHistory.size() - 1)));
 
+        // select next instruction based on the updated value of the rip register
+        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister().intValue());
+        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+    }
+    
     /**
      * Executes the next instruction in our simulation.
      *
      * @param event The event that triggered this action.
      */
     private void stepForward(Event event) {
-        this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-
-        instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
-        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        setStatusFlagLabels();
+        evalCurrentInstruction();
+        updateStateDisplays();
     }
 
     /**
@@ -452,17 +459,12 @@ public class FXMLDocumentController implements Initializable {
         // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
         // appear to be stuck in an infinite loop?
         for (int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
-            this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-            instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
-            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-            if (instrList.getSelectionModel().getSelectedItem().getBreakpoint()) {
+            evalCurrentInstruction();
+            if (instrList.getSelectionModel().getSelectedItem().getBreakpoint())
                 break;
-            }
         }
 
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        setStatusFlagLabels();
+        updateStateDisplays();
     }
 
     /**
@@ -473,12 +475,8 @@ public class FXMLDocumentController implements Initializable {
     private void stepBackward(Event event) {
         this.stateHistory.remove((this.stateHistory.size() - 1));
         regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-
         instrList.getSelectionModel().selectPrevious();
-
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        setStatusFlagLabels();
+        updateStateDisplays();
     }
 
     /**
@@ -494,6 +492,14 @@ public class FXMLDocumentController implements Initializable {
 
         stateHistory.add(new MachineState());
         regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        updateStateDisplays();
+    }
+    
+    /**
+     * Updates all the graphical elements that display state information based on
+     * the current state.
+     */
+    private void updateStateDisplays() {
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         setStatusFlagLabels();
