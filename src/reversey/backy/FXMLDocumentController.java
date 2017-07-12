@@ -14,8 +14,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -23,23 +21,15 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.scene.text.Font;
-import javafx.util.Callback;
 import javafx.scene.shape.Circle;
-import javafx.scene.text.Text;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 /**
@@ -202,8 +192,11 @@ public class FXMLDocumentController implements Initializable {
                 }
             };
 
-            ContextMenu cM = new ContextMenu();
+            ContextMenu rightClickMenu = new ContextMenu();
+            
             MenuItem deleteItem = new MenuItem("Delete");
+            MenuItem editItem = new MenuItem("Edit");
+            MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
 
             deleteItem.setOnAction(event -> {
                 lv.getItems().remove(cell.getItem());
@@ -216,14 +209,20 @@ public class FXMLDocumentController implements Initializable {
                 this.restartSim(null);
 
             });
-            cM.getItems().addAll(deleteItem);
 
-            MenuItem editItem = new MenuItem("Edit");
+            
             editItem.setOnAction(event -> {
+                /* 
+                 * Visually indicate that text box will be used for editing by:
+                 * 1. Changing its background color and the background color of the
+                 *    item in the list.
+                 * 2. Updating label next to box to say that we are editing a line.
+                 */
                 instrText.setStyle("-fx-control-inner-background: #77c0f4;");
                 instrText.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
                 entryStatusLabel.setText("Editing line " + cell.getItem().getLineNum());
                 cell.setStyle("-fx-background-color: #77c0f4;");
+                
                 // Change instruction entry box to replace instruction rather
                 // than adding a new one at the end.
                 instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
@@ -252,6 +251,9 @@ public class FXMLDocumentController implements Initializable {
                             }
 
                             instrText.clear();
+                            
+                            // Out of editing mode so go back to default behavior
+                            // for entering an instruction.
                             instrText.setOnKeyPressed(this::parseAndAddInstruction);
                         } catch (X86ParsingException e) {
                             // If we had a parsing error, set the background to pink,
@@ -267,13 +269,15 @@ public class FXMLDocumentController implements Initializable {
                     }
                 });
             });
-            cM.getItems().addAll(editItem);
+            
 
-            MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
 
+            // Event handler for toggling the breakpoint status of an instruction.
             toggleBreakpointItem.setOnAction(event -> {
                 cell.getItem().toggleBreakpoint();
-                if (cell.getItem().getBreakpoint() == true) {
+                
+                // Breakpoints are indicated by a black circle
+                if (cell.getItem().getBreakpoint()) {
                     cell.setGraphic(new Circle(4));
                 } else {
                     Circle c = new Circle(4);
@@ -281,15 +285,13 @@ public class FXMLDocumentController implements Initializable {
                     cell.setGraphic(c);
                 }
             });
-            cM.getItems().addAll(toggleBreakpointItem);
+            
+            rightClickMenu.getItems().addAll(editItem, toggleBreakpointItem, deleteItem);
 
             cell.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
                 if (event.getButton() == MouseButton.SECONDARY && !cell.isEmpty()) {
-                    //lv.getFocusModel().focus(lv.getItems().indexOf(cell.getItem()));
                     lv.getFocusModel().focus(1);
-                    //x86ProgramLine item = cell.getItem();
-                    //System.out.println("Right clicked: " + item);
-                    cell.setContextMenu(cM);
+                    cell.setContextMenu(rightClickMenu);
                 }
                 event.consume();
             });
