@@ -134,20 +134,7 @@ public class MachineState {
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
         }
 
-        // TODO: remove code duplication (here and in other version of
-        // getNewState.
-        if (!flags.containsKey("zf")) {
-            flags.put("zf", this.statusFlags.get("zf"));
-        }
-        if (!flags.containsKey("sf")) {
-            flags.put("sf", this.statusFlags.get("sf"));
-        }
-        if (!flags.containsKey("of")) {
-            flags.put("of", this.statusFlags.get("of"));
-        }
-        if (!flags.containsKey("cf")) {
-            flags.put("cf", this.statusFlags.get("cf"));
-        }
+        mergeFlags(flags);
 
         return new MachineState(reg, mem, flags);
     }
@@ -353,8 +340,18 @@ public class MachineState {
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
         }
 
-        // TODO: remove code duplication (here and in other version of
-        // getNewState.
+        mergeFlags(flags);
+
+        return new MachineState(reg, mem, flags);
+    }
+    
+    /**
+     * Merges the calling object's flags into the given flags, copying over a flag
+     * only when it isn't set in the given flags.
+     * 
+     * @param flags The flags to merge into.
+     */
+    private void mergeFlags(Map<String, Boolean> flags) {
         if (!flags.containsKey("zf")) {
             flags.put("zf", this.statusFlags.get("zf"));
         }
@@ -367,8 +364,6 @@ public class MachineState {
         if (!flags.containsKey("cf")) {
             flags.put("cf", this.statusFlags.get("cf"));
         }
-
-        return new MachineState(reg, mem, flags);
     }
 
     /**
