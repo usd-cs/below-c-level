@@ -124,12 +124,16 @@ public class x86UnaryInstruction extends x86Instruction {
 
     public MachineState neg(MachineState state, Operand dest) {
         BigInteger orig = dest.getValue(state);
-        BigInteger result = orig.negate();
+        
+        // The x64 manual states that neg does 0 - operand so we'll do the
+        // same even though BigInteger has a negate method
+        BigInteger result = BigInteger.ZERO.subtract(orig);
 
         Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
+        
         setSignAndZeroFlags(result, flags);
         flags.put("cf", orig.compareTo(BigInteger.ZERO) != 0);
 
