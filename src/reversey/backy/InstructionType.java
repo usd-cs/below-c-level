@@ -6,6 +6,7 @@ package reversey.backy;
 public enum InstructionType {
     ADD(2),
     SUB(2),
+    IMUL(2),
     CMP(2),
     OR(2),
     AND(2),

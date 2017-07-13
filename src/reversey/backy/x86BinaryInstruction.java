@@ -54,6 +54,9 @@ public class x86BinaryInstruction extends x86Instruction {
             case SUB:
                 this.operation = this::sub;
                 break;
+            case IMUL:
+                this.operation = this::imul;
+                break;
             case CMP:
                 this.operation = this::cmp;
                 break;
@@ -119,6 +122,21 @@ public class x86BinaryInstruction extends x86Instruction {
 
         setSignAndZeroFlags(result, flags);
         flags.put("cf", false); // FIXME: implement
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
+    
+    public MachineState imul(MachineState state, Operand src, Operand dest) {
+        BigInteger src1 = dest.getValue(state);
+        BigInteger src2 = src.getValue(state);
+        BigInteger result = src1.multiply(src2);
+
+        Map<String, Boolean> flags = new HashMap<>();
+        flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
+        flags.put("cf", flags.get("of")); // CF is always the same as OF for imul
+
+        result = truncate(result);
+
+        setSignAndZeroFlags(result, flags);
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
