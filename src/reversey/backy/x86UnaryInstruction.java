@@ -101,15 +101,27 @@ public class x86UnaryInstruction extends x86Instruction {
         }
     }
     
+    /**
+     * Performs "signed" division, storing the quotient and remainder in two
+     * different registers.
+     * 
+     * @param state The state on which to perform the operation.
+     * @param src An operand that acts as the divisor.
+     * @return A state that is a clone of the starting state but updated to account
+     * for the execution of this instruction.
+     */
     public MachineState idiv(MachineState state, Operand src) {
         BigInteger src1 = state.getCombinedRegisterValue(opSize);
         BigInteger src2 = src.getValue(state);
+        
+        // quotient and remainder are both calculated
         BigInteger divResult = src1.divide(src2);
         BigInteger modResult = src1.mod(src2);
         
         RegOperand modDest = null;
         RegOperand divDest = null;
         
+        // determine which registers will be used for the quotient and remainder
         switch (this.opSize) {
             case QUAD:
                 modDest = new RegOperand("rdx", this.opSize);
