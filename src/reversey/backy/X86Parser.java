@@ -57,7 +57,7 @@ public class X86Parser {
          * "add") followed by a single character suffix to indicate the size
          * (e.g. "q").
          */
-        String validSizedInstrNames = "(?<name>add|sub|imul|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret)(?<size>b|w|l|q)";
+        String validSizedInstrNames = "(?<name>add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret)(?<size>b|w|l|q)";
         Matcher sizedInstrMatcher = Pattern.compile(validSizedInstrNames).matcher(instrName);
 
         /*

@@ -46,6 +46,9 @@ public class x86UnaryInstruction extends x86Instruction {
         this.lineNum = line;
 
         switch (instType) {
+            case IDIV:
+                this.operation = this::idiv;
+                break;
             case INC:
                 this.operation = this::inc;
                 break;
@@ -96,6 +99,40 @@ public class x86UnaryInstruction extends x86Instruction {
             default:
                 throw new RuntimeException("unsupported instr type: " + instType);
         }
+    }
+    
+    public MachineState idiv(MachineState state, Operand src) {
+        BigInteger src1 = state.getCombinedRegisterValue(opSize);
+        BigInteger src2 = src.getValue(state);
+        BigInteger divResult = src1.divide(src2);
+        BigInteger modResult = src1.mod(src2);
+        
+        RegOperand modDest = null;
+        RegOperand divDest = null;
+        
+        switch (this.opSize) {
+            case QUAD:
+                modDest = new RegOperand("rdx", this.opSize);
+                divDest = new RegOperand("rax", this.opSize);
+                break;
+            case LONG:
+                modDest = new RegOperand("edx", this.opSize);
+                divDest = new RegOperand("eax", this.opSize);
+                break;
+            case WORD:
+                modDest = new RegOperand("dx", this.opSize);
+                divDest = new RegOperand("ax", this.opSize);
+                break;
+            case BYTE:
+                modDest = new RegOperand("ah", this.opSize);
+                divDest = new RegOperand("al", this.opSize);
+                break;
+            default:
+                throw new RuntimeException("Unsupported op size");
+        }
+
+        MachineState tmp = divDest.updateState(state, Optional.of(divResult), new HashMap<>(), false);
+        return modDest.updateState(tmp, Optional.of(modResult), new HashMap<>(), true);
     }
 
     public MachineState inc(MachineState state, Operand dest) {
@@ -212,6 +249,7 @@ public class x86UnaryInstruction extends x86Instruction {
 
     @Override
     public Set<String> getUsedRegisters() {
+        // FIXME: add implicitly used registers (e.g. push, pop, call, and idiv)
         return destination.getUsedRegisters();
     }
     

@@ -391,6 +391,49 @@ public class MachineState {
         ba = registers.get(quadName).getValue();
         return new BigInteger(Arrays.copyOfRange(ba, startIndex, endIndex));
     }
+    
+    /**
+     * Gets the value stored in the given register.
+     */
+    public BigInteger getCombinedRegisterValue(OpSize size) {
+        String upperRegName = null;
+        String lowerRegName = null;
+        
+        switch (size) {
+            case QUAD:
+                upperRegName = "rdx";
+                lowerRegName = "rax";
+                break;
+            case LONG:
+                upperRegName = "edx";
+                lowerRegName = "eax";
+                break;
+            case WORD:
+                upperRegName = "dx";
+                lowerRegName = "ax";
+                break;
+            case BYTE:
+                return getRegisterValue("ax");
+            default:
+                throw new RuntimeException("Unsupported op size");
+        }
+
+        Pair<Integer, Integer> range = getByteRange(upperRegName);
+        int startIndex = range.getKey();
+        int endIndex = range.getValue();
+
+        byte[] upper = Arrays.copyOfRange(registers.get("rdx").getValue(), startIndex, endIndex);
+        byte[] lower = Arrays.copyOfRange(registers.get("rax").getValue(), startIndex, endIndex);
+        
+        byte[] combined = new byte[2*size.numBytes()];
+        
+        for (int i = 0; i < size.numBytes(); i++) {
+            combined[i] = upper[i];
+            combined[i+size.numBytes()] = lower[i];
+        }
+        
+        return new BigInteger(combined);
+    }
 
     /**
      * Gets the value stored at the given memory address.

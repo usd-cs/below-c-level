@@ -19,6 +19,7 @@ public enum InstructionType {
     SAR(2),
     MOV(2),
     LEA(2),
+    IDIV(1),
     INC(1),
     DEC(1),
     NEG(1),
