@@ -75,6 +75,10 @@ public class x86NullaryInstruction extends x86Instruction {
 
     @Override
     public Set<String> getUsedRegisters() {
-        return new HashSet<>();
+        Set<String> result = new HashSet<>();
+        
+        // Check for implicitly used registers
+        if (this.type == InstructionType.RET) result.add("rsp");
+        return result;
     }
 }

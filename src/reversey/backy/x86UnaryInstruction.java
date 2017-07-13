@@ -261,8 +261,21 @@ public class x86UnaryInstruction extends x86Instruction {
 
     @Override
     public Set<String> getUsedRegisters() {
-        // FIXME: add implicitly used registers (e.g. push, pop, call, and idiv)
-        return destination.getUsedRegisters();
+        Set<String> result = destination.getUsedRegisters();
+        
+        // Check for implicitly used registers
+        switch (this.type) {
+            case PUSH:
+            case POP:
+            case CALL:
+                result.add("rsp");
+                break;
+            case IDIV:
+                result.add("rax");
+                if (this.opSize != OpSize.BYTE) result.add("rdx");
+                break;
+        }
+        return result;
     }
     
     @Override
