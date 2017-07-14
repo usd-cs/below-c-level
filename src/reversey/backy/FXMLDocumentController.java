@@ -194,130 +194,6 @@ public class FXMLDocumentController implements Initializable {
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
-
-        // Disable user selecting arbitrary item in instruction list.
-        instrList.setCellFactory(lv -> {
-            ListCell<x86ProgramLine> cell = new ListCell<x86ProgramLine>() {
-                @Override
-                protected void updateItem(x86ProgramLine item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty) {
-                        setText(null);
-                    } else {
-                        setFont(new Font("Courier", 14));
-                        setText(item.toString());
-                        Circle circle = new Circle(4);
-                        circle.setFill(Color.TRANSPARENT);
-                        setGraphic(circle);
-                        //if (lv.getSelectionModel().getSelectedItems().contains(item))
-                        //    setGraphic(new Circle(5.0f));
-                    }
-                }
-            };
-
-            ContextMenu rightClickMenu = new ContextMenu();
-
-            MenuItem deleteItem = new MenuItem("Delete");
-            MenuItem editItem = new MenuItem("Edit");
-            MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
-
-            deleteItem.setOnAction(event -> {
-                lv.getItems().remove(cell.getItem());
-                int i = 0;
-                for (x86ProgramLine line : lv.getItems()) {
-                    line.setLineNum(i);
-                    i++;
-                }
-                parser.setCurrLineNum(i);
-                this.restartSim(null);
-
-            });
-
-            editItem.setOnAction(event -> {
-                /* 
-                 * Visually indicate that text box will be used for editing by:
-                 * 1. Changing its background color and the background color of the
-                 *    item in the list.
-                 * 2. Updating label next to box to say that we are editing a line.
-                 */
-                instrText.setStyle("-fx-control-inner-background: #77c0f4;");
-                instrText.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
-                entryStatusLabel.setText("Editing line " + cell.getItem().getLineNum());
-                cell.setStyle("-fx-background-color: #77c0f4;");
-
-                // Change instruction entry box to replace instruction rather
-                // than adding a new one at the end.
-                instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
-                    if (keyEvent.getCode() == KeyCode.ENTER) {
-                        String text = instrText.getText();
-                        try {
-                            x86ProgramLine x = parser.parseLine(text);
-                            instrText.setStyle("-fx-control-inner-background: white;");
-                            parseErrorText.setText(null);
-                            parseErrorText.setGraphic(null);
-                            entryStatusLabel.setText(null);
-                            cell.setStyle("");
-
-                            // Find where the existing instruction was and replace
-                            // it with the new instruction.
-                            int i = 0;
-                            for (x86ProgramLine line : lv.getItems()) {
-                                if (line == cell.getItem()) {
-                                    parser.setCurrLineNum(x.getLineNum());
-                                    x.setLineNum(i);
-                                    instrList.getItems().remove(cell.getItem());
-                                    instrList.getItems().add(i, x);
-                                    break;
-                                }
-                                i++;
-                            }
-
-                            instrText.clear();
-
-                            // Out of editing mode so go back to default behavior
-                            // for entering an instruction.
-                            instrText.setOnKeyPressed(this::parseAndAddInstruction);
-                        } catch (X86ParsingException e) {
-                            // If we had a parsing error, set the background to pink,
-                            // select the part of the input that reported the error,
-                            // and set the error label's text.
-                            instrText.setStyle("-fx-control-inner-background: pink;");
-                            instrText.selectRange(e.getStartIndex(), e.getEndIndex());
-                            parseErrorText.setText(e.getMessage());
-                            ImageView errorPic = new ImageView(
-                                    new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
-                            parseErrorText.setGraphic(errorPic);
-                        }
-                    }
-                });
-            });
-
-            // Event handler for toggling the breakpoint status of an instruction.
-            toggleBreakpointItem.setOnAction(event -> {
-                cell.getItem().toggleBreakpoint();
-
-                // Breakpoints are indicated by a black circle
-                if (cell.getItem().getBreakpoint()) {
-                    cell.setGraphic(new Circle(4));
-                } else {
-                    Circle c = new Circle(4);
-                    c.setFill(Color.TRANSPARENT);
-                    cell.setGraphic(c);
-                }
-            });
-
-            rightClickMenu.getItems().addAll(editItem, toggleBreakpointItem, deleteItem);
-
-            cell.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
-                if (event.getButton() == MouseButton.SECONDARY && !cell.isEmpty()) {
-                    lv.getFocusModel().focus(1);
-                    cell.setContextMenu(rightClickMenu);
-                }
-                event.consume();
-            });
-            return cell;
-        });
-
         // Initialize the simulation state.
         stateHistory = new ArrayList<>();
         stateHistory.add(new MachineState());
@@ -764,6 +640,7 @@ public class FXMLDocumentController implements Initializable {
         tabStateHistory.add(new MachineState());
         tabMap.put(t, new TabState(tabRegHistory, tabStateHistory, tabInstrList, tabParser, tabFileName));
         listViewTabPane.getTabs().add(t);
+        tabInstrList.setCellFactory(this::instructionListCellFactory);
         t.setContent(tabInstrList);
         t.setOnSelectionChanged((event) -> {
             instrList = tabMap.get(t).getCurrTabInstrList();
@@ -773,5 +650,127 @@ public class FXMLDocumentController implements Initializable {
             lastLoadedFileName = tabMap.get(t).getCurrFileName();
             updateStateDisplays();
         });
+    }
+    
+    private ListCell<x86ProgramLine> instructionListCellFactory(ListView<x86ProgramLine> lv) {
+        ListCell<x86ProgramLine> cell = new ListCell<x86ProgramLine>() {
+            @Override
+            protected void updateItem(x86ProgramLine item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setText(null);
+                } else {
+                    setFont(new Font("Courier", 14));
+                    setText(item.toString());
+                    Circle circle = new Circle(4);
+                    circle.setFill(Color.TRANSPARENT);
+                    setGraphic(circle);
+                    //if (lv.getSelectionModel().getSelectedItems().contains(item))
+                    //    setGraphic(new Circle(5.0f));
+                }
+            }
+        };
+
+        ContextMenu rightClickMenu = new ContextMenu();
+
+        MenuItem deleteItem = new MenuItem("Delete");
+        MenuItem editItem = new MenuItem("Edit");
+        MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
+
+        deleteItem.setOnAction(event -> {
+            lv.getItems().remove(cell.getItem());
+            int i = 0;
+            for (x86ProgramLine line : lv.getItems()) {
+                line.setLineNum(i);
+                i++;
+            }
+            parser.setCurrLineNum(i);
+            this.restartSim(null);
+
+        });
+
+        editItem.setOnAction(event -> {
+            /* 
+                 * Visually indicate that text box will be used for editing by:
+                 * 1. Changing its background color and the background color of the
+                 *    item in the list.
+                 * 2. Updating label next to box to say that we are editing a line.
+             */
+            instrText.setStyle("-fx-control-inner-background: #77c0f4;");
+            instrText.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
+            entryStatusLabel.setText("Editing line " + cell.getItem().getLineNum());
+            cell.setStyle("-fx-background-color: #77c0f4;");
+
+            // Change instruction entry box to replace instruction rather
+            // than adding a new one at the end.
+            instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
+                if (keyEvent.getCode() == KeyCode.ENTER) {
+                    String text = instrText.getText();
+                    try {
+                        x86ProgramLine x = parser.parseLine(text);
+                        instrText.setStyle("-fx-control-inner-background: white;");
+                        parseErrorText.setText(null);
+                        parseErrorText.setGraphic(null);
+                        entryStatusLabel.setText(null);
+                        cell.setStyle("");
+
+                        // Find where the existing instruction was and replace
+                        // it with the new instruction.
+                        int i = 0;
+                        for (x86ProgramLine line : lv.getItems()) {
+                            if (line == cell.getItem()) {
+                                parser.setCurrLineNum(x.getLineNum());
+                                x.setLineNum(i);
+                                instrList.getItems().remove(cell.getItem());
+                                instrList.getItems().add(i, x);
+                                break;
+                            }
+                            i++;
+                        }
+
+                        instrText.clear();
+
+                        // Out of editing mode so go back to default behavior
+                        // for entering an instruction.
+                        instrText.setOnKeyPressed(this::parseAndAddInstruction);
+                    } catch (X86ParsingException e) {
+                        // If we had a parsing error, set the background to pink,
+                        // select the part of the input that reported the error,
+                        // and set the error label's text.
+                        instrText.setStyle("-fx-control-inner-background: pink;");
+                        instrText.selectRange(e.getStartIndex(), e.getEndIndex());
+                        parseErrorText.setText(e.getMessage());
+                        ImageView errorPic = new ImageView(
+                                new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
+                        parseErrorText.setGraphic(errorPic);
+                    }
+                }
+            });
+        });
+
+        // Event handler for toggling the breakpoint status of an instruction.
+        toggleBreakpointItem.setOnAction(event -> {
+            cell.getItem().toggleBreakpoint();
+
+            // Breakpoints are indicated by a black circle
+            if (cell.getItem().getBreakpoint()) {
+                cell.setGraphic(new Circle(4));
+            } else {
+                Circle c = new Circle(4);
+                c.setFill(Color.TRANSPARENT);
+                cell.setGraphic(c);
+            }
+        });
+
+        rightClickMenu.getItems().addAll(editItem, toggleBreakpointItem, deleteItem);
+
+        cell.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+            if (event.getButton() == MouseButton.SECONDARY && !cell.isEmpty()) {
+                lv.getFocusModel().focus(1);
+                cell.setContextMenu(rightClickMenu);
+            }
+            event.consume();
+        });
+        return cell;
     }
 }
