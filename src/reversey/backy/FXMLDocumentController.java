@@ -91,9 +91,8 @@ public class FXMLDocumentController implements Initializable {
     private Tab firstTab;
 
     /**
-     * List of tabs in our current state.
+     * Map of tabs to their state.
      */
-    private ObservableList<Tab> currentTabsList;
     private HashMap<Tab, TabState> tabMap;
 
     // UI elements for adding new instructions
@@ -177,7 +176,7 @@ public class FXMLDocumentController implements Initializable {
      * Current file name.
      */
     private String lastLoadedFileName;
-    
+
     /**
      * Parser for current tab.
      */
@@ -195,7 +194,7 @@ public class FXMLDocumentController implements Initializable {
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
-        
+
         // Disable user selecting arbitrary item in instruction list.
         instrList.setCellFactory(lv -> {
             ListCell<x86ProgramLine> cell = new ListCell<x86ProgramLine>() {
@@ -359,7 +358,6 @@ public class FXMLDocumentController implements Initializable {
         SortedList<Register> regSortedList = registerTableList.sorted(regComp);
         promRegTable.setItems(regSortedList);
 
-        currentTabsList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getTabs());
         listViewTabPane.getTabs().remove(firstTab);
         createTab("New File", regHistory, instrList, parser, null);
 
@@ -405,8 +403,7 @@ public class FXMLDocumentController implements Initializable {
         newMenuItem.setOnAction((event) -> {
             createTab("New File", new ArrayList<>(), new ListView<>(), new X86Parser(), null);
         });
-        
-        
+
         // TODO: reorderMenuItem
 
         /*
@@ -630,8 +627,8 @@ public class FXMLDocumentController implements Initializable {
                 }
             }
 
-           ListView<x86ProgramLine> newInstrs = new ListView<>();
-           X86Parser newPerry = new X86Parser();
+            ListView<x86ProgramLine> newInstrs = new ListView<>();
+            X86Parser newPerry = new X86Parser();
             for (String instrLine : instrTmp) {
                 try {
                     this.parseLine(newPerry, instrLine, newInstrs);
@@ -651,7 +648,7 @@ public class FXMLDocumentController implements Initializable {
             List<String> newRegHistory = new ArrayList<>();
             List<MachineState> newStateHistory = new ArrayList<>();
             newStateHistory.add(new MachineState());
-            
+
             if (!newInstrs.getItems().isEmpty()) {
                 newRegHistory.addAll(newInstrs.getItems().get(0).getUsedRegisters());
             }
@@ -672,6 +669,7 @@ public class FXMLDocumentController implements Initializable {
         saveFileChoice.getExtensionFilters().add(extFilter);
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
         lastLoadedFileName = file.getAbsolutePath();
+        // TODO: Rename tab when saved
         Stage s = (Stage) instrText.getScene().getWindow();
         s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
         if (file != null) {
@@ -762,20 +760,17 @@ public class FXMLDocumentController implements Initializable {
      */
     private void createTab(String tabName, List<String> tabRegHistory, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
         Tab t = new Tab(tabName);
-         List<MachineState> tabStateHistory = new ArrayList<>();
-         tabStateHistory.add(new MachineState());
+        List<MachineState> tabStateHistory = new ArrayList<>();
+        tabStateHistory.add(new MachineState());
         tabMap.put(t, new TabState(tabRegHistory, tabStateHistory, tabInstrList, tabParser, tabFileName));
         listViewTabPane.getTabs().add(t);
         t.setContent(tabInstrList);
-        System.out.println("reached");
         t.setOnSelectionChanged((event) -> {
             instrList = tabMap.get(t).getCurrTabInstrList();
             stateHistory = tabMap.get(t).getCurrTabStateHistory();
             regHistory = tabMap.get(t).getCurrTabRegHistory();
             parser = tabMap.get(t).getCurrTabParser();
-           
             lastLoadedFileName = tabMap.get(t).getCurrFileName();
-             System.out.println(lastLoadedFileName);
             updateStateDisplays();
         });
     }
