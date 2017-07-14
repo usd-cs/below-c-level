@@ -31,7 +31,7 @@ public class X86Parser {
      * The line number that will be given to the next parsed line.
      */
     private static int currLineNum = 0;
-
+    
     /**
      * Map for keeping track of all the labels we have parsed so far.
      */
@@ -440,5 +440,14 @@ public class X86Parser {
     
     public static void setCurrLineNum(int l) {
         if (l >= 0) currLineNum = l;
+    }
+    
+    public static boolean isValidInstruction(String s) throws X86ParsingException{
+        try{
+        parseLine(s);
+        return true;
+        } catch (X86ParsingException e) {
+            return false;
+        }
     }
 }

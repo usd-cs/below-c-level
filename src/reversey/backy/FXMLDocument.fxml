@@ -40,11 +40,19 @@
                   <Insets bottom="5.0" top="5.0" />
                </VBox.margin>
             </Label>
-            <ListView fx:id="instrList" prefHeight="444.0" prefWidth="353.0">
-               <VBox.margin>
-                  <Insets bottom="5.0" top="5.0" />
-               </VBox.margin>
-            </ListView>
+            <TabPane fx:id="listViewTabPane">
+               <tabs>
+                  <Tab fx:id="firstTab" text="New File">
+                     <content>
+                        <ListView fx:id="instrList" prefHeight="444.0" prefWidth="353.0">
+                           <VBox.margin>
+                              <Insets bottom="5.0" top="5.0" />
+                           </VBox.margin>
+                        </ListView>
+                     </content>
+                  </Tab>
+               </tabs>
+            </TabPane>
             <HBox alignment="CENTER" prefHeight="26.0" prefWidth="353.0">
                <children>
                   <Button fx:id="skipToStart" mnemonicParsing="false" HBox.hgrow="ALWAYS">
@@ -72,6 +80,7 @@
         <menus>
           <Menu fx:id="fileOption" mnemonicParsing="false" text="File">
             <items>
+                  <MenuItem fx:id="newMenuItem" mnemonicParsing="false" text="New" />
                   <MenuItem fx:id="loadMenuItem" mnemonicParsing="false" text="Load" />
                   <MenuItem fx:id="saveMenuItem" mnemonicParsing="false" text="Save" />
                   <MenuItem fx:id="saveAsMenuItem" mnemonicParsing="false" text="Save As..." />

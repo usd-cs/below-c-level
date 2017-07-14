@@ -10,6 +10,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import javafx.scene.control.Tab;
 
 /**
  * A class representing the state of the machine, namely its register file and
@@ -30,6 +31,11 @@ public class MachineState {
     private List<StackEntry> memory;
     
     /**
+     * The state's tabs.
+     */
+    private List<Tab> tabList;
+    
+    /**
      * The status flags (i.e. condition codes).
      */
     private Map<String, Boolean> statusFlags;
@@ -41,6 +47,7 @@ public class MachineState {
     public MachineState() {
         this.registers = new HashMap<String, RegisterState>();
         this.memory = new ArrayList<StackEntry>();
+        this.tabList = new ArrayList<Tab>();
         this.statusFlags = new HashMap<String, Boolean>();
 
         String[] regNames = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15", "rip"};
@@ -60,9 +67,10 @@ public class MachineState {
         }
     }
 
-    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, Map<String, Boolean> flags) {
+    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, List<Tab> tList, Map<String, Boolean> flags) {
         this.registers = reg;
         this.memory = mem;
+        this.tabList = tList;
         this.statusFlags = flags;
     }
 
@@ -142,7 +150,7 @@ public class MachineState {
             flags.put("cf", this.statusFlags.get("cf"));
         }
 
-        return new MachineState(reg, mem, flags);
+        return new MachineState(reg, mem, this.tabList, flags);
     }
 
     /**
@@ -234,7 +242,7 @@ public class MachineState {
             Map<String, RegisterState> reg = this.registers;
             BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
-            return new MachineState(reg, this.memory, this.statusFlags);
+            return new MachineState(reg, this.memory, this.tabList, this.statusFlags);
     }
     
     /**
@@ -248,7 +256,7 @@ public class MachineState {
     public MachineState getNewState(BigInteger lineNum){
             Map<String, RegisterState> reg = this.registers;
             reg.put("rip", new RegisterState(lineNum.toByteArray(), lineNum.intValue()));
-            return new MachineState(reg, this.memory, this.statusFlags);
+            return new MachineState(reg, this.memory, this.tabList, this.statusFlags);
     }
     
     /**
@@ -357,7 +365,7 @@ public class MachineState {
             flags.put("cf", this.statusFlags.get("cf"));
         }
 
-        return new MachineState(reg, mem, flags);
+        return new MachineState(reg, mem, this.tabList, flags);
     }
 
     /**
@@ -427,6 +435,13 @@ public class MachineState {
      */
     public List<StackEntry> getStackEntries(){
         return memory;
+    }
+    
+    /**
+     * Returns a list of tabs.
+     */
+    public List<Tab> getTabs(){
+        return tabList;
     }
     
     public String toString() {

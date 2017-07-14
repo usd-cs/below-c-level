@@ -24,6 +24,7 @@ import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert.AlertType;
@@ -51,7 +52,17 @@ public class FXMLDocumentController implements Initializable {
 
     // Fields for the menu bar
     @FXML
+    private MenuBar menuOptionsBar;
+    @FXML
+    private Menu fileOption;
+    @FXML
+    private Menu helpOption;
+    @FXML
+    private Menu editOption;
+    @FXML
     private MenuItem exitMenuItem;
+    @FXML
+    private MenuItem newMenuItem;
     @FXML
     private MenuItem loadMenuItem;
     @FXML
@@ -78,16 +89,19 @@ public class FXMLDocumentController implements Initializable {
     private MenuItem reorderMenuItem;
 
     @FXML
-    private MenuBar menuOptionsBar;
-    @FXML
-    private Menu fileOption;
-    @FXML
-    private Menu helpOption;
-    @FXML
-    private Menu editOption;
-
-    @FXML
     private BorderPane entirePane;
+
+    // Fields for TabPane
+    @FXML
+    private TabPane listViewTabPane;
+    @FXML
+    private Tab firstTab;
+
+    /**
+     * List of tabs in our current state.
+     */
+    private ObservableList<Tab> currentTabsList;
+    private HashMap<Tab, TabState> tabMap;
 
     // UI elements for adding new instructions
     @FXML
@@ -138,7 +152,7 @@ public class FXMLDocumentController implements Initializable {
     private TableColumn<Register, String> registerVal;
     @FXML
     private TableColumn<Register, Integer> registerOrigin;
-    
+
     // Fields for status flag labels
     @FXML
     private Label sfLabel;
@@ -165,6 +179,7 @@ public class FXMLDocumentController implements Initializable {
      * it is executed.
      */
     private List<String> regHistory;
+
     /**
      * Current file name.
      */
@@ -300,6 +315,7 @@ public class FXMLDocumentController implements Initializable {
         stateHistory = new ArrayList<>();
         stateHistory.add(new MachineState());
         regHistory = new ArrayList<>();
+        tabMap = new HashMap<>();
 
         // Initialize stack table
         startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
@@ -342,6 +358,14 @@ public class FXMLDocumentController implements Initializable {
         SortedList<Register> regSortedList = registerTableList.sorted(regComp);
         promRegTable.setItems(regSortedList);
 
+        currentTabsList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getTabs());
+        // change this
+        firstTab.setContent(instrList);
+        TabState firstTabState = new TabState(regHistory, stateHistory, instrList);
+        currentTabsList.add(firstTab);
+        // TODO: Fix this mess
+        //tabMap.put(firstTab, firstTabState);
+
         // Set up handlers for simulation control, both via buttons and menu
         // items.
         nextInstr.setOnAction(this::stepForward);
@@ -380,6 +404,13 @@ public class FXMLDocumentController implements Initializable {
         saveAsMenuItem.setOnAction(this::saveFileAs);
         undoMenuItem.setOnAction(this::undoPrevious);
         redoMenuItem.setOnAction(this::redoPrevious);
+        // TODO: change null to new blank listview specific to this tab
+        newMenuItem.setOnAction((event) -> {
+            createTab("New File", null, null, null);
+            //TODO: Don't erase the new file tab
+            listViewTabPane.getTabs().clear();
+            listViewTabPane.getTabs().addAll(currentTabsList);
+        });
         // TODO: reorderMenuItem
 
         /*
@@ -552,10 +583,13 @@ public class FXMLDocumentController implements Initializable {
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
         loadFileChoice.getExtensionFilters().add(extFilter);
         File loadFile = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
+
         if (loadFile != null) {
             lastLoadedFileName = loadFile.getAbsolutePath();
-            Stage s = (Stage)instrText.getScene().getWindow();
-            s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
+
+            // Necessary with tabs?
+            //Stage s = (Stage) instrText.getScene().getWindow();
+            //s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
             BufferedReader bufferedReader = null;
             ArrayList<String> instrTmp = new ArrayList<>();
             try {
@@ -575,11 +609,25 @@ public class FXMLDocumentController implements Initializable {
                     System.out.println("Invalid file.");
                 }
             }
+            int fileLineNum = 0;
+            ListView<x86ProgramLine> l = new ListView<>();
+            String instrBeingParsed = "";
             try {
                 for (String e : instrTmp) {
+                    instrBeingParsed = e;
                     x86ProgramLine x = X86Parser.parseLine(e);
-                    instrList.getItems().add(x);
+                    fileLineNum++;
+                    // Problem: adds instructions up to error into listView
+                    l.getItems().add(x);
                 }
+                //TODO: CHANGE THIS CONTENT
+                Tab loadTab = createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1), regHistory, stateHistory, l);
+                
+                // TODO: Change from instrList
+                //TODO: Don't erase the new file tab
+                listViewTabPane.getTabs().clear();
+                listViewTabPane.getTabs().addAll(currentTabsList);
+
                 //Enter text in listView and select first instruction
                 if (instrList.getItems().size() >= 1) {
                     instrList.getSelectionModel().select(0);
@@ -588,13 +636,25 @@ public class FXMLDocumentController implements Initializable {
                     SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
                     promRegTable.setItems(regSortedList1);
                 }
-            } catch (X86ParsingException e) {
-                // TODO: If we had a parsing error, report what? File "line"? In which case numbers must remain
-                Alert fileLoadingError = new Alert(AlertType.ERROR);
-                fileLoadingError.setTitle("File Loading Error");
-                fileLoadingError.setHeaderText("Error Loading File");
-                fileLoadingError.setContentText("Unable to load file. Verify that the file is of the correct type (i.e. .txt) and is not invalid.");
-                fileLoadingError.showAndWait();
+            } catch (X86ParsingException er) {
+                // TODO: Good idea/bad idea to report specific error? Currently parses instruction twice if valid
+                try {
+                    if (!X86Parser.isValidInstruction(instrBeingParsed)) {
+                        Alert fileLoadingError = new Alert(AlertType.ERROR);
+                        fileLoadingError.setTitle("File Parsing Error");
+                        fileLoadingError.setHeaderText("File contains invalid instruction(s)");
+                        fileLoadingError.setContentText("Unable to parse instruction: " + instrBeingParsed + "\n"
+                                + "Located at file line " + fileLineNum + ".\n" + "Error: " + er.getMessage());
+                        fileLoadingError.showAndWait();
+                        // TODO: As of now clears instrList, but restore MachineState/instrList before load attempt
+                        // My worry: If user enters x instructions, tries to load file iwth error, x is erased
+                        //this.stateHistory.set((this.stateHistory.size() - 1), beforeLoadAttempt);
+                        instrList.getItems().clear();
+                    }
+                } catch (X86ParsingException z) {
+                    // Should never be reached
+                }
+
             }
         }
     }
@@ -651,8 +711,10 @@ public class FXMLDocumentController implements Initializable {
         Alert clearProgramPopUp = new Alert(AlertType.CONFIRMATION);
         clearProgramPopUp.setTitle("Clear Program Confirmation");
         clearProgramPopUp.setHeaderText("Clearing program will remove all instructions");
-        clearProgramPopUp.setContentText("Are you okay with this?");
-
+        clearProgramPopUp.setContentText("Do you want to continue?");
+        Label img = new Label();
+        img.getStyleClass().addAll("alert", "warning", "dialog-pane");
+        clearProgramPopUp.setGraphic(img);
         Optional<ButtonType> result = clearProgramPopUp.showAndWait();
         if (result.get() == ButtonType.OK) {
             clearSim();
@@ -685,13 +747,44 @@ public class FXMLDocumentController implements Initializable {
         m.setFitHeight(size);
         m.setFitWidth(size);
     }
-    
-    private void setStatusFlagLabels(){
+
+    private void setStatusFlagLabels() {
         MachineState state = stateHistory.get(stateHistory.size() - 1);
         sfLabel.setText("SF: " + (state.getSignFlag() ? "1" : "0"));
         zfLabel.setText("ZF: " + (state.getZeroFlag() ? "1" : "0"));
         ofLabel.setText("OF: " + (state.getOverflowFlag() ? "1" : "0"));
         cfLabel.setText("CF: " + (state.getCarryFlag() ? "1" : "0"));
     }
-}
 
+    /**
+     * Creates new tab and adds addNewTab to the end of the current list of tabs
+     *
+     * @param tabName
+     * @return t new tab
+     */
+    private Tab createTab(String tabName, List<String> newTabRegs, List<MachineState> newTabStates, ListView<x86ProgramLine> newTabInstrList) {
+        Tab t = new Tab(tabName);
+        tabMap.put(t, new TabState(newTabRegs, newTabStates, newTabInstrList));
+        currentTabsList.add(currentTabsList.size() - 1, t);
+       // t.setContent(new ListView<x86ProgramLine>());
+        t.setContent(tabMap.get(t).getCurrTabInstrList());
+        ObservableList<StackEntry> newTabStackList = FXCollections.observableArrayList(newTabStates.get(newTabStates.size() - 1).getStackEntries());
+        ObservableList<Register> newTabRegList = FXCollections.observableArrayList(newTabStates.get(newTabStates.size() - 1).getRegisters(newTabRegs));
+        SortedList<Register> regSortedList = newTabRegList.sorted(regComp);
+        promRegTable.setItems(newTabRegList);
+        stackTable.setItems(newTabStackList);
+        instrList.setItems(newTabInstrList.getItems());
+        return t;
+    }
+    
+    /**
+     * Deletes specified tab and removes tab from tabMap and currentTabsList
+     *
+     * @param tabName tab to be deleted
+     */
+    private void deleteTab(Tab tabName) {
+        tabMap.remove(tabName);
+        currentTabsList.remove(tabName);
+    }
+    
+}
