@@ -368,9 +368,9 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void stepBackward(Event event) {
-        this.stateHistory.remove((this.stateHistory.size() - 1));
+        stateHistory.remove(stateHistory.size() - 1);
         regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-        instrList.getSelectionModel().selectPrevious();
+        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister().intValue());
         updateStateDisplays();
     }
 
