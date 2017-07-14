@@ -30,15 +30,20 @@ public class X86Parser {
     /**
      * The line number that will be given to the next parsed line.
      */
-    private static int currLineNum = 0;
+    private int currLineNum;
     
     /**
      * Map for keeping track of all the labels we have parsed so far.
      */
-    private static final Map<String, x86Label> labels = new HashMap<>();
+    private final Map<String, x86Label> labels;
 
-    private static final Map<String, List<x86Instruction>> labelUsers = new HashMap<>();
+    private final Map<String, List<x86Instruction>> labelUsers;
 
+    public X86Parser(){
+        currLineNum = 0;
+        labels = new HashMap<>();
+        labelUsers = new HashMap<>();
+    }
     /**
      * Checks that instruction is a valid, supported x86 instruction.
      *
@@ -48,7 +53,7 @@ public class X86Parser {
      * @throws X86ParsingException If it is not a valid instruction or if the
      * size suffix is invalid.
      */
-    public static Pair<InstructionType, OpSize> parseTypeAndSize(String instrName) throws X86ParsingException {
+    public Pair<InstructionType, OpSize> parseTypeAndSize(String instrName) throws X86ParsingException {
         InstructionType type;
         OpSize size;
 
@@ -146,7 +151,7 @@ public class X86Parser {
      * @return The parsed operand.
      * @throws X86ParsingException There was an error parsing the string.
      */
-    public static Operand parseOperand(String str, OpSize instrOpSize) throws X86ParsingException {
+    public Operand parseOperand(String str, OpSize instrOpSize) throws X86ParsingException {
         Operand op = null;
 
         Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
@@ -266,7 +271,7 @@ public class X86Parser {
      * @return The list of operands that were parsed.
      * @throws X86ParsingException There was a problem parsing the operands.
      */
-    public static List<Operand> parseOperands(String operandsStr, OpSize opSize) throws X86ParsingException {
+    public List<Operand> parseOperands(String operandsStr, OpSize opSize) throws X86ParsingException {
         List<Operand> operands = new ArrayList<>();
 
         Matcher m = Pattern.compile(operandRegEx).matcher(operandsStr);
@@ -315,7 +320,7 @@ public class X86Parser {
      * @return The parsed instruction.
      * @throws X86ParsingException There was a problem parsing the line.
      */
-    public static x86ProgramLine parseLine(String instr) throws X86ParsingException {
+    public x86ProgramLine parseLine(String instr) throws X86ParsingException {
         Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
         Matcher labelMatcher = Pattern.compile("\\s*(?<label>\\w+):\\s*").matcher(instr);
 
@@ -432,22 +437,13 @@ public class X86Parser {
         // TODO: allow lines that contain both a label and an instruction?
     }
 
-    public static void clear() {
+    public void clear() {
         labels.clear();
         labelUsers.clear();
         currLineNum = 0;
     }
     
-    public static void setCurrLineNum(int l) {
+    public void setCurrLineNum(int l) {
         if (l >= 0) currLineNum = l;
-    }
-    
-    public static boolean isValidInstruction(String s) throws X86ParsingException{
-        try{
-        parseLine(s);
-        return true;
-        } catch (X86ParsingException e) {
-            return false;
-        }
     }
 }

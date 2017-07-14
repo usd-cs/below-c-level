@@ -177,6 +177,11 @@ public class FXMLDocumentController implements Initializable {
      * Current file name.
      */
     private String lastLoadedFileName;
+    
+    /**
+     * Parser for current tab.
+     */
+    private X86Parser parser;
 
     private final Comparator<Register> regComp = (Register r1, Register r2) -> {
         if (r1.getProminence() > r2.getProminence()) {
@@ -190,6 +195,7 @@ public class FXMLDocumentController implements Initializable {
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
+        
         // Disable user selecting arbitrary item in instruction list.
         instrList.setCellFactory(lv -> {
             ListCell<x86ProgramLine> cell = new ListCell<x86ProgramLine>() {
@@ -223,7 +229,7 @@ public class FXMLDocumentController implements Initializable {
                     line.setLineNum(i);
                     i++;
                 }
-                X86Parser.setCurrLineNum(i);
+                parser.setCurrLineNum(i);
                 this.restartSim(null);
 
             });
@@ -246,7 +252,7 @@ public class FXMLDocumentController implements Initializable {
                     if (keyEvent.getCode() == KeyCode.ENTER) {
                         String text = instrText.getText();
                         try {
-                            x86ProgramLine x = X86Parser.parseLine(text);
+                            x86ProgramLine x = parser.parseLine(text);
                             instrText.setStyle("-fx-control-inner-background: white;");
                             parseErrorText.setText(null);
                             parseErrorText.setGraphic(null);
@@ -258,7 +264,7 @@ public class FXMLDocumentController implements Initializable {
                             int i = 0;
                             for (x86ProgramLine line : lv.getItems()) {
                                 if (line == cell.getItem()) {
-                                    X86Parser.setCurrLineNum(x.getLineNum());
+                                    parser.setCurrLineNum(x.getLineNum());
                                     x.setLineNum(i);
                                     instrList.getItems().remove(cell.getItem());
                                     instrList.getItems().add(i, x);
@@ -318,6 +324,8 @@ public class FXMLDocumentController implements Initializable {
         stateHistory.add(new MachineState());
         regHistory = new ArrayList<>();
         tabMap = new HashMap<>();
+        parser = new X86Parser();
+        lastLoadedFileName = null;
 
         // Initialize stack table
         startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
@@ -352,12 +360,8 @@ public class FXMLDocumentController implements Initializable {
         promRegTable.setItems(regSortedList);
 
         currentTabsList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getTabs());
-        // change this
-        firstTab.setContent(instrList);
-        TabState firstTabState = new TabState(regHistory, stateHistory, instrList);
-        currentTabsList.add(firstTab);
-        // TODO: Fix this mess
-        //tabMap.put(firstTab, firstTabState);
+        listViewTabPane.getTabs().remove(firstTab);
+        createTab("New File", regHistory, instrList, parser, null);
 
         // Set up handlers for simulation control, both via buttons and menu
         // items.
@@ -397,13 +401,12 @@ public class FXMLDocumentController implements Initializable {
         saveAsMenuItem.setOnAction(this::saveFileAs);
         undoMenuItem.setOnAction(this::undoPrevious);
         redoMenuItem.setOnAction(this::redoPrevious);
-        // TODO: change null to new blank listview specific to this tab
+
         newMenuItem.setOnAction((event) -> {
-            createTab("New File", null, null, null);
-            //TODO: Don't erase the new file tab
-            listViewTabPane.getTabs().clear();
-            listViewTabPane.getTabs().addAll(currentTabsList);
+            createTab("New File", new ArrayList<>(), new ListView<>(), new X86Parser(), null);
         });
+        
+        
         // TODO: reorderMenuItem
 
         /*
@@ -530,8 +533,8 @@ public class FXMLDocumentController implements Initializable {
         setStatusFlagLabels();
     }
 
-    private void parseLine(String line, ListView<x86ProgramLine> instructions) throws X86ParsingException {
-        x86ProgramLine x = X86Parser.parseLine(line);
+    private void parseLine(X86Parser perry, String line, ListView<x86ProgramLine> instructions) throws X86ParsingException {
+        x86ProgramLine x = perry.parseLine(line);
         instrText.setStyle("-fx-control-inner-background: white;");
         parseErrorText.setText(null);
         parseErrorText.setGraphic(null);
@@ -561,7 +564,7 @@ public class FXMLDocumentController implements Initializable {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             String text = instrText.getText();
             try {
-                this.parseLine(text, instrList);
+                this.parseLine(parser, text, instrList);
 
                 // If we reach this point, the parsing was successful so get
                 // rid of any error indicators that may have been set up.
@@ -591,7 +594,7 @@ public class FXMLDocumentController implements Initializable {
      */
     private void loadFile(Event event) {
         // Force user to reset? All previously entered instructions are removed currently
-        clearSim();
+        //clearSim();
 
         FileChooser loadFileChoice = new FileChooser();
         loadFileChoice.setTitle("Open File");
@@ -628,13 +631,10 @@ public class FXMLDocumentController implements Initializable {
             }
 
            ListView<x86ProgramLine> newInstrs = new ListView<>();
-            //TODO: Don't erase the new file tab
-            listViewTabPane.getTabs().clear();
-            listViewTabPane.getTabs().addAll(currentTabsList);
-
+           X86Parser newPerry = new X86Parser();
             for (String instrLine : instrTmp) {
                 try {
-                    this.parseLine(instrLine, newInstrs);
+                    this.parseLine(newPerry, instrLine, newInstrs);
                 } catch (X86ParsingException e) {
                     clearSim();
                     Alert fileLoadingError = new Alert(AlertType.ERROR);
@@ -648,7 +648,14 @@ public class FXMLDocumentController implements Initializable {
 
                 }
             }
-            Tab loadTab = createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1), regHistory, stateHistory, newInstrs);
+            List<String> newRegHistory = new ArrayList<>();
+            List<MachineState> newStateHistory = new ArrayList<>();
+            newStateHistory.add(new MachineState());
+            
+            if (!newInstrs.getItems().isEmpty()) {
+                newRegHistory.addAll(newInstrs.getItems().get(0).getUsedRegisters());
+            }
+            createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1), newRegHistory, newInstrs, newPerry, lastLoadedFileName);
         }
     }
 
@@ -717,7 +724,7 @@ public class FXMLDocumentController implements Initializable {
     }
 
     private void clearSim() {
-        X86Parser.clear();
+        parser.clear();
         stateHistory.clear();
         instrList.getItems().clear();
         regHistory.clear();
@@ -753,29 +760,23 @@ public class FXMLDocumentController implements Initializable {
      * @param tabName
      * @return t new tab
      */
-    private Tab createTab(String tabName, List<String> newTabRegs, List<MachineState> newTabStates, ListView<x86ProgramLine> newTabInstrList) {
+    private void createTab(String tabName, List<String> tabRegHistory, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
         Tab t = new Tab(tabName);
-        tabMap.put(t, new TabState(newTabRegs, newTabStates, newTabInstrList));
-        currentTabsList.add(currentTabsList.size() - 1, t);
-        // t.setContent(new ListView<x86ProgramLine>());
-        t.setContent(tabMap.get(t).getCurrTabInstrList());
-        ObservableList<StackEntry> newTabStackList = FXCollections.observableArrayList(newTabStates.get(newTabStates.size() - 1).getStackEntries());
-        ObservableList<Register> newTabRegList = FXCollections.observableArrayList(newTabStates.get(newTabStates.size() - 1).getRegisters(newTabRegs));
-        SortedList<Register> regSortedList = newTabRegList.sorted(regComp);
-        promRegTable.setItems(newTabRegList);
-        stackTable.setItems(newTabStackList);
-        instrList.setItems(newTabInstrList.getItems());
-        return t;
+         List<MachineState> tabStateHistory = new ArrayList<>();
+         tabStateHistory.add(new MachineState());
+        tabMap.put(t, new TabState(tabRegHistory, tabStateHistory, tabInstrList, tabParser, tabFileName));
+        listViewTabPane.getTabs().add(t);
+        t.setContent(tabInstrList);
+        System.out.println("reached");
+        t.setOnSelectionChanged((event) -> {
+            instrList = tabMap.get(t).getCurrTabInstrList();
+            stateHistory = tabMap.get(t).getCurrTabStateHistory();
+            regHistory = tabMap.get(t).getCurrTabRegHistory();
+            parser = tabMap.get(t).getCurrTabParser();
+           
+            lastLoadedFileName = tabMap.get(t).getCurrFileName();
+             System.out.println(lastLoadedFileName);
+            updateStateDisplays();
+        });
     }
-
-    /**
-     * Deletes specified tab and removes tab from tabMap and currentTabsList
-     *
-     * @param tabName tab to be deleted
-     */
-    private void deleteTab(Tab tabName) {
-        tabMap.remove(tabName);
-        currentTabsList.remove(tabName);
-    }
-
 }

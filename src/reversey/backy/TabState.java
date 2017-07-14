@@ -5,6 +5,7 @@
  */
 package reversey.backy;
 
+import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.control.ListView;
 
@@ -13,29 +14,31 @@ import javafx.scene.control.ListView;
  * @author Caitlin
  */
 public class TabState {
-    private List<String> currRegisters;
+    private List<String> currTabRegHistory;
     private List<MachineState> currTabStateHistory;
     private ListView<x86ProgramLine> currTabInstrList;
+    private X86Parser currTabParser;
+    private String currTabFileName;
     
-    public TabState(List<String> tabRegs, List<MachineState> tabStates, ListView<x86ProgramLine> tabInstrList) {
-		this.currRegisters = tabRegs;
+    public TabState(){
+        this.currTabRegHistory = new ArrayList<String>();
+        this.currTabStateHistory = new ArrayList<MachineState>();
+        this.currTabInstrList = new ListView<x86ProgramLine>();
+        this.currTabParser = new X86Parser();
+        this.currTabFileName = null;
+    }
+    
+    public TabState(List<String> tabRegs, List<MachineState> tabStates, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
+		this.currTabRegHistory = tabRegs;
 		this.currTabStateHistory = tabStates;
                 this.currTabInstrList = tabInstrList;
+                this.currTabParser = tabParser;
+                this.currTabFileName = tabFileName;
 	}
     
-    public List<String> getCurrRegisters(){ return this.currRegisters; }
+    public List<String> getCurrTabRegHistory(){ return this.currTabRegHistory; }
     public List<MachineState> getCurrTabStateHistory() { return this.currTabStateHistory; }
     public ListView<x86ProgramLine> getCurrTabInstrList() { return this.currTabInstrList; }
-    
-    public void setCurrRegisters(List<String> regs){
-        this.currRegisters = regs;
-    } 
-    
-    public void setCurrTabStateHistory(List<MachineState> states){
-        this.currTabStateHistory = states;
-    } 
-    
-    public void setCurrRegisters(ListView<x86ProgramLine> instList){
-        this.currTabInstrList = instList;
-    } 
+    public X86Parser getCurrTabParser() { return this.currTabParser; }
+    public String getCurrFileName() { return this.currTabFileName; }
 }

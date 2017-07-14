@@ -10,45 +10,45 @@ import java.util.ArrayList;
 public class x86InstructionTester {
 	public static void main(String[] args) {
 		ArrayList<x86ProgramLine> instructions = new ArrayList<x86ProgramLine>();
-
+                X86Parser oldPerry = new X86Parser();
 		try {
-			instructions.add(X86Parser.parseLine("movq $9, %rax"));
-			instructions.add(X86Parser.parseLine("movq $4, %rbx"));
-			instructions.add(X86Parser.parseLine("addq %rax, %rbx"));
-			instructions.add(X86Parser.parseLine("pushq %rbx"));
-			instructions.add(X86Parser.parseLine("popq %rcx"));
-			instructions.add(X86Parser.parseLine("leaq -12(%rsp), %rdx"));
-			instructions.add(X86Parser.parseLine("movl $73, (%rdx)"));
-			instructions.add(X86Parser.parseLine("incl %esi"));
-			instructions.add(X86Parser.parseLine("decl %edi"));
+			instructions.add(oldPerry.parseLine("movq $9, %rax"));
+			instructions.add(oldPerry.parseLine("movq $4, %rbx"));
+			instructions.add(oldPerry.parseLine("addq %rax, %rbx"));
+			instructions.add(oldPerry.parseLine("pushq %rbx"));
+			instructions.add(oldPerry.parseLine("popq %rcx"));
+			instructions.add(oldPerry.parseLine("leaq -12(%rsp), %rdx"));
+			instructions.add(oldPerry.parseLine("movl $73, (%rdx)"));
+			instructions.add(oldPerry.parseLine("incl %esi"));
+			instructions.add(oldPerry.parseLine("decl %edi"));
 
 			// test that smaller register only affect part of the whole register
-			instructions.add(X86Parser.parseLine("movl $0, %edx"));
-			instructions.add(X86Parser.parseLine("movw $-1, %dx"));
-			instructions.add(X86Parser.parseLine("movb $2, %dl"));
-			instructions.add(X86Parser.parseLine("movb $3, %dh"));
+			instructions.add(oldPerry.parseLine("movl $0, %edx"));
+			instructions.add(oldPerry.parseLine("movw $-1, %dx"));
+			instructions.add(oldPerry.parseLine("movb $2, %dl"));
+			instructions.add(oldPerry.parseLine("movb $3, %dh"));
 
 			// tests for condition codes
-			instructions.add(X86Parser.parseLine("movl $0, %ebp"));
-			instructions.add(X86Parser.parseLine("movl $1, %ebp"));
-			instructions.add(X86Parser.parseLine("sall $31, %ebp"));
-			instructions.add(X86Parser.parseLine("decl %ebp"));
-			instructions.add(X86Parser.parseLine("addl $0, %ebp"));
-			instructions.add(X86Parser.parseLine("incl %ebp"));
-			instructions.add(X86Parser.parseLine("negl %ebp"));
-			instructions.add(X86Parser.parseLine("andl $0, %ebp"));
-			instructions.add(X86Parser.parseLine("notl %ebp"));
-			instructions.add(X86Parser.parseLine("shrl $1, %ebp"));
+			instructions.add(oldPerry.parseLine("movl $0, %ebp"));
+			instructions.add(oldPerry.parseLine("movl $1, %ebp"));
+			instructions.add(oldPerry.parseLine("sall $31, %ebp"));
+			instructions.add(oldPerry.parseLine("decl %ebp"));
+			instructions.add(oldPerry.parseLine("addl $0, %ebp"));
+			instructions.add(oldPerry.parseLine("incl %ebp"));
+			instructions.add(oldPerry.parseLine("negl %ebp"));
+			instructions.add(oldPerry.parseLine("andl $0, %ebp"));
+			instructions.add(oldPerry.parseLine("notl %ebp"));
+			instructions.add(oldPerry.parseLine("shrl $1, %ebp"));
 
 			// more LONG registers
-			instructions.add(X86Parser.parseLine("movl $1, %r8d"));
-			instructions.add(X86Parser.parseLine("sall $4, %r8d"));
-			instructions.add(X86Parser.parseLine("sarl $3, %r8d"));
+			instructions.add(oldPerry.parseLine("movl $1, %r8d"));
+			instructions.add(oldPerry.parseLine("sall $4, %r8d"));
+			instructions.add(oldPerry.parseLine("sarl $3, %r8d"));
 
 			// tests for cmp, test, and set instructions
-			instructions.add(X86Parser.parseLine("movl $-5, %eax"));
-			instructions.add(X86Parser.parseLine("cmpl $-5, %eax"));
-			instructions.add(X86Parser.parseLine("setge %bl"));
+			instructions.add(oldPerry.parseLine("movl $-5, %eax"));
+			instructions.add(oldPerry.parseLine("cmpl $-5, %eax"));
+			instructions.add(oldPerry.parseLine("setge %bl"));
 
 			// TODO: more tests for cmp, test, and set instructions
 		} catch (X86ParsingException e) {
@@ -64,8 +64,8 @@ public class x86InstructionTester {
 		}
 
 		try {
-			X86Parser.parseLine("movl $-5, %eax");
-			X86Parser.parseLine("movl 0(%rax, %ecx, 13), %eax");
+			oldPerry.parseLine("movl $-5, %eax");
+			oldPerry.parseLine("movl 0(%rax, %ecx, 13), %eax");
 		} catch (X86ParsingException e) {
 			e.printStackTrace();
 		}
