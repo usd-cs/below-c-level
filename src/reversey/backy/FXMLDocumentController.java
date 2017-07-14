@@ -182,6 +182,10 @@ public class FXMLDocumentController implements Initializable {
      */
     private X86Parser parser;
 
+    /**
+     * Comparitor for registers, based on their relative prominence then their
+     * lexagraphical ordering.
+     */
     private final Comparator<Register> regComp = (Register r1, Register r2) -> {
         if (r1.getProminence() > r2.getProminence()) {
             return -1;
@@ -219,16 +223,6 @@ public class FXMLDocumentController implements Initializable {
         registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
         registerVal.setCellValueFactory(new PropertyValueFactory<>("value"));
         registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
-
-        Comparator<Register> regComp = (Register r1, Register r2) -> {
-            if (r1.getProminence() > r2.getProminence()) {
-                return -1;
-            } else if (r1.getProminence() == r2.getProminence()) {
-                return r1.getName().compareTo(r2.getName());
-            } else {
-                return 1;
-            }
-        };
 
         registerTableList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         SortedList<Register> regSortedList = registerTableList.sorted(regComp);
