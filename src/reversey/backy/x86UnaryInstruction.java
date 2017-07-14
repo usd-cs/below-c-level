@@ -46,6 +46,9 @@ public class x86UnaryInstruction extends x86Instruction {
         this.lineNum = line;
 
         switch (instType) {
+            case IDIV:
+                this.operation = this::idiv;
+                break;
             case INC:
                 this.operation = this::inc;
                 break;
@@ -97,6 +100,52 @@ public class x86UnaryInstruction extends x86Instruction {
                 throw new RuntimeException("unsupported instr type: " + instType);
         }
     }
+    
+    /**
+     * Performs "signed" division, storing the quotient and remainder in two
+     * different registers.
+     * 
+     * @param state The state on which to perform the operation.
+     * @param src An operand that acts as the divisor.
+     * @return A state that is a clone of the starting state but updated to account
+     * for the execution of this instruction.
+     */
+    public MachineState idiv(MachineState state, Operand src) {
+        BigInteger src1 = state.getCombinedRegisterValue(opSize);
+        BigInteger src2 = src.getValue(state);
+        
+        // quotient and remainder are both calculated
+        BigInteger divResult = src1.divide(src2);
+        BigInteger modResult = src1.mod(src2);
+        
+        RegOperand modDest = null;
+        RegOperand divDest = null;
+        
+        // determine which registers will be used for the quotient and remainder
+        switch (this.opSize) {
+            case QUAD:
+                modDest = new RegOperand("rdx", this.opSize);
+                divDest = new RegOperand("rax", this.opSize);
+                break;
+            case LONG:
+                modDest = new RegOperand("edx", this.opSize);
+                divDest = new RegOperand("eax", this.opSize);
+                break;
+            case WORD:
+                modDest = new RegOperand("dx", this.opSize);
+                divDest = new RegOperand("ax", this.opSize);
+                break;
+            case BYTE:
+                modDest = new RegOperand("ah", this.opSize);
+                divDest = new RegOperand("al", this.opSize);
+                break;
+            default:
+                throw new RuntimeException("Unsupported op size");
+        }
+
+        MachineState tmp = divDest.updateState(state, Optional.of(divResult), new HashMap<>(), false);
+        return modDest.updateState(tmp, Optional.of(modResult), new HashMap<>(), true);
+    }
 
     public MachineState inc(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).add(BigInteger.ONE);
@@ -124,12 +173,16 @@ public class x86UnaryInstruction extends x86Instruction {
 
     public MachineState neg(MachineState state, Operand dest) {
         BigInteger orig = dest.getValue(state);
-        BigInteger result = orig.negate();
+        
+        // The x64 manual states that neg does 0 - operand so we'll do the
+        // same even though BigInteger has a negate method
+        BigInteger result = BigInteger.ZERO.subtract(orig);
 
         Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
+        
         setSignAndZeroFlags(result, flags);
         flags.put("cf", orig.compareTo(BigInteger.ZERO) != 0);
 
@@ -208,7 +261,21 @@ public class x86UnaryInstruction extends x86Instruction {
 
     @Override
     public Set<String> getUsedRegisters() {
-        return destination.getUsedRegisters();
+        Set<String> result = destination.getUsedRegisters();
+        
+        // Check for implicitly used registers
+        switch (this.type) {
+            case PUSH:
+            case POP:
+            case CALL:
+                result.add("rsp");
+                break;
+            case IDIV:
+                result.add("rax");
+                if (this.opSize != OpSize.BYTE) result.add("rdx");
+                break;
+        }
+        return result;
     }
     
     @Override

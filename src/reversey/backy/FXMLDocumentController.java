@@ -14,8 +14,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -30,17 +28,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.scene.text.Font;
-import javafx.util.Callback;
 import javafx.scene.shape.Circle;
-import javafx.scene.text.Text;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 /**
@@ -217,8 +210,11 @@ public class FXMLDocumentController implements Initializable {
                 }
             };
 
-            ContextMenu cM = new ContextMenu();
+            ContextMenu rightClickMenu = new ContextMenu();
+
             MenuItem deleteItem = new MenuItem("Delete");
+            MenuItem editItem = new MenuItem("Edit");
+            MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
 
             deleteItem.setOnAction(event -> {
                 lv.getItems().remove(cell.getItem());
@@ -231,14 +227,19 @@ public class FXMLDocumentController implements Initializable {
                 this.restartSim(null);
 
             });
-            cM.getItems().addAll(deleteItem);
 
-            MenuItem editItem = new MenuItem("Edit");
             editItem.setOnAction(event -> {
+                /* 
+                 * Visually indicate that text box will be used for editing by:
+                 * 1. Changing its background color and the background color of the
+                 *    item in the list.
+                 * 2. Updating label next to box to say that we are editing a line.
+                 */
                 instrText.setStyle("-fx-control-inner-background: #77c0f4;");
                 instrText.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
                 entryStatusLabel.setText("Editing line " + cell.getItem().getLineNum());
                 cell.setStyle("-fx-background-color: #77c0f4;");
+
                 // Change instruction entry box to replace instruction rather
                 // than adding a new one at the end.
                 instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
@@ -267,6 +268,9 @@ public class FXMLDocumentController implements Initializable {
                             }
 
                             instrText.clear();
+
+                            // Out of editing mode so go back to default behavior
+                            // for entering an instruction.
                             instrText.setOnKeyPressed(this::parseAndAddInstruction);
                         } catch (X86ParsingException e) {
                             // If we had a parsing error, set the background to pink,
@@ -282,13 +286,13 @@ public class FXMLDocumentController implements Initializable {
                     }
                 });
             });
-            cM.getItems().addAll(editItem);
 
-            MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
-
+            // Event handler for toggling the breakpoint status of an instruction.
             toggleBreakpointItem.setOnAction(event -> {
                 cell.getItem().toggleBreakpoint();
-                if (cell.getItem().getBreakpoint() == true) {
+
+                // Breakpoints are indicated by a black circle
+                if (cell.getItem().getBreakpoint()) {
                     cell.setGraphic(new Circle(4));
                 } else {
                     Circle c = new Circle(4);
@@ -296,15 +300,13 @@ public class FXMLDocumentController implements Initializable {
                     cell.setGraphic(c);
                 }
             });
-            cM.getItems().addAll(toggleBreakpointItem);
+
+            rightClickMenu.getItems().addAll(editItem, toggleBreakpointItem, deleteItem);
 
             cell.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
                 if (event.getButton() == MouseButton.SECONDARY && !cell.isEmpty()) {
-                    //lv.getFocusModel().focus(lv.getItems().indexOf(cell.getItem()));
                     lv.getFocusModel().focus(1);
-                    //x86ProgramLine item = cell.getItem();
-                    //System.out.println("Right clicked: " + item);
-                    cell.setContextMenu(cM);
+                    cell.setContextMenu(rightClickMenu);
                 }
                 event.consume();
             });
@@ -327,11 +329,6 @@ public class FXMLDocumentController implements Initializable {
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
         originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
 
-        startAddressCol.setStyle("-fx-alignment: CENTER;");
-        endAddressCol.setStyle("-fx-alignment: CENTER;");
-        valCol.setStyle("-fx-alignment: CENTER;");
-        originCol.setStyle("-fx-alignment: CENTER;");
-
         stackTableList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         stackTable.setItems(stackTableList);
 
@@ -339,10 +336,6 @@ public class FXMLDocumentController implements Initializable {
         registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
         registerVal.setCellValueFactory(new PropertyValueFactory<>("value"));
         registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
-
-        registerName.setStyle("-fx-alignment: CENTER;");
-        registerVal.setStyle("-fx-alignment: CENTER;");
-        registerOrigin.setStyle("-fx-alignment: CENTER;");
 
         Comparator<Register> regComp = (Register r1, Register r2) -> {
             if (r1.getProminence() > r2.getProminence()) {
@@ -458,19 +451,26 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
+     * Evaluates the current instruction, adding the newly produced state to our
+     * history and selecting the next instruction.
+     */
+    private void evalCurrentInstruction() {
+        // evaluate the current instruction, adding its new state to our history
+        stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(stateHistory.get(stateHistory.size() - 1)));
+
+        // select next instruction based on the updated value of the rip register
+        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister().intValue());
+        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+    }
+
+    /**
      * Executes the next instruction in our simulation.
      *
      * @param event The event that triggered this action.
      */
     private void stepForward(Event event) {
-        this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-
-        instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
-        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        setStatusFlagLabels();
+        evalCurrentInstruction();
+        updateStateDisplays();
     }
 
     /**
@@ -483,17 +483,13 @@ public class FXMLDocumentController implements Initializable {
         // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
         // appear to be stuck in an infinite loop?
         for (int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
-            this.stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(this.stateHistory.get(this.stateHistory.size() - 1)));
-            instrList.getSelectionModel().select(this.stateHistory.get(this.stateHistory.size() - 1).getRipRegister().intValue());
-            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+            evalCurrentInstruction();
             if (instrList.getSelectionModel().getSelectedItem().getBreakpoint()) {
                 break;
             }
         }
 
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        setStatusFlagLabels();
+        updateStateDisplays();
     }
 
     /**
@@ -504,12 +500,8 @@ public class FXMLDocumentController implements Initializable {
     private void stepBackward(Event event) {
         this.stateHistory.remove((this.stateHistory.size() - 1));
         regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-
         instrList.getSelectionModel().selectPrevious();
-
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        setStatusFlagLabels();
+        updateStateDisplays();
     }
 
     /**
@@ -525,32 +517,57 @@ public class FXMLDocumentController implements Initializable {
 
         stateHistory.add(new MachineState());
         regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        updateStateDisplays();
+    }
+
+    /**
+     * Updates all the graphical elements that display state information based
+     * on the current state.
+     */
+    private void updateStateDisplays() {
         registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
         stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
         setStatusFlagLabels();
     }
 
+    private void parseLine(String line, ListView<x86ProgramLine> instructions) throws X86ParsingException {
+        x86ProgramLine x = X86Parser.parseLine(line);
+        instrText.setStyle("-fx-control-inner-background: white;");
+        parseErrorText.setText(null);
+        parseErrorText.setGraphic(null);
+
+        //Enter text in listView
+        instructions.getItems().add(x);
+
+        // If this is the first instruction entered, "select" it and
+        // make sure it gets added to our register history list.
+        if (instructions.getItems().size() == 1) {
+            regHistory.addAll(x.getUsedRegisters());
+            instructions.getSelectionModel().select(0);
+            registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
+            SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
+            promRegTable.setItems(regSortedList1);
+        }
+        instrText.clear();
+    }
+
+    /**
+     * Gets input from instruction entry text field, parses it, and (if
+     * successful) adds it to the end of the instruction list.
+     *
+     * @param keyEvent The event that caused the handler to engage.
+     */
     private void parseAndAddInstruction(KeyEvent keyEvent) {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             String text = instrText.getText();
             try {
-                x86ProgramLine x = X86Parser.parseLine(text);
+                this.parseLine(text, instrList);
+
+                // If we reach this point, the parsing was successful so get
+                // rid of any error indicators that may have been set up.
                 instrText.setStyle("-fx-control-inner-background: white;");
                 parseErrorText.setText(null);
                 parseErrorText.setGraphic(null);
-
-                //Enter text in listView
-                instrList.getItems().add(x);
-
-                // If this is the first instruction entered, "select" it and
-                // make sure it gets added to our register history list.
-                if (instrList.getItems().size() == 1) {
-                    regHistory.addAll(x.getUsedRegisters());
-                    instrList.getSelectionModel().select(0);
-                    registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
-                    SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
-                    promRegTable.setItems(regSortedList1);
-                }
                 instrText.clear();
             } catch (X86ParsingException e) {
                 // If we had a parsing error, set the background to pink,
@@ -609,53 +626,29 @@ public class FXMLDocumentController implements Initializable {
                     System.out.println("Invalid file.");
                 }
             }
-            int fileLineNum = 0;
-            ListView<x86ProgramLine> l = new ListView<>();
-            String instrBeingParsed = "";
-            try {
-                for (String e : instrTmp) {
-                    instrBeingParsed = e;
-                    x86ProgramLine x = X86Parser.parseLine(e);
-                    fileLineNum++;
-                    // Problem: adds instructions up to error into listView
-                    l.getItems().add(x);
-                }
-                //TODO: CHANGE THIS CONTENT
-                Tab loadTab = createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1), regHistory, stateHistory, l);
-                
-                // TODO: Change from instrList
-                //TODO: Don't erase the new file tab
-                listViewTabPane.getTabs().clear();
-                listViewTabPane.getTabs().addAll(currentTabsList);
 
-                //Enter text in listView and select first instruction
-                if (instrList.getItems().size() >= 1) {
-                    instrList.getSelectionModel().select(0);
-                    regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-                    registerTableList = FXCollections.observableArrayList(stateHistory.get(stateHistory.size() - 1).getRegisters(regHistory));
-                    SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
-                    promRegTable.setItems(regSortedList1);
-                }
-            } catch (X86ParsingException er) {
-                // TODO: Good idea/bad idea to report specific error? Currently parses instruction twice if valid
+           ListView<x86ProgramLine> newInstrs = new ListView<>();
+            //TODO: Don't erase the new file tab
+            listViewTabPane.getTabs().clear();
+            listViewTabPane.getTabs().addAll(currentTabsList);
+
+            for (String instrLine : instrTmp) {
                 try {
-                    if (!X86Parser.isValidInstruction(instrBeingParsed)) {
-                        Alert fileLoadingError = new Alert(AlertType.ERROR);
-                        fileLoadingError.setTitle("File Parsing Error");
-                        fileLoadingError.setHeaderText("File contains invalid instruction(s)");
-                        fileLoadingError.setContentText("Unable to parse instruction: " + instrBeingParsed + "\n"
-                                + "Located at file line " + fileLineNum + ".\n" + "Error: " + er.getMessage());
-                        fileLoadingError.showAndWait();
-                        // TODO: As of now clears instrList, but restore MachineState/instrList before load attempt
-                        // My worry: If user enters x instructions, tries to load file iwth error, x is erased
-                        //this.stateHistory.set((this.stateHistory.size() - 1), beforeLoadAttempt);
-                        instrList.getItems().clear();
-                    }
-                } catch (X86ParsingException z) {
-                    // Should never be reached
-                }
+                    this.parseLine(instrLine, newInstrs);
+                } catch (X86ParsingException e) {
+                    clearSim();
+                    Alert fileLoadingError = new Alert(AlertType.ERROR);
+                    fileLoadingError.setTitle("File Loading Error");
+                    fileLoadingError.setHeaderText("Error Loading File");
+                    fileLoadingError.setContentText("Unable to parse the following line:"
+                            + "\n\n" + instrLine
+                            + "\n\nReason: " + e.getMessage());
+                    fileLoadingError.showAndWait();
+                    break;
 
+                }
             }
+            Tab loadTab = createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1), regHistory, stateHistory, newInstrs);
         }
     }
 
@@ -729,9 +722,7 @@ public class FXMLDocumentController implements Initializable {
         instrList.getItems().clear();
         regHistory.clear();
         stateHistory.add(new MachineState());
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        setStatusFlagLabels();
+        updateStateDisplays();
     }
 
     private void setIconsFitHeightAndWidth(ImageView i, ImageView j, ImageView k,
@@ -766,7 +757,7 @@ public class FXMLDocumentController implements Initializable {
         Tab t = new Tab(tabName);
         tabMap.put(t, new TabState(newTabRegs, newTabStates, newTabInstrList));
         currentTabsList.add(currentTabsList.size() - 1, t);
-       // t.setContent(new ListView<x86ProgramLine>());
+        // t.setContent(new ListView<x86ProgramLine>());
         t.setContent(tabMap.get(t).getCurrTabInstrList());
         ObservableList<StackEntry> newTabStackList = FXCollections.observableArrayList(newTabStates.get(newTabStates.size() - 1).getStackEntries());
         ObservableList<Register> newTabRegList = FXCollections.observableArrayList(newTabStates.get(newTabStates.size() - 1).getRegisters(newTabRegs));
@@ -776,7 +767,7 @@ public class FXMLDocumentController implements Initializable {
         instrList.setItems(newTabInstrList.getItems());
         return t;
     }
-    
+
     /**
      * Deletes specified tab and removes tab from tabMap and currentTabsList
      *
@@ -786,5 +777,5 @@ public class FXMLDocumentController implements Initializable {
         tabMap.remove(tabName);
         currentTabsList.remove(tabName);
     }
-    
+
 }

@@ -54,6 +54,9 @@ public class x86BinaryInstruction extends x86Instruction {
             case SUB:
                 this.operation = this::sub;
                 break;
+            case IMUL:
+                this.operation = this::imul;
+                break;
             case CMP:
                 this.operation = this::cmp;
                 break;
@@ -121,6 +124,21 @@ public class x86BinaryInstruction extends x86Instruction {
         flags.put("cf", false); // FIXME: implement
         return dest.updateState(state, Optional.of(result), flags, true);
     }
+    
+    public MachineState imul(MachineState state, Operand src, Operand dest) {
+        BigInteger src1 = dest.getValue(state);
+        BigInteger src2 = src.getValue(state);
+        BigInteger result = src1.multiply(src2);
+
+        Map<String, Boolean> flags = new HashMap<>();
+        flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
+        flags.put("cf", flags.get("of")); // CF is always the same as OF for imul
+
+        result = truncate(result);
+
+        setSignAndZeroFlags(result, flags);
+        return dest.updateState(state, Optional.of(result), flags, true);
+    }
 
     public MachineState cmp(MachineState state, Operand src, Operand dest) {
         BigInteger src1 = dest.getValue(state);
@@ -179,7 +197,8 @@ public class x86BinaryInstruction extends x86Instruction {
     }
 
     public MachineState sal(MachineState state, Operand src, Operand dest) {
-        int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+        // FIXME: max shift amount should based on size of dest
+        int shamt = src.getValue(state).intValue() % 64; // max shift amount is 63
         BigInteger orig = dest.getValue(state);
         BigInteger result = orig.shiftLeft(shamt);
 
@@ -201,12 +220,8 @@ public class x86BinaryInstruction extends x86Instruction {
             // doesn't it?
             flags.put("of", false);
         }
-
-        byte[] resArray = result.toByteArray();
-        if (resArray.length > this.opSize.numBytes()) {
-            byte[] ba = Arrays.copyOfRange(resArray, 1, resArray.length);
-            result = new BigInteger(ba);
-        }
+        
+        result = truncate(result);
 
         return dest.updateState(state, Optional.of(result), flags, true);
     }

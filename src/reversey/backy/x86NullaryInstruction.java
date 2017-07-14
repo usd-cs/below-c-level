@@ -53,7 +53,7 @@ public class x86NullaryInstruction extends x86Instruction {
         
         // step 1: store (%rsp) value in rip register 
         MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-        MachineState tmp = state.getNewState(src.getValue(state));
+        MachineState tmp = state.cloneWithNewRIP(src.getValue(state));
 
         // step 2: add 8 to rsp
         RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
@@ -75,6 +75,10 @@ public class x86NullaryInstruction extends x86Instruction {
 
     @Override
     public Set<String> getUsedRegisters() {
-        return new HashSet<>();
+        Set<String> result = new HashSet<>();
+        
+        // Check for implicitly used registers
+        if (this.type == InstructionType.RET) result.add("rsp");
+        return result;
     }
 }

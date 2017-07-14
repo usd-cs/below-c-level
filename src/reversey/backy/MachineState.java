@@ -99,10 +99,15 @@ public class MachineState {
      * @param val The new value of the given memory address.
      * @param size The number of bytes to write to memory.
      * @param flags The condition flags to modify for the new state.
+     * @param incrementRIP Whether to increment RIP or not.
      * @return A new state that is the same as the current but with new binding
      * from given address to given val.
      */
-    public MachineState getNewState(long address, Optional<BigInteger> val, int size, Map<String, Boolean> flags, boolean updateRIP) {
+    public MachineState cloneWithUpdatedMemory(long address,
+                                                Optional<BigInteger> val,
+                                                int size, Map<String,
+                                                Boolean> flags,
+                                                boolean incrementRIP) {
         List<StackEntry> mem = this.memory;
         Map<String, RegisterState> reg = this.registers;
 
@@ -129,26 +134,15 @@ public class MachineState {
                 StackEntry entry = new StackEntry(address, address + size - 1, finalArray, (new BigInteger(reg.get("rip").getValue())).intValue());
                 mem.add(entry);
                 
-                if (updateRIP) {
-                    BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
-                    reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
-                }
+                
+        }
+        
+        if (incrementRIP) {
+            BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
+            reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
         }
 
-        // TODO: remove code duplication (here and in other version of
-        // getNewState.
-        if (!flags.containsKey("zf")) {
-            flags.put("zf", this.statusFlags.get("zf"));
-        }
-        if (!flags.containsKey("sf")) {
-            flags.put("sf", this.statusFlags.get("sf"));
-        }
-        if (!flags.containsKey("of")) {
-            flags.put("of", this.statusFlags.get("of"));
-        }
-        if (!flags.containsKey("cf")) {
-            flags.put("cf", this.statusFlags.get("cf"));
-        }
+        mergeFlags(flags);
 
         return new MachineState(reg, mem, this.tabList, flags);
     }
@@ -238,7 +232,7 @@ public class MachineState {
      * @return A new MachineState that is identical to the calling object except
      * for the incremented rip register.
      */
-    public MachineState getNewState(){
+    public MachineState cloneWithIncrementedRIP(){
             Map<String, RegisterState> reg = this.registers;
             BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
@@ -249,13 +243,13 @@ public class MachineState {
      * Creates a new MachineState that is the same as the calling object but
      * with the rip register set to the given value.
      *
-     * @param lineNum The value used by the rip register in the new state.
+     * @param newRIPVal The value used by the rip register in the new state.
      * @return A new MachineState that is identical to the calling object except
      * for updated rip register.
      */
-    public MachineState getNewState(BigInteger lineNum){
+    public MachineState cloneWithNewRIP(BigInteger newRIPVal){
             Map<String, RegisterState> reg = this.registers;
-            reg.put("rip", new RegisterState(lineNum.toByteArray(), lineNum.intValue()));
+            reg.put("rip", new RegisterState(newRIPVal.toByteArray(), newRIPVal.intValue()));
             return new MachineState(reg, this.memory, this.tabList, this.statusFlags);
     }
     
@@ -266,10 +260,14 @@ public class MachineState {
      * @param regName The register that will be updated.
      * @param val The new value of the given register.
      * @param flags The condition flags to modify for the new state.
+     * @param incrementRIP Whether to increment the RIP or not.
      * @return A new state that is the same as the current but with new binding
      * from given register to given val
      */
-    public MachineState getNewState(String regName, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
+    public MachineState cloneWithUpdatedRegister(String regName,
+                                                    Optional<BigInteger> val,
+                                                    Map<String, Boolean> flags,
+                                                    boolean incrementRIP) {
         Map<String, RegisterState> reg = this.registers;
         List<StackEntry> mem = this.memory;
         if (val.isPresent()) {
@@ -314,6 +312,10 @@ public class MachineState {
             byte[] valArray = val.get().toByteArray();
             byte[] newVal = new byte[endIndex - startIndex];
 
+            // The value may be small enough that it doesn't need all of the
+            // bytes available in newVal. We'll start the process of filling
+            // in newVal by copying over what bytes we have at the appropriate
+            // offset (since java is big endian).
             for (int src = 0, dest = (newVal.length - valArray.length);
                     src < valArray.length; src++, dest++) {
                 newVal[dest] = valArray[src];
@@ -345,13 +347,23 @@ public class MachineState {
                                     (new BigInteger(reg.get("rip").getValue())).intValue()));
         }
 
-        if (updateRIP) {
+        if (incrementRIP) {
             BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
         }
 
-        // TODO: remove code duplication (here and in other version of
-        // getNewState.
+        mergeFlags(flags);
+
+        return new MachineState(reg, mem, this.tabList, flags);
+    }
+    
+    /**
+     * Merges the calling object's flags into the given flags, copying over a flag
+     * only when it isn't set in the given flags.
+     * 
+     * @param flags The flags to merge into.
+     */
+    private void mergeFlags(Map<String, Boolean> flags) {
         if (!flags.containsKey("zf")) {
             flags.put("zf", this.statusFlags.get("zf"));
         }
@@ -364,8 +376,6 @@ public class MachineState {
         if (!flags.containsKey("cf")) {
             flags.put("cf", this.statusFlags.get("cf"));
         }
-
-        return new MachineState(reg, mem, this.tabList, flags);
     }
 
     /**
@@ -388,6 +398,49 @@ public class MachineState {
 
         ba = registers.get(quadName).getValue();
         return new BigInteger(Arrays.copyOfRange(ba, startIndex, endIndex));
+    }
+    
+    /**
+     * Gets the value stored in the given register.
+     */
+    public BigInteger getCombinedRegisterValue(OpSize size) {
+        String upperRegName = null;
+        String lowerRegName = null;
+        
+        switch (size) {
+            case QUAD:
+                upperRegName = "rdx";
+                lowerRegName = "rax";
+                break;
+            case LONG:
+                upperRegName = "edx";
+                lowerRegName = "eax";
+                break;
+            case WORD:
+                upperRegName = "dx";
+                lowerRegName = "ax";
+                break;
+            case BYTE:
+                return getRegisterValue("ax");
+            default:
+                throw new RuntimeException("Unsupported op size");
+        }
+
+        Pair<Integer, Integer> range = getByteRange(upperRegName);
+        int startIndex = range.getKey();
+        int endIndex = range.getValue();
+
+        byte[] upper = Arrays.copyOfRange(registers.get("rdx").getValue(), startIndex, endIndex);
+        byte[] lower = Arrays.copyOfRange(registers.get("rax").getValue(), startIndex, endIndex);
+        
+        byte[] combined = new byte[2*size.numBytes()];
+        
+        for (int i = 0; i < size.numBytes(); i++) {
+            combined[i] = upper[i];
+            combined[i+size.numBytes()] = lower[i];
+        }
+        
+        return new BigInteger(combined);
     }
 
     /**

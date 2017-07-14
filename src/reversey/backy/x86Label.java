@@ -36,7 +36,7 @@ public class x86Label extends x86ProgramLine {
 
     @Override
     public MachineState eval(MachineState state) {
-         return state.getNewState();
+         return state.cloneWithIncrementedRIP();
     }
     
     @Override

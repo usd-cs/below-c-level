@@ -72,7 +72,7 @@ class MemoryOperand extends Operand {
 
     @Override
     public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
-        return currState.getNewState(calculateAddress(currState), val, opSize.numBytes(), flags, updateRIP);
+        return currState.cloneWithUpdatedMemory(calculateAddress(currState), val, opSize.numBytes(), flags, updateRIP);
     }
     
     @Override
