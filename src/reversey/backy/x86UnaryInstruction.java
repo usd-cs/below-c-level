@@ -69,6 +69,10 @@ public class x86UnaryInstruction extends x86Instruction {
             case SETGE:
             case SETL:
             case SETLE:
+            case SETA:
+            case SETAE:
+            case SETB:
+            case SETBE:
                 this.conditionCheck = Optional.of(conditions.get(instType.name().toLowerCase().substring(3)));
                 this.operation = this::set;
                 break;
@@ -80,6 +84,10 @@ public class x86UnaryInstruction extends x86Instruction {
             case JGE:
             case JL:
             case JLE:
+            case JA:
+            case JAE:
+            case JB:
+            case JBE:
                 this.conditionCheck = Optional.of(conditions.get(instType.name().toLowerCase().substring(1)));
                 this.operation = this::jump;
                 break;

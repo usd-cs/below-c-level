@@ -72,7 +72,7 @@ public class X86Parser {
          * (e.g. "ge" for "greater than or equal")
          * The "size" of these instructions is implicit (e.g. byte for SET).
          */
-        String validConditionalInstrName = "((?<name>set|j)(?<op>e|ne|s|ns|g|ge|l|le)|jmp)";
+        String validConditionalInstrName = "((?<name>set|j)(?<op>e|ne|s|ns|g|ge|l|le|a|ae|b|be)|jmp)";
         Matcher condInstrMatcher = Pattern.compile(validConditionalInstrName).matcher(instrName);
 
         if (sizedInstrMatcher.matches()) {

@@ -43,6 +43,12 @@ public abstract class x86Instruction extends x86ProgramLine {
                 state -> (state.getSignFlag() ^ state.getOverflowFlag()));
         conditions.put("le",
                 state -> (state.getSignFlag() ^ state.getOverflowFlag()) | state.getZeroFlag());
+        conditions.put("a",
+                state -> (!state.getCarryFlag() & !state.getZeroFlag()));
+        conditions.put("ae", state -> !state.getCarryFlag());
+        conditions.put("b", state -> state.getCarryFlag());
+        conditions.put("be",
+                state -> (state.getCarryFlag() | state.getZeroFlag()));
     }
 
     /**
