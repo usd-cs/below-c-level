@@ -591,6 +591,7 @@ public class FXMLDocumentController implements Initializable {
         }
     }
 
+    // TODO: method comment
     private void clearSim() {
         parser.clear();
         stateHistory.clear();
@@ -600,6 +601,7 @@ public class FXMLDocumentController implements Initializable {
         updateStateDisplays();
     }
 
+    // TODO: method comment
     private void setIconsFitHeightAndWidth(ImageView i, ImageView j, ImageView k,
             ImageView l, ImageView m, int size) {
         i.setFitHeight(size);
@@ -614,6 +616,7 @@ public class FXMLDocumentController implements Initializable {
         m.setFitWidth(size);
     }
 
+    // TODO: method comment
     private void setStatusFlagLabels() {
         MachineState state = stateHistory.get(stateHistory.size() - 1);
         sfLabel.setText("SF: " + (state.getSignFlag() ? "1" : "0"));
@@ -646,6 +649,14 @@ public class FXMLDocumentController implements Initializable {
         });
     }
     
+    /**
+     * Custom cell factory for instruction list entry.
+     * This method creates a custom ListCell class then sets up the right-click
+     * context menu for this custom cell.
+     * 
+     * @param lv The ListView of x86 instructions we're working with.
+     * @return The custom listcell that was constructed.
+     */
     private ListCell<x86ProgramLine> instructionListCellFactory(ListView<x86ProgramLine> lv) {
         ListCell<x86ProgramLine> cell = new ListCell<x86ProgramLine>() {
             @Override
@@ -659,8 +670,6 @@ public class FXMLDocumentController implements Initializable {
                     Circle circle = new Circle(4);
                     circle.setFill(Color.TRANSPARENT);
                     setGraphic(circle);
-                    //if (lv.getSelectionModel().getSelectedItems().contains(item))
-                    //    setGraphic(new Circle(5.0f));
                 }
             }
         };
@@ -715,6 +724,8 @@ public class FXMLDocumentController implements Initializable {
                             if (line == cell.getItem()) {
                                 parser.setCurrLineNum(x.getLineNum());
                                 x.setLineNum(i);
+                                // TODO: think about whether instrList should be
+                                // changed to lv for the next two instructions.
                                 instrList.getItems().remove(cell.getItem());
                                 instrList.getItems().add(i, x);
                                 break;
