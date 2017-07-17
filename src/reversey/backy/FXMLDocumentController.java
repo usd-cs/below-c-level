@@ -19,12 +19,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
-import javafx.event.ActionEvent;
 import javafx.event.Event;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -181,7 +176,7 @@ public class FXMLDocumentController implements Initializable {
     private X86Parser parser;
 
     /**
-     * Comparitor for registers, based on their relative prominence then their
+     * Comparator for registers, based on their relative prominence then their
      * lexagraphical ordering.
      */
     private final Comparator<Register> regComp = (Register r1, Register r2) -> {
@@ -226,6 +221,22 @@ public class FXMLDocumentController implements Initializable {
         SortedList<Register> regSortedList = registerTableList.sorted(regComp);
         promRegTable.setItems(regSortedList);
 
+        promRegTable.setRowFactory(tableView -> {
+            final TableRow<Register> row = new TableRow<>();
+
+            row.hoverProperty().addListener((observable) -> {
+                final Register reg = row.getItem();
+
+                if (row.isHover() && reg != null) {
+                    Tooltip t = new Tooltip(reg.getSubValue(8) + "\n" + reg.getSubValue(4) 
+                            + "\n" + reg.getSubValue(2) + "\n" + reg.getSubValue(1));
+                    row.setTooltip(t);
+                }
+            });
+
+            return row;
+        });
+        
         listViewTabPane.getTabs().remove(firstTab);
         createTab("New File", regHistory, instrList, parser, null);
 

@@ -25,12 +25,14 @@ public class Register {
      */
     private int prominence;
     private SimpleIntegerProperty origin;
+    private String fullValue;
     
-    public Register (String name, String value, int prom, int origin) {
+    public Register (String name, String value, int prom, int origin, String fullVal) {
         this.name = new SimpleStringProperty(name);
         this.value = new SimpleStringProperty(value);
         this.prominence = prom;
         this.origin = new SimpleIntegerProperty(origin);
+        this.fullValue = fullVal;
     }
     
     // Getters and setters
@@ -60,6 +62,10 @@ public class Register {
     
     public void setOrigin(int ori){
         origin.set(ori);
+    }
+    
+    public String getSubValue(int numBytes){ 
+        return "0x" + fullValue.substring((8 - numBytes) * 2);
     }
 }
 

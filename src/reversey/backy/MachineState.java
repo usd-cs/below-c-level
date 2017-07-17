@@ -474,11 +474,27 @@ public class MachineState {
             BigInteger b = new BigInteger(entry.getValue().getValue());
             byte[] ba = b.toByteArray();
             String s = "0x";
+            String fullS = "";
+            for(int i = 0; i < 8 - ba.length; i++){
+                if(b.signum() == -1){
+                    fullS += "ff";
+                } else {
+                    fullS += "00";
+                }
+            } 
+            if (ba.length != 8){
+                if(b.signum() == -1){
+                    s += "f...";
+                } else {
+                    s += "0...";
+                }
+            }
             for (byte i : ba) {
                 s += String.format("%02x", i);
+                fullS += String.format("%02x", i);
             }
             int regHist = regHistory.lastIndexOf(entry.getKey());
-            arr.add(new Register(entry.getKey(), s, regHist, entry.getValue().getOrigin()));
+            arr.add(new Register(entry.getKey(), s, regHist, entry.getValue().getOrigin(), fullS));
         }
         return arr;
     }
