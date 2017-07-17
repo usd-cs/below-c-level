@@ -106,7 +106,22 @@ public class x86BinaryInstruction extends x86Instruction {
         result = truncate(result);
 
         setSignAndZeroFlags(result, flags);
-        flags.put("cf", false); // FIXME: implement
+        
+        // If src1 and src2 are both negative, their msbs will both be 1, which
+        // will always generate a carry out.
+        if (src1.signum() == -1 && src2.signum() == -1)
+            flags.put("cf", true);
+        
+        // If one src is negative and the other is non-negative, we can look
+        // at the sign of the result to determine whether there is a carry out
+        // or not.
+        else if ((src1.signum() == -1 || src2.signum() == -1)
+                && src1.signum() != src2.signum()
+                && result.signum() != -1)
+            flags.put("cf", true);
+        else
+            flags.put("cf", false);
+        
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
