@@ -124,20 +124,66 @@ public class x86BinaryInstruction extends x86Instruction {
         
         return dest.updateState(state, Optional.of(result), flags, true);
     }
-
-    public MachineState sub(MachineState state, Operand src, Operand dest) {
+    
+    /**
+     * Calculates the value for the carry flag (CF) of the operation a - b.
+     * 
+     * @param a Value being subtracted from.
+     * @param b The value to subtract.
+     * 
+     * @return true if a-b causes CF to be set, false otherwise. 
+     */
+    private boolean calculateCarryForSub(BigInteger a, BigInteger b) {
+        // cf set when both numbers have the same sign and a is less than
+        // b (i.e. subtracing larger value from smaller value)
+        if (((a.signum() >= 0 && b.signum() >= 0)
+                || (a.signum() == -1 && b.signum() == -1))
+              && a.compareTo(b) == -1) {
+            return true;
+        }
+        
+        // also possible to get a cf when b is negative (i.e. has msb of 1)
+        // while a is non-negative (i.e. msb is 0)
+        else if (a.signum() >= 0 && b.signum() == -1)
+            return true;
+        else
+            return false;
+    }
+    
+    /**
+     * Perform dest - src, storing the result back in dest only when specified.
+     * 
+     * @param state The state in which to work.
+     * @param src The value being subtracted.
+     * @param dest The value being subtracted from.
+     * @param updateDest Whether to update the destination with the result.
+     * @return The same state as was passed in, but with an incremented rip and,
+     * if specified, the destination updated with the value of (dest-src).
+     */
+    public MachineState subtract(MachineState state, Operand src, Operand dest, 
+                                    boolean updateDest) {
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.subtract(src2);
+        result = truncate(result);
 
         Map<String, Boolean> flags = new HashMap<>();
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
-
-        result = truncate(result);
-
+        flags.put("cf", calculateCarryForSub(src1, src2));
         setSignAndZeroFlags(result, flags);
-        flags.put("cf", false); // FIXME: implement
-        return dest.updateState(state, Optional.of(result), flags, true);
+        
+        if (updateDest)
+            return dest.updateState(state, Optional.of(result), flags, true);
+        else
+            return dest.updateState(state, Optional.empty(), flags, true);
+    }
+
+    public MachineState sub(MachineState state, Operand src, Operand dest) {
+        return subtract(state, src, dest, true);
+    }
+ 
+    public MachineState cmp(MachineState state, Operand src, Operand dest) {
+        return subtract(state, src, dest, false);
     }
     
     public MachineState imul(MachineState state, Operand src, Operand dest) {
@@ -153,21 +199,6 @@ public class x86BinaryInstruction extends x86Instruction {
 
         setSignAndZeroFlags(result, flags);
         return dest.updateState(state, Optional.of(result), flags, true);
-    }
-
-    public MachineState cmp(MachineState state, Operand src, Operand dest) {
-        BigInteger src1 = dest.getValue(state);
-        BigInteger src2 = src.getValue(state);
-        BigInteger result = src1.subtract(src2);
-
-        Map<String, Boolean> flags = new HashMap<>();
-        flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
-
-        result = truncate(result);
-
-        setSignAndZeroFlags(result, flags);
-        flags.put("cf", false); // FIXME: implement
-        return dest.updateState(state, Optional.empty(), flags, true);
     }
 
     /**
