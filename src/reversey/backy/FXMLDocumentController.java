@@ -734,7 +734,7 @@ public class FXMLDocumentController implements Initializable {
                         }
 
                         instrText.clear();
-
+                        restartSim(null);
                         // Out of editing mode so go back to default behavior
                         // for entering an instruction.
                         instrText.setOnKeyPressed(this::parseAndAddInstruction);
