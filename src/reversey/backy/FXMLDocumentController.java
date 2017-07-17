@@ -709,6 +709,10 @@ public class FXMLDocumentController implements Initializable {
             instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
                 if (keyEvent.getCode() == KeyCode.ENTER) {
                     String text = instrText.getText();
+                    if(cell.getItem() instanceof x86Label){
+                        x86Label l = (x86Label) cell.getItem();
+                        parser.removeLabel(l.getName());
+                    }
                     try {
                         x86ProgramLine x = parser.parseLine(text);
                         instrText.setStyle("-fx-control-inner-background: white;");

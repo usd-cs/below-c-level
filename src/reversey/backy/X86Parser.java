@@ -419,7 +419,6 @@ public class X86Parser {
             // Make sure this label doesn't already exist
             if (labels.containsKey(labelName)) {
                 System.out.println("Duplicate label: " + labelName);
-                System.exit(1);
                 throw new X86ParsingException("Duplicate label name",
                         labelMatcher.start("label"),
                         labelMatcher.end("label"));
@@ -445,5 +444,9 @@ public class X86Parser {
     
     public void setCurrLineNum(int l) {
         if (l >= 0) currLineNum = l;
+    }
+    
+    public void removeLabel(String labelName){
+        labels.remove(labelName);
     }
 }
