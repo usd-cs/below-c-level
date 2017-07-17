@@ -71,8 +71,6 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private MenuItem restartMenuItem;
     @FXML
-    private MenuItem clearProgramMenuItem;
-    @FXML
     private MenuItem aboutMenuItem;
     @FXML
     private MenuItem undoMenuItem;
@@ -255,8 +253,6 @@ public class FXMLDocumentController implements Initializable {
         skipToStart.setOnAction(this::restartSim);
         restartMenuItem.setOnAction(this::restartSim);
 
-        clearProgramMenuItem.setOnAction(this::clearProgram);
-
         /**
          * Event handler for when user clicks button to insert a new
          * instruction.
@@ -267,8 +263,6 @@ public class FXMLDocumentController implements Initializable {
         exitMenuItem.setOnAction((event) -> System.exit(0));
         loadMenuItem.setOnAction(this::loadFile);
         saveAsMenuItem.setOnAction(this::saveFileAs);
-        undoMenuItem.setOnAction(this::undoPrevious);
-        redoMenuItem.setOnAction(this::redoPrevious);
 
         newMenuItem.setOnAction((event) -> {
             createTab("New File", new ArrayList<>(), new ListView<>(), new X86Parser(), null);
@@ -553,41 +547,6 @@ public class FXMLDocumentController implements Initializable {
                 //TODO: ?
                 System.out.println("Unable to save to file.");
             }
-        }
-    }
-
-    private void undoPrevious(Event event) {
-        this.stateHistory.remove((this.stateHistory.size() - 1));
-        regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-
-        instrList.getSelectionModel().selectPrevious();
-
-        registerTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory));
-        stackTableList.setAll(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-    }
-
-    private void redoPrevious(Event event) {
-
-    }
-
-    /**
-     * Clears current simulation with pop-up window.
-     *
-     * @param event The event that triggered this action.
-     */
-    private void clearProgram(ActionEvent event) {
-        Alert clearProgramPopUp = new Alert(AlertType.CONFIRMATION);
-        clearProgramPopUp.setTitle("Clear Program Confirmation");
-        clearProgramPopUp.setHeaderText("Clearing program will remove all instructions");
-        clearProgramPopUp.setContentText("Do you want to continue?");
-        Label img = new Label();
-        img.getStyleClass().addAll("alert", "warning", "dialog-pane");
-        clearProgramPopUp.setGraphic(img);
-        Optional<ButtonType> result = clearProgramPopUp.showAndWait();
-        if (result.get() == ButtonType.OK) {
-            clearSim();
-        } else {
-            // user chose CANCEL or closed the dialog
         }
     }
 
