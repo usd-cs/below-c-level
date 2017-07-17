@@ -95,6 +95,15 @@ public class x86BinaryInstruction extends x86Instruction {
         }
     }
 
+    /**
+     * Perform the operation dest += src.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to add to {@code dest}.
+     * @param dest The operand that will be added to and then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest-src)}.
+     */
     public MachineState add(MachineState state, Operand src, Operand dest) {
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
@@ -131,7 +140,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @param a Value being subtracted from.
      * @param b The value to subtract.
      * 
-     * @return true if a-b causes CF to be set, false otherwise. 
+     * @return {@code true} if a-b causes CF to be set, {@code false} otherwise. 
      */
     private boolean calculateCarryForSub(BigInteger a, BigInteger b) {
         // cf set when both numbers have the same sign and a is less than
@@ -157,8 +166,8 @@ public class x86BinaryInstruction extends x86Instruction {
      * @param src The value being subtracted.
      * @param dest The value being subtracted from.
      * @param updateDest Whether to update the destination with the result.
-     * @return The same state as was passed in, but with an incremented rip and,
-     * if specified, the destination updated with the value of (dest-src).
+     * @return A clone of {@code state}, but with an incremented rip and,
+     * if specified, the destination updated with the value of {@code (dest-src)}.
      */
     public MachineState subtract(MachineState state, Operand src, Operand dest, 
                                     boolean updateDest) {
@@ -178,14 +187,41 @@ public class x86BinaryInstruction extends x86Instruction {
             return dest.updateState(state, Optional.empty(), flags, true);
     }
 
+    /**
+     * Perform the operation dest -= src.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to subtract from {@code dest}.
+     * @param dest The operand that will be subtracted from then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest-src)}.
+     */
     public MachineState sub(MachineState state, Operand src, Operand dest) {
         return subtract(state, src, dest, true);
     }
  
+    /**
+     * Perform the operation dest - src, without updating dest.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to subtract from {@code dest}.
+     * @param dest The operand that will be subtracted from.
+     * @return A clone of {@code state}, but with an incremented rip and status
+     * flags set accordingly.
+     */
     public MachineState cmp(MachineState state, Operand src, Operand dest) {
         return subtract(state, src, dest, false);
     }
     
+    /**
+     * Perform the operation dest *= src.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to multiply by.
+     * @param dest The operand that will be multiplied from then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest*src)}.
+     */
     public MachineState imul(MachineState state, Operand src, Operand dest) {
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
@@ -218,30 +254,74 @@ public class x86BinaryInstruction extends x86Instruction {
         return flags;
     }
 
+    /**
+     * Perform the operation dest ^= src.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to xor by.
+     * @param dest The operand that will be xor'ed then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest ^ src)}.
+     */
     public MachineState xor(MachineState state, Operand src, Operand dest) {
         BigInteger result = dest.getValue(state).xor(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation dest |= src.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to or by.
+     * @param dest The operand that will be or'ed then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest | src)}.
+     */
     public MachineState or(MachineState state, Operand src, Operand dest) {
         BigInteger result = dest.getValue(state).or(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation dest &= src.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to and by.
+     * @param dest The operand that will be and'ed then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest & src)}.
+     */
     public MachineState and(MachineState state, Operand src, Operand dest) {
         BigInteger result = dest.getValue(state).and(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation dest & src but without updating dest.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to and by.
+     * @param dest The operand that will be and'ed.
+     * @return A clone of {@code state}, but with an incremented rip.
+     */
     public MachineState test(MachineState state, Operand src, Operand dest) {
         BigInteger result = dest.getValue(state).and(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.empty(), flags, true);
     }
 
+    /**
+     * Perform the operation {@code dest <<= src}.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to shift by.
+     * @param dest The operand that will be shifted left then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest << src)}.
+     */
     public MachineState sal(MachineState state, Operand src, Operand dest) {
         // FIXME: max shift amount should based on size of dest
         int shamt = src.getValue(state).intValue() % 64; // max shift amount is 63
@@ -272,8 +352,18 @@ public class x86BinaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation {@code dest >>= src} (i.e. arithmetic shift right).
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to shift by.
+     * @param dest The operand that will be shifted right then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest >> src)}.
+     */
     public MachineState sar(MachineState state, Operand src, Operand dest) {
-        int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+        // FIXME: max shift amount should based on size of dest
+        int shamt = src.getValue(state).intValue() % 64; // max shift amount is 63
         BigInteger orig = dest.getValue(state);
         BigInteger result = orig.shiftRight(shamt);
 
@@ -300,8 +390,18 @@ public class x86BinaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation {@code dest >>>= src} (i.e. logical shift right).
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to shift by.
+     * @param dest The operand that will be shifted right then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest >> src)}.
+     */
     public MachineState shr(MachineState state, Operand src, Operand dest) {
-        int shamt = src.getValue(state).intValue() % 32; // max shift amount is 31
+        // FIXME: max shift amount should based on size of dest
+        int shamt = src.getValue(state).intValue() % 64; // max shift amount is 63
         BigInteger orig = dest.getValue(state);
 
         // BigInteger doesn't have logical right shift (>>>)
@@ -355,13 +455,33 @@ public class x86BinaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation {@code dest = src}.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to assign to {@code dest}.
+     * @param dest The operand that will be assigned to.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} assigned the value of {@code src}.
+     */
     public MachineState mov(MachineState state, Operand src, Operand dest) {
         return dest.updateState(state, Optional.of(src.getValue(state)), new HashMap<>(), true);
     }
 
+    /**
+     * Perform the operation {@code dest = &src}.
+     * 
+     * @param state The state in which to work.
+     * @param src The memory operand specifying the address to assign to {@code dest}.
+     * @param dest The operand that will be assigned to.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} assigned the value of {@code &src} (i.e. the address pointed
+     * to by {@code src}).
+     */
     public MachineState lea(MachineState state, Operand src, Operand dest) {
         // TODO: Use polymorophism to avoid this instanceof junk
         if (!(src instanceof MemoryOperand)) {
+            // FIXME: parse should catch this!
             System.err.println("ERROR: lea src must be a memory operand");
             return null;
         }
