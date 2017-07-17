@@ -233,7 +233,7 @@ public class MachineState {
      * for the incremented rip register.
      */
     public MachineState cloneWithIncrementedRIP(){
-            Map<String, RegisterState> reg = this.registers;
+            Map<String, RegisterState> reg = new HashMap<>(this.registers);
             BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
             reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
             return new MachineState(reg, this.memory, this.tabList, this.statusFlags);
@@ -248,7 +248,7 @@ public class MachineState {
      * for updated rip register.
      */
     public MachineState cloneWithNewRIP(BigInteger newRIPVal){
-            Map<String, RegisterState> reg = this.registers;
+            Map<String, RegisterState> reg = new HashMap<>(this.registers);
             reg.put("rip", new RegisterState(newRIPVal.toByteArray(), newRIPVal.intValue()));
             return new MachineState(reg, this.memory, this.tabList, this.statusFlags);
     }
