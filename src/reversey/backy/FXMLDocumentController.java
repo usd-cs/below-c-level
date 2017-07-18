@@ -228,8 +228,12 @@ public class FXMLDocumentController implements Initializable {
                 final Register reg = row.getItem();
 
                 if (row.isHover() && reg != null) {
-                    Tooltip t = new Tooltip(reg.getSubValue(8) + "\n" + reg.getSubValue(4) 
-                            + "\n" + reg.getSubValue(2) + "\n" + reg.getSubValue(1));
+                    reg.setSubName(reg.getName());
+                    String s = reg.getName() + ": " + reg.getSubValue(8) + "\n" 
+                            + reg.getLongRegName() + ": " + reg.getSubValue(4) 
+                            + "\n" + reg.getWordRegName() + ": " + reg.getSubValue(2) 
+                            + "\n" + reg.getByteLowRegName() +": " + reg.getSubValue(1);
+                    Tooltip t = new Tooltip(s);
                     row.setTooltip(t);
                 }
             });
