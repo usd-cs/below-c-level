@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.function.Predicate;
 import java.util.Arrays;
 import java.math.BigInteger;
+import java.util.Optional;
 
 /**
  * An abstract class representing an x86-64 instruction.
@@ -27,7 +28,7 @@ public abstract class x86Instruction extends x86ProgramLine {
      * whether that condition is true.
      */
     protected static final Map<String, Predicate<MachineState>> conditions;
-
+    
     static {
         conditions = new HashMap<>();
         conditions.put("e", state -> state.getZeroFlag());

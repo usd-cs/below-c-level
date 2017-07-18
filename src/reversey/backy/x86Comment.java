@@ -5,34 +5,20 @@
  */
 package reversey.backy;
 
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  *
  * @author Caitlin
  */
-public class x86Comment extends x86ProgramLine {
+public class x86Comment {
 
     public final String comment;
 
-    public x86Comment(String c, int lineNum) {
+    public x86Comment(String c) {
         this.comment = c;
-        this.lineNum = lineNum;
-    }
-
-    @Override
-    public MachineState eval(MachineState state) {
-         return state.cloneWithIncrementedRIP();
-    }
-
-    @Override
-    public Set<String> getUsedRegisters() {
-       return new HashSet<>();
     }
     
     @Override
     public String toString() {
-        return lineNum + ": " + comment;
+        return comment;
     }
 }

@@ -7,6 +7,7 @@ package reversey.backy;
 
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Optional;
 
 /**
  * Class representing a line with a label in an x86 program.
@@ -20,9 +21,10 @@ public class x86Label extends x86ProgramLine {
      */
     private final String name;
 
-    public x86Label(String name, int lineNum) {
+    public x86Label(String name, int lineNum, x86Comment c) {
         this.name = name;
         this.lineNum = lineNum;
+        this.comment = Optional.ofNullable(c);
     }
 
     public String getName() {
@@ -31,7 +33,11 @@ public class x86Label extends x86ProgramLine {
 
     @Override
     public String toString() {
-        return lineNum + ": " + name + ": ";
+        String s = lineNum + ": " + name + ": ";
+        if(comment.isPresent()){
+            s += comment.get().toString();
+        }
+        return s;
     }
 
     @Override

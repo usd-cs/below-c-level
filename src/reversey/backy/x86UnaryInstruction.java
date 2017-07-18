@@ -39,11 +39,12 @@ public class x86UnaryInstruction extends x86Instruction {
      * @param size Number of bytes this instruction works on.
      * @param line The line number associated with this instruction.
      */
-    public x86UnaryInstruction(InstructionType instType, Operand destOp, OpSize size, int line) {
+    public x86UnaryInstruction(InstructionType instType, Operand destOp, OpSize size, int line, x86Comment c) {
         this.type = instType;
         this.destination = destOp;
         this.opSize = size;
         this.lineNum = line;
+        this.comment = Optional.ofNullable(c);
 
         switch (instType) {
             case IDIV:
@@ -293,7 +294,11 @@ public class x86UnaryInstruction extends x86Instruction {
     
     @Override
     public String toString() {
-        return lineNum + ": \t" + getInstructionTypeString() + " " + destination.toString();
+        String s = lineNum + ": \t" + getInstructionTypeString() + " " + destination.toString();
+        if(comment.isPresent()){
+            s += comment.get().toString();
+        }
+        return s;
     }
 }
 
