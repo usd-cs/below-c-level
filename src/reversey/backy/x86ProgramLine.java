@@ -5,6 +5,7 @@
  */
 package reversey.backy;
 
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -23,6 +24,11 @@ public abstract class x86ProgramLine {
      * Whether this line has a breakpoint or not.
      */
     protected boolean hasBreakpoint;
+    
+    /**
+     * Optional comment.
+     */
+    protected Optional<x86Comment> comment;
     
     public int getLineNum() {
         return lineNum;

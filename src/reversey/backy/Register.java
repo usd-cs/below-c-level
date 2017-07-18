@@ -1,5 +1,6 @@
 package reversey.backy;
 
+import java.util.regex.Pattern;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 
@@ -24,8 +25,23 @@ public class Register {
      * Larger values mean higher prominence (e.g. more recently used.)
      */
     private int prominence;
+    
+    /**
+     * The line number from which the register last was updated.
+     */
     private SimpleIntegerProperty origin;
+    
+    /**
+     * The full 64 bit value of the register.
+     */
     private String fullValue;
+    
+    /**
+     * 32, 16, and 8-bit register names.
+     */
+    private String longRegName;
+    private String wordRegName;
+    private String byteLowRegName;
     
     public Register (String name, String value, int prom, int origin, String fullVal) {
         this.name = new SimpleStringProperty(name);
@@ -38,6 +54,18 @@ public class Register {
     // Getters and setters
     public String getName(){
         return name.get();
+    }
+    
+    public String getLongRegName(){
+        return longRegName;
+    }
+    
+    public String getWordRegName(){
+        return wordRegName;
+    }
+    
+    public String getByteLowRegName(){
+        return byteLowRegName;
     }
     
     public void setName(String s){
@@ -66,6 +94,47 @@ public class Register {
     
     public String getSubValue(int numBytes){ 
         return "0x" + fullValue.substring((8 - numBytes) * 2);
+    }
+    
+    /**
+     * Sets the 32, 16, and 8-bit register names based on given 64-bit register
+     * @param name 
+     */
+    public void setSubName(String name) {
+        switch (name) {
+            case "rax":
+            case "rbx":
+            case "rcx":
+            case "rdx":
+                longRegName = "eZ".replace("Z", name.subSequence(1, 3));
+                wordRegName = "Zx".replace("Z", name.subSequence(1, 2));
+                byteLowRegName = "Zl".replace("Z", name.subSequence(1, 2));
+                break;
+            case "rsi":
+            case "rdi":
+                longRegName = "eZ".replace("Z", name.subSequence(1, 3));
+                wordRegName = "Zi".replace("Z", name.subSequence(1, 2));
+                byteLowRegName = "Zil".replace("Z", name.subSequence(1, 2));
+                break;
+            case "rbp":
+            case "rsp":
+                longRegName = "eZ".replace("Z", name.subSequence(1, 3));
+                wordRegName = "Zp".replace("Z", name.subSequence(1, 2));
+                byteLowRegName = "Zpl".replace("Z", name.subSequence(1, 2));
+                break;
+            case "r8":
+            case "r9":
+            case "r10":
+            case "r11":
+            case "r12":
+            case "r13":
+            case "r14":
+            case "r15":
+                longRegName = "rXd".replace("X", name.substring(1));
+                wordRegName = "rXw".replace("X", name.substring(1));
+                byteLowRegName = "rXb".replace("X", name.substring(1));
+                break; 
+        }
     }
 }
 

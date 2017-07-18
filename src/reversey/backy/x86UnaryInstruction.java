@@ -39,11 +39,12 @@ public class x86UnaryInstruction extends x86Instruction {
      * @param size Number of bytes this instruction works on.
      * @param line The line number associated with this instruction.
      */
-    public x86UnaryInstruction(InstructionType instType, Operand destOp, OpSize size, int line) {
+    public x86UnaryInstruction(InstructionType instType, Operand destOp, OpSize size, int line, x86Comment c) {
         this.type = instType;
         this.destination = destOp;
         this.opSize = size;
         this.lineNum = line;
+        this.comment = Optional.ofNullable(c);
 
         switch (instType) {
             case IDIV:
@@ -252,7 +253,8 @@ public class x86UnaryInstruction extends x86Instruction {
         RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
         MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
         
-        BigInteger returnAddr = tmp.getRipRegister().add(BigInteger.ONE);
+        int rA = tmp.getRipRegister() + 1;
+        BigInteger returnAddr = new BigInteger("" + rA);
 
         // step 2: store return address in (%rsp)
         MemoryOperand rspMemOperand = new MemoryOperand("rsp", null, 1, 0, this.opSize);
@@ -293,7 +295,11 @@ public class x86UnaryInstruction extends x86Instruction {
     
     @Override
     public String toString() {
-        return lineNum + ": \t" + getInstructionTypeString() + " " + destination.toString();
+        String s = lineNum + ": \t" + getInstructionTypeString() + " " + destination.toString();
+        if(comment.isPresent()){
+            s += comment.get().toString();
+        }
+        return s;
     }
 }
 

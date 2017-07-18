@@ -24,7 +24,7 @@
 
 <BorderPane fx:id="entirePane" minWidth="500.0" prefHeight="486.0" prefWidth="753.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="reversey.backy.FXMLDocumentController">
    <left>
-      <VBox BorderPane.alignment="CENTER">
+      <VBox maxWidth="450.0" BorderPane.alignment="CENTER">
          <children>
             <HBox prefHeight="75.0" prefWidth="353.0">
                <children>

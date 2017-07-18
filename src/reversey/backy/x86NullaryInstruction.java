@@ -34,10 +34,11 @@ public class x86NullaryInstruction extends x86Instruction {
      * @param size Number of bytes this instruction works on.
      * @param line The line number associated with this instruction.
      */
-    public x86NullaryInstruction(InstructionType instType, OpSize size, int line) {
+    public x86NullaryInstruction(InstructionType instType, OpSize size, int line, x86Comment c) {
         this.type = instType;
         this.opSize = size;
         this.lineNum = line;
+        this.comment = Optional.ofNullable(c);
 
         switch (instType) {
             case RET:
@@ -53,7 +54,7 @@ public class x86NullaryInstruction extends x86Instruction {
         
         // step 1: store (%rsp) value in rip register 
         MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-        MachineState tmp = state.cloneWithNewRIP(src.getValue(state));
+        MachineState tmp = state.cloneWithNewRIP(src.getValue(state).intValue());
 
         // step 2: add 8 to rsp
         RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
@@ -65,7 +66,11 @@ public class x86NullaryInstruction extends x86Instruction {
     
     @Override
     public String toString() {
-        return lineNum + ": \t" + getInstructionTypeString();
+        String s = lineNum + ": \t" + getInstructionTypeString();
+        if(comment.isPresent()){
+            s += comment.get().toString();
+        }
+        return s;
     }
 
     @Override

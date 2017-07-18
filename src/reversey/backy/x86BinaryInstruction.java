@@ -39,12 +39,13 @@ public class x86BinaryInstruction extends x86Instruction {
      * @param size Number of bytes this instruction works on.
      * @param line The line number associated with this instruction.
      */
-    public x86BinaryInstruction(InstructionType instType, Operand srcOp, Operand destOp, OpSize size, int line) {
+    public x86BinaryInstruction(InstructionType instType, Operand srcOp, Operand destOp, OpSize size, int line, x86Comment c) {
         this.type = instType;
         this.source = srcOp;
         this.destination = destOp;
         this.opSize = size;
         this.lineNum = line;
+        this.comment = Optional.ofNullable(c);
         
         switch (instType) {
             case ADD:
@@ -547,7 +548,11 @@ public class x86BinaryInstruction extends x86Instruction {
                     + source.getOpSize().getAbbreviation() 
                     + instrTypeStr.charAt(instrTypeStr.length()-1);
         }
-        
-        return lineNum + ": \t" + instrTypeStr + " " + source.toString() + ", " + destination.toString();
+
+        String s = lineNum + ": \t" + instrTypeStr + " " + source.toString() + ", " + destination.toString();
+        if(comment.isPresent()){
+            s += comment.get().toString();
+        }
+        return s;
     }
 }

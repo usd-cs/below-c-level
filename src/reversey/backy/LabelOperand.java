@@ -51,7 +51,7 @@ public class LabelOperand extends Operand {
     @Override
     public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
         if (val.isPresent()) {
-            return currState.cloneWithNewRIP(val.get());
+            return currState.cloneWithNewRIP(val.get().intValue());
         } else {
             return currState.cloneWithIncrementedRIP();
         }

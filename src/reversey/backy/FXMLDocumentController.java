@@ -228,8 +228,12 @@ public class FXMLDocumentController implements Initializable {
                 final Register reg = row.getItem();
 
                 if (row.isHover() && reg != null) {
-                    Tooltip t = new Tooltip(reg.getSubValue(8) + "\n" + reg.getSubValue(4) 
-                            + "\n" + reg.getSubValue(2) + "\n" + reg.getSubValue(1));
+                    reg.setSubName(reg.getName());
+                    String s = reg.getName() + ": " + reg.getSubValue(8) + "\n" 
+                            + reg.getLongRegName() + ": " + reg.getSubValue(4) 
+                            + "\n" + reg.getWordRegName() + ": " + reg.getSubValue(2) 
+                            + "\n" + reg.getByteLowRegName() +": " + reg.getSubValue(1);
+                    Tooltip t = new Tooltip(s);
                     row.setTooltip(t);
                 }
             });
@@ -334,7 +338,7 @@ public class FXMLDocumentController implements Initializable {
         stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(stateHistory.get(stateHistory.size() - 1)));
 
         // select next instruction based on the updated value of the rip register
-        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister().intValue());
+        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
         regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
     }
 
@@ -375,7 +379,7 @@ public class FXMLDocumentController implements Initializable {
     private void stepBackward(Event event) {
         stateHistory.remove(stateHistory.size() - 1);
         regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister().intValue());
+        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
         updateStateDisplays();
     }
 

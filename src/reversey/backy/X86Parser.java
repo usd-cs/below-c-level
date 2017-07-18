@@ -378,9 +378,23 @@ public class X86Parser {
      * @throws X86ParsingException There was a problem parsing the line.
      */
     public x86ProgramLine parseLine(String instr) throws X86ParsingException {
+        Matcher commentMatcher = Pattern.compile("(?<other>.*)(?<comment>#.*)").matcher(instr);
+        
+        x86Comment c = null;
+        if (commentMatcher.matches()){
+            // This line contains a comment
+            String comment = commentMatcher.group("comment");
+            c = new x86Comment(comment);
+            instr = commentMatcher.group("other");
+        }
+        
+        if(instr.matches("\\s*")){
+            return new x86BlankLine(currLineNum++, c);
+        }
+        
         Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
         Matcher labelMatcher = Pattern.compile("\\s*(?<label>\\w+):\\s*").matcher(instr);
-
+        
         // The line should be either a label or an instruction
         if (!instMatcher.matches() && !labelMatcher.matches()) {
             throw new X86ParsingException("nonsense input", 0, instr.length());
@@ -441,14 +455,16 @@ public class X86Parser {
                             operands.get(0),
                             operands.get(1),
                             instrSize,
-                            currLineNum++);
+                            currLineNum++,
+                            c);
                 } else if (instrType.numOperands() == 1) {
                     // TODO: throw exception if destination is a constant (or a
                     // label for non-jump instructions)
                     x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
                             operands.get(0),
                             instrSize,
-                            currLineNum++);
+                            currLineNum++,
+                            c);
 
                     if (operands.get(0) instanceof LabelOperand) {
                         LabelOperand lo = (LabelOperand) operands.get(0);
@@ -468,7 +484,8 @@ public class X86Parser {
                 // nullary skullduggery
                 return new x86NullaryInstruction(instrType,
                         instrSize,
-                        currLineNum++);
+                        currLineNum++,
+                        c);
             }
         } else {
             // This line contains a label
@@ -482,7 +499,7 @@ public class X86Parser {
                         labelMatcher.end("label"));
             }
 
-            x86Label l = new x86Label(labelName, currLineNum++);
+            x86Label l = new x86Label(labelName, currLineNum++, c);
             labels.put(labelName, l);
             if (labelUsers.containsKey(labelName)) {
                 labelUsers.get(labelName).forEach((inst) -> {
@@ -490,7 +507,7 @@ public class X86Parser {
                 });
             }
             return l;
-        }
+        } 
         // TODO: allow lines that contain both a label and an instruction?
     }
 
