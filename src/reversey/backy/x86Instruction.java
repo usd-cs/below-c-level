@@ -85,20 +85,7 @@ public abstract class x86Instruction extends x86ProgramLine {
         String s = this.type.name().toLowerCase();
         if (!this.type.name().startsWith("SET")
                 && !this.type.name().startsWith("J")) {
-            switch (this.opSize) {
-                case QUAD:
-                    s += "q";
-                    break;
-                case LONG:
-                    s += "l";
-                    break;
-                case WORD:
-                    s += "w";
-                    break;
-                default:
-                    s += "b";
-                    break;
-            }
+            s += this.opSize.getAbbreviation();
         }
 
         return s;

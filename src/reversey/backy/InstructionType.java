@@ -18,6 +18,8 @@ public enum InstructionType {
     SRL(2),
     SAR(2),
     MOV(2),
+    MOVZ(2),
+    MOVS(2),
     LEA(2),
     IDIV(1),
     INC(1),

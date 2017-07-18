@@ -84,7 +84,11 @@ public class x86BinaryInstruction extends x86Instruction {
                 this.operation = this::shr;
                 break;
             case MOV:
+            case MOVS:
                 this.operation = this::mov;
+                break;
+           case MOVZ:
+                this.operation = this::movz;
                 break;
             case LEA:
                 this.operation = this::lea;
@@ -466,6 +470,27 @@ public class x86BinaryInstruction extends x86Instruction {
     public MachineState mov(MachineState state, Operand src, Operand dest) {
         return dest.updateState(state, Optional.of(src.getValue(state)), new HashMap<>(), true);
     }
+    
+    /**
+     * Perform the operation {@code dest = src}, performing zero extension to
+     * fill in the size difference between src and dest.
+     * 
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to assign to {@code dest}.
+     * @param dest The operand that will be assigned to.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} assigned the value of {@code src}.
+     */
+    public MachineState movz(MachineState state, Operand src, Operand dest) {
+        BigInteger orig = src.getValue(state);
+        // FIXME: constants are wrong!
+        byte[] extendedOrig = MachineState.getExtendedByteArray(orig, 
+                                                src.getOpSize().numBytes(), 
+                                                dest.getOpSize().numBytes(), 
+                                                true);
+        BigInteger extended = new BigInteger(extendedOrig);
+        return dest.updateState(state, Optional.of(extended), new HashMap<>(), true);
+    }
 
     /**
      * Perform the operation {@code dest = &src}.
@@ -511,6 +536,18 @@ public class x86BinaryInstruction extends x86Instruction {
     
     @Override
     public String toString() {
-        return lineNum + ": \t" + getInstructionTypeString() + " " + source.toString() + ", " + destination.toString();
+        String instrTypeStr = getInstructionTypeString();
+        
+        // MOVS and MOVZ have two size suffices: instrTypeStr will already have 
+        // the second suffix (i.e. the destination size suffix) but we'll have
+        // to insert the other (i.e. source size suffix).
+        if (this.type == InstructionType.MOVS 
+                || this.type == InstructionType.MOVZ) {
+            instrTypeStr = instrTypeStr.substring(0, instrTypeStr.length()-1) 
+                    + source.getOpSize().getAbbreviation() 
+                    + instrTypeStr.charAt(instrTypeStr.length()-1);
+        }
+        
+        return lineNum + ": \t" + instrTypeStr + " " + source.toString() + ", " + destination.toString();
     }
 }

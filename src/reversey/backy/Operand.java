@@ -11,6 +11,18 @@ import java.util.Set;
  * @author Sat Garcia (sat@sandiego.edu)
  */
 public abstract class Operand {
+    
+   /**
+     * The size of the operand.
+     */
+    protected final OpSize opSize;
+    
+    public Operand(OpSize size) {
+        this.opSize = size;
+    }
+    
+    public OpSize getOpSize() { return this.opSize; }
+
 
     /**
      * @param state The state of the machine.

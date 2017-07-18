@@ -44,6 +44,23 @@ public class X86Parser {
         labels = new HashMap<>();
         labelUsers = new HashMap<>();
     }
+    
+    /**
+     * Class to represent information about the instruction being parsed,
+     * including it's type, size, and operand requirements.
+     */
+    private class TypeAndOpRequirements {
+        public final InstructionType type;
+        public final OpSize instrSize;
+        public final List<OperandRequirements> operandReqs;
+        
+        public TypeAndOpRequirements(InstructionType type, OpSize instrSize, List<OperandRequirements> opReqs) {
+            this.type = type;
+            this.instrSize = instrSize;
+            this.operandReqs = opReqs;
+        }
+    }
+    
     /**
      * Checks that instruction is a valid, supported x86 instruction.
      *
@@ -53,9 +70,10 @@ public class X86Parser {
      * @throws X86ParsingException If it is not a valid instruction or if the
      * size suffix is invalid.
      */
-    public Pair<InstructionType, OpSize> parseTypeAndSize(String instrName) throws X86ParsingException {
+    private TypeAndOpRequirements parseTypeAndSize(String instrName) throws X86ParsingException {
         InstructionType type;
         OpSize size;
+        List<OpSize> opSizes = new ArrayList<>();
 
         /* 
          * "sized" instructions are those that have an instruction name (e.g.
@@ -64,6 +82,13 @@ public class X86Parser {
          */
         String validSizedInstrNames = "(?<name>add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret)(?<size>b|w|l|q)";
         Matcher sizedInstrMatcher = Pattern.compile(validSizedInstrNames).matcher(instrName);
+        
+        /*
+         * "two sizes" instructions are those that have an instruction name followed
+         * by two characters that indicate the size of two operands (e.g. "bl")
+         */
+        String validTwoSizedInstrNames = "(?<name>movz|movs)(b[wlq]|w[lq])";
+        Matcher twoSizedInstrMatcher = Pattern.compile(validTwoSizedInstrNames).matcher(instrName);
 
         /*
          * "conditional" instructions are those whose operations are determined
@@ -85,25 +110,26 @@ public class X86Parser {
                         sizedInstrMatcher.start("size"),
                         instrName.length());
             }
-
-            switch (sizedInstrMatcher.group("size")) {
-                case "b":
-                    size = OpSize.BYTE;
-                    break;
-                case "w":
-                    size = OpSize.WORD;
-                    break;
-                case "l":
-                    size = OpSize.LONG;
-                    break;
-                case "q":
-                    size = OpSize.QUAD;
-                    break;
-                default:
-                    throw new X86ParsingException("unexpected size suffix",
+            
+            try {
+                size = OpSize.getOpSizeFromAbbrev(sizedInstrMatcher.group("size"));
+            } catch (X86ParsingException e) {
+                throw new X86ParsingException("unexpected size suffix",
                             sizedInstrMatcher.start("size"),
                             instrName.length());
             }
+            
+            opSizes.add(size);
+            
+        } else if (twoSizedInstrMatcher.matches()) {
+            type = InstructionType.valueOf(twoSizedInstrMatcher.group("name").toUpperCase());
+            String suffix1 = twoSizedInstrMatcher.group(2).substring(0,1);
+            String suffix2 = twoSizedInstrMatcher.group(2).substring(1);
+            
+            opSizes.add(OpSize.getOpSizeFromAbbrev(suffix1));
+            size = OpSize.getOpSizeFromAbbrev(suffix2);
+            opSizes.add(size);
+            
         } else if (condInstrMatcher.matches()) {
             // The SET instruction is implicitly BYTE sized.
             // The JUMP instructions don't really have a size so BYTE is
@@ -113,8 +139,9 @@ public class X86Parser {
         } else {
             throw new X86ParsingException("invalid/unsupported instruction", 0, instrName.length());
         }
-
-        return new Pair<>(type, size);
+        
+        List<OperandRequirements> opReqs = getOperandReqs(type, opSizes);
+        return new TypeAndOpRequirements(type, size, opReqs);
     }
 
     /**
@@ -151,7 +178,7 @@ public class X86Parser {
      * @return The parsed operand.
      * @throws X86ParsingException There was an error parsing the string.
      */
-    public Operand parseOperand(String str, OpSize instrOpSize) throws X86ParsingException {
+    public Operand parseOperand(String str, OperandRequirements opReqs) throws X86ParsingException {
         Operand op = null;
 
         Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
@@ -161,9 +188,22 @@ public class X86Parser {
 
         if (constMatcher.matches()) {
             // Found a constant operand
-            op = new ConstantOperand(Integer.parseInt(constMatcher.group("const"))); // TODO: handle hex
+            if (!opReqs.canBeConst())
+                throw new X86ParsingException("operand cannot be a constant", 
+                                                constMatcher.start(),
+                                                constMatcher.end());
+            
+            // TODO: make sure constant fits in the size of the constant
+            
+            op = new ConstantOperand(Integer.parseInt(constMatcher.group("const")), 
+                                        opReqs.getSize()); // TODO: handle hex
         } else if (regMatcher.matches()) {
             // Found a register operand
+            if (!opReqs.canBeReg())
+                throw new X86ParsingException("operand cannot be a register", 
+                                                regMatcher.start(), 
+                                                regMatcher.end());
+            
             String regName = regMatcher.group("regName");
 
             OpSize opSize = null;
@@ -178,13 +218,19 @@ public class X86Parser {
             // Make sure the size of this register doesn't conflict with the
             // size the instruction uses/wants.
             // TODO: move this check to a "validation" method
-            if (opSize != instrOpSize) {
-                throw new X86ParsingException("op size mismatch", regMatcher.start("regName"), regMatcher.end("regName"));
+            if (opSize != opReqs.getSize()) {
+                throw new X86ParsingException("op size mismatch", 
+                                                regMatcher.start("regName"), 
+                                                regMatcher.end("regName"));
             }
 
             op = new RegOperand(regName, opSize);
         } else if (memMatcher.matches()) {
             // Found a memory operand
+            if (!opReqs.canBeMem())
+                throw new X86ParsingException("operand cannot be a memory location", 
+                                                memMatcher.start(), 
+                                                memMatcher.end());
 
             // All components (e.g. offset or base reg) are optional, although
             // at least one of them must be set.
@@ -246,9 +292,14 @@ public class X86Parser {
                 }
             }
 
-            op = new MemoryOperand(baseReg, indexReg, scale, offset, instrOpSize);
+            op = new MemoryOperand(baseReg, indexReg, scale, offset, opReqs.getSize());
         } else if (labelMatcher.matches()) {
             // Found a label operand
+             if (!opReqs.canBeLabel())
+                throw new X86ParsingException("operand cannot be a label", 
+                                                labelMatcher.start(), 
+                                                labelMatcher.end());
+            
             String labelName = labelMatcher.group("label");
             op = new LabelOperand(labelName, labels.get(labelName));
             // TODO: Instruction validation - allow instructions with labels that have not been created yet
@@ -271,7 +322,7 @@ public class X86Parser {
      * @return The list of operands that were parsed.
      * @throws X86ParsingException There was a problem parsing the operands.
      */
-    public List<Operand> parseOperands(String operandsStr, OpSize opSize) throws X86ParsingException {
+    public List<Operand> parseOperands(String operandsStr, List<OperandRequirements> opReqs) throws X86ParsingException {
         List<Operand> operands = new ArrayList<>();
 
         Matcher m = Pattern.compile(operandRegEx).matcher(operandsStr);
@@ -280,13 +331,15 @@ public class X86Parser {
         }
 
         int nextIndex = -1;
+        int opIndex = 0;
         try {
             // Parse the first operand
             String opStr = m.group("operand");
-            Operand op = parseOperand(opStr, opSize);
+            Operand op = parseOperand(opStr, opReqs.get(opIndex));
             nextIndex = m.end();
 
             operands.add(op);
+            opIndex++;
 
             // Update pattern to include the comma separator for the following
             // operands
@@ -294,10 +347,14 @@ public class X86Parser {
 
             // Keep parsing operands until we don't find any more
             while (m.find(nextIndex)) {
+                if (opIndex >= opReqs.size()) {
+                    throw new X86ParsingException("unexpected operand", m.start("operand"), m.end("operand"));
+                }
                 opStr = m.group("operand");
-                op = parseOperand(opStr, opSize);
+                op = parseOperand(opStr, opReqs.get(opIndex));
                 nextIndex = m.end();
                 operands.add(op);
+                opIndex++;
             }
         } catch (X86ParsingException e) {
             throw new X86ParsingException(e.getMessage(),
@@ -337,7 +394,7 @@ public class X86Parser {
             // instruction.
             String instrName = instMatcher.group("inst");
 
-            Pair<InstructionType, OpSize> instDetails = null;
+            TypeAndOpRequirements instDetails = null;
             try {
                 instDetails = parseTypeAndSize(instrName);
             } catch (X86ParsingException e) {
@@ -346,8 +403,9 @@ public class X86Parser {
                         instMatcher.start("inst") + e.getEndIndex());
             }
 
-            InstructionType instrType = instDetails.getKey();
-            OpSize opSize = instDetails.getValue();
+            InstructionType instrType = instDetails.type;
+            OpSize instrSize = instDetails.instrSize;
+            List<OperandRequirements> opReqs = instDetails.operandReqs;
 
             // Step 2: Parse the operands (putting them into a list) then use
             // those operands plus the instruction type to create a new
@@ -357,7 +415,7 @@ public class X86Parser {
 
                 List<Operand> operands = null;
                 try {
-                    operands = parseOperands(operandsStr, opSize);
+                    operands = parseOperands(operandsStr, opReqs);
                 } catch (X86ParsingException e) {
                     throw new X86ParsingException(e.getMessage(),
                             instMatcher.start("operands") + e.getStartIndex(),
@@ -382,14 +440,14 @@ public class X86Parser {
                     return new x86BinaryInstruction(instrType,
                             operands.get(0),
                             operands.get(1),
-                            opSize,
+                            instrSize,
                             currLineNum++);
                 } else if (instrType.numOperands() == 1) {
                     // TODO: throw exception if destination is a constant (or a
                     // label for non-jump instructions)
                     x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
                             operands.get(0),
-                            opSize,
+                            instrSize,
                             currLineNum++);
 
                     if (operands.get(0) instanceof LabelOperand) {
@@ -409,7 +467,7 @@ public class X86Parser {
             } else {
                 // nullary skullduggery
                 return new x86NullaryInstruction(instrType,
-                        opSize,
+                        instrSize,
                         currLineNum++);
             }
         } else {
@@ -449,4 +507,127 @@ public class X86Parser {
     public void removeLabel(String labelName){
         labels.remove(labelName);
     }
+    
+    private static List<OperandRequirements> getOperandReqs(InstructionType type, List<OpSize> sizes) {
+        List<OperandRequirements> opReqs = new ArrayList<>();
+        
+        // TODO: check that length of sizes is equal to number of operands 
+        //  for instruction type
+        
+        switch (type) {
+            case ADD:
+            case SUB:
+            case IMUL:
+            case CMP:
+            case OR:
+            case AND:
+            case TEST:
+            case XOR:
+            case MOV:
+                opReqs.add(new OperandRequirements(sizes.get(0), true, true, true, false));
+                opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
+                break;
+                
+            case MOVZ:
+            case MOVS:
+                opReqs.add(new OperandRequirements(sizes.get(0), true, true, true, false));
+                opReqs.add(new OperandRequirements(sizes.get(1), false, true, true, false));
+                break;
+                
+            case SHL:
+            case SAL:
+            case SHR:
+            case SRL:
+            case SAR:
+                opReqs.add(new OperandRequirements(OpSize.BYTE, true, false, false, false));
+                opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
+                break;
+                
+            case LEA:
+                opReqs.add(new OperandRequirements(OpSize.QUAD, false, false, true, false));
+                opReqs.add(new OperandRequirements(OpSize.QUAD, false, true, false, false));
+                break;
+                
+            case IDIV:
+                opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
+                break;
+
+                
+            case INC:
+            case DEC:
+            case NEG:
+            case NOT:
+                opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
+                break;
+                
+            case PUSH:
+                opReqs.add(new OperandRequirements(OpSize.QUAD, true, true, true, false));
+                break;
+                
+            case POP:
+                opReqs.add(new OperandRequirements(OpSize.QUAD, false, true, true, false));
+                break;
+                
+            case SETE:
+            case SETNE:
+            case SETS:
+            case SETNS:
+            case SETG:
+            case SETGE:
+            case SETL:
+            case SETLE:
+            case SETA:
+            case SETAE:
+            case SETB:
+            case SETBE:
+                opReqs.add(new OperandRequirements(OpSize.BYTE, false, true, true, false));
+                break;
+                
+            case JE:
+            case JNE:
+            case JS:
+            case JNS:
+            case JG:
+            case JGE:
+            case JL:
+            case JLE:
+            case JA:
+            case JAE:
+            case JB:
+            case JBE:
+            case JMP:
+            case CALL:
+                opReqs.add(new OperandRequirements(OpSize.QUAD, false, false, false, true));
+                break;
+                
+            case RET:
+                // ret has no operands
+                break;
+            default:
+        }
+        
+        return opReqs;
+    }
+}
+
+class OperandRequirements {
+    private final OpSize size;
+    private final boolean canBeConst;
+    private final boolean canBeReg;
+    private final boolean canBeMem;
+    private final boolean canBeLabel;
+    
+    public OperandRequirements(OpSize size, boolean con, boolean reg, boolean mem, boolean lab) {
+        this.size = size;
+        this.canBeConst = con;
+        this.canBeReg = reg;
+        this.canBeMem = mem;
+        this.canBeLabel = lab;
+    }
+    
+    public OpSize getSize() { return this.size; }
+    public boolean canBeConst() { return this.canBeConst; }
+    public boolean canBeReg() { return this.canBeReg; }
+    public boolean canBeMem() { return this.canBeMem; }
+    public boolean canBeLabel() { return this.canBeLabel; }
 }

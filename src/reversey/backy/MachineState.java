@@ -253,6 +253,39 @@ public class MachineState {
             return new MachineState(reg, this.memory, this.tabList, this.statusFlags);
     }
     
+    public static byte[] getExtendedByteArray(BigInteger val, int origSize, int extendedSize, boolean zeroFill) {
+        byte[] valArray = val.toByteArray();
+        byte[] newVal = new byte[extendedSize];
+        
+        // TODO: make sure extendedSize isn't less than valArray's extendedSize
+
+        // The value may be small enough that it doesn't need all of the
+        // bytes available in newVal. We'll start the process of filling
+        // in newVal by copying over what bytes we have at the appropriate
+        // offset (since java is big endian).
+        for (int src = 0, dest = (newVal.length - valArray.length);
+                src < valArray.length; src++, dest++) {
+            newVal[dest] = valArray[src];
+        }
+
+        // Fill in unused parts of newVal by sign extending.
+        // Note that all bytes newVal are initialized to 0 so we only need
+        // to make changes when this is a negative number.
+        if (val.signum() == -1) {
+            for (int i = 0; i < origSize - valArray.length; i++) {
+                newVal[(extendedSize-origSize)+i] = (byte) 0xFF;
+            }
+        }
+        
+        if (!zeroFill && val.signum() == -1) {
+            for (int i = 0; i < newVal.length - origSize; i++) {
+                newVal[i] = (byte) 0xFF;
+            }
+        }
+        
+        return newVal;
+    }
+    
     /**
      * Create a new MachineState based on the current state but with an updated
      * value for a register.
@@ -309,6 +342,10 @@ public class MachineState {
             int endIndex = range.getValue();
 
             reg = new HashMap<>(this.registers);
+            
+            byte[] newVal = getExtendedByteArray(val.get(), (endIndex-startIndex), (endIndex-startIndex), false);
+            
+            /*
             byte[] valArray = val.get().toByteArray();
             byte[] newVal = new byte[endIndex - startIndex];
 
@@ -329,6 +366,7 @@ public class MachineState {
                     newVal[i] = (byte) 0xFF;
                 }
             }
+            */
 
             byte[] newValQuad = Arrays.copyOf(this.registers.get(quadName).getValue(), 8);
             for (int src = 0, dest = startIndex; dest < endIndex; src++, dest++) {

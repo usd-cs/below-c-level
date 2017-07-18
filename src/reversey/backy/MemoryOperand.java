@@ -33,17 +33,12 @@ class MemoryOperand extends Operand {
      */
     private final int offset;
 
-    /**
-     * The size of the operand.
-     */
-    private final OpSize opSize;
-
     public MemoryOperand(String baseReg, String indexReg, int scale, int offset, OpSize opSize) {
+        super(opSize);
         this.baseReg = Optional.ofNullable(baseReg);
         this.indexReg = Optional.ofNullable(indexReg);
         this.scale = scale;
         this.offset = offset;
-        this.opSize = opSize;
     }
 
     /**

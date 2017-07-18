@@ -18,7 +18,8 @@ public class ConstantOperand extends Operand {
      */
     private final long constant;
 
-    public ConstantOperand(long val) {
+    public ConstantOperand(long val, OpSize size) {
+        super(size);
         this.constant = val;
     }
 

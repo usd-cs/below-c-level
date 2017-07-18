@@ -18,14 +18,10 @@ public class RegOperand extends Operand {
      */
     private final String regName;
 
-    /**
-     * The size of the operand.
-     */
-    private final OpSize opSize;
 
     public RegOperand(String regName, OpSize opSize) {
+        super(opSize);
         this.regName = regName;
-        this.opSize = opSize;
     }
 
     @Override

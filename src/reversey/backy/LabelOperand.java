@@ -29,6 +29,7 @@ public class LabelOperand extends Operand {
     private x86Label label;
 
     public LabelOperand(String name, x86Label label) {
+        super(OpSize.QUAD);
         this.name = name;
         this.label = label;
     }
