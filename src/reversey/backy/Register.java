@@ -25,8 +25,20 @@ public class Register {
      * Larger values mean higher prominence (e.g. more recently used.)
      */
     private int prominence;
+    
+    /**
+     * The line number from which the register last was updated.
+     */
     private SimpleIntegerProperty origin;
+    
+    /**
+     * The full 64 bit value of the register.
+     */
     private String fullValue;
+    
+    /**
+     * 32, 16, and 8-bit register names.
+     */
     private String longRegName;
     private String wordRegName;
     private String byteLowRegName;
@@ -84,6 +96,10 @@ public class Register {
         return "0x" + fullValue.substring((8 - numBytes) * 2);
     }
     
+    /**
+     * Sets the 32, 16, and 8-bit register names based on given 64-bit register
+     * @param name 
+     */
     public void setSubName(String name) {
         switch (name) {
             case "rax":
