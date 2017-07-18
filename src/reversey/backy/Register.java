@@ -122,8 +122,7 @@ public class Register {
                 wordRegName = "Zp".replace("Z", name.subSequence(1, 2));
                 byteLowRegName = "Zpl".replace("Z", name.subSequence(1, 2));
                 break;
-            default:
-                /*case "r8":
+            case "r8":
             case "r9":
             case "r10":
             case "r11":
@@ -131,7 +130,6 @@ public class Register {
             case "r13":
             case "r14":
             case "r15":
-            */
                 longRegName = "rXd".replace("X", name.substring(1));
                 wordRegName = "rXw".replace("X", name.substring(1));
                 byteLowRegName = "rXb".replace("X", name.substring(1));

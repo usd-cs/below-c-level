@@ -323,9 +323,10 @@ public class X86Parser {
     public x86ProgramLine parseLine(String instr) throws X86ParsingException {
         Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
         Matcher labelMatcher = Pattern.compile("\\s*(?<label>\\w+):\\s*").matcher(instr);
-
-        // The line should be either a label or an instruction
-        if (!instMatcher.matches() && !labelMatcher.matches()) {
+        Matcher commentMatcher = Pattern.compile("\\s*(?<comment>#.*)").matcher(instr);
+        
+        // The line should be either a label, a comment, or an instruction
+        if (!instMatcher.matches() && !labelMatcher.matches() && !commentMatcher.matches()) {
             throw new X86ParsingException("nonsense input", 0, instr.length());
         }
 
@@ -412,7 +413,7 @@ public class X86Parser {
                         opSize,
                         currLineNum++);
             }
-        } else {
+        } else if (labelMatcher.matches()){
             // This line contains a label
             String labelName = labelMatcher.group("label");
 
@@ -432,6 +433,12 @@ public class X86Parser {
                 });
             }
             return l;
+        } else {
+            // This line contains a comment
+            String comment = commentMatcher.group("comment");
+            
+            x86Comment c = new x86Comment(comment, currLineNum++);
+            return c;
         }
         // TODO: allow lines that contain both a label and an instruction?
     }
