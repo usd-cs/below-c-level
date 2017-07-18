@@ -41,6 +41,11 @@ public class MachineState {
     private Map<String, Boolean> statusFlags;
 
     /**
+     * The rip register.
+     */
+    private int rip;
+    
+    /**
      * Create a new state with all registers (except %rsp) initialized to 0 but
      * no memory initialization. %rsp is initialized to 0x7FFFFFFF.
      */
@@ -49,8 +54,9 @@ public class MachineState {
         this.memory = new ArrayList<StackEntry>();
         this.tabList = new ArrayList<Tab>();
         this.statusFlags = new HashMap<String, Boolean>();
-
-        String[] regNames = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15", "rip"};
+        this.rip = 0;
+        
+        String[] regNames = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
         for (String s : regNames) {
             registers.put(s, new RegisterState(new byte [8], -1));
         }
@@ -67,11 +73,12 @@ public class MachineState {
         }
     }
 
-    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, List<Tab> tList, Map<String, Boolean> flags) {
+    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, List<Tab> tList, Map<String, Boolean> flags, int RIP) {
         this.registers = reg;
         this.memory = mem;
         this.tabList = tList;
         this.statusFlags = flags;
+        this.rip = RIP;
     }
 
     // Getters for the status flags
@@ -131,20 +138,19 @@ public class MachineState {
                     finalArray[dest] = valArray[src];
                 }
                       
-                StackEntry entry = new StackEntry(address, address + size - 1, finalArray, (new BigInteger(reg.get("rip").getValue())).intValue());
+                StackEntry entry = new StackEntry(address, address + size - 1, finalArray, rip);
                 mem.add(entry);
                 
                 
         }
-        
+        int newRipVal = rip;
         if (incrementRIP) {
-            BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
-            reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
+            newRipVal++;
         }
 
         mergeFlags(flags);
 
-        return new MachineState(reg, mem, this.tabList, flags);
+        return new MachineState(reg, mem, this.tabList, flags, newRipVal);
     }
 
     /**
@@ -233,10 +239,7 @@ public class MachineState {
      * for the incremented rip register.
      */
     public MachineState cloneWithIncrementedRIP(){
-            Map<String, RegisterState> reg = new HashMap<>(this.registers);
-            BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
-            reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
-            return new MachineState(reg, this.memory, this.tabList, this.statusFlags);
+            return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, rip + 1);
     }
     
     /**
@@ -247,10 +250,8 @@ public class MachineState {
      * @return A new MachineState that is identical to the calling object except
      * for updated rip register.
      */
-    public MachineState cloneWithNewRIP(BigInteger newRIPVal){
-            Map<String, RegisterState> reg = new HashMap<>(this.registers);
-            reg.put("rip", new RegisterState(newRIPVal.toByteArray(), newRIPVal.intValue()));
-            return new MachineState(reg, this.memory, this.tabList, this.statusFlags);
+    public MachineState cloneWithNewRIP(int newRIPVal){
+            return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, newRIPVal);
     }
     
     /**
@@ -343,18 +344,17 @@ public class MachineState {
                     newValQuad[i] = 0;
             }
 
-            reg.put(quadName, new RegisterState(newValQuad, 
-                                    (new BigInteger(reg.get("rip").getValue())).intValue()));
+            reg.put(quadName, new RegisterState(newValQuad, rip));
         }
-
+        int newRipVal = rip;
+        
         if (incrementRIP) {
-            BigInteger ripVal = (new BigInteger(reg.get("rip").getValue())).add(BigInteger.ONE);
-            reg.put("rip", new RegisterState(ripVal.toByteArray(), ripVal.intValue()));
+            newRipVal++;
         }
 
         mergeFlags(flags);
 
-        return new MachineState(reg, mem, this.tabList, flags);
+        return new MachineState(reg, mem, this.tabList, flags, newRipVal);
     }
     
     /**
@@ -381,8 +381,8 @@ public class MachineState {
     /**
      * @return The BigInteger representation of the value in the rip register.
      */
-    public BigInteger getRipRegister(){
-        return new BigInteger(registers.get("rip").getValue());
+    public int getRipRegister(){
+        return rip;
     }
     
     /**

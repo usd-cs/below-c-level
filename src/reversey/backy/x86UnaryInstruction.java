@@ -253,7 +253,8 @@ public class x86UnaryInstruction extends x86Instruction {
         RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
         MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
         
-        BigInteger returnAddr = tmp.getRipRegister().add(BigInteger.ONE);
+        int rA = tmp.getRipRegister() + 1;
+        BigInteger returnAddr = new BigInteger("" + rA);
 
         // step 2: store return address in (%rsp)
         MemoryOperand rspMemOperand = new MemoryOperand("rsp", null, 1, 0, this.opSize);

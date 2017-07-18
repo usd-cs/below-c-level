@@ -54,7 +54,7 @@ public class x86NullaryInstruction extends x86Instruction {
         
         // step 1: store (%rsp) value in rip register 
         MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
-        MachineState tmp = state.cloneWithNewRIP(src.getValue(state));
+        MachineState tmp = state.cloneWithNewRIP(src.getValue(state).intValue());
 
         // step 2: add 8 to rsp
         RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);

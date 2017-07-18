@@ -338,7 +338,7 @@ public class FXMLDocumentController implements Initializable {
         stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(stateHistory.get(stateHistory.size() - 1)));
 
         // select next instruction based on the updated value of the rip register
-        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister().intValue());
+        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
         regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
     }
 
@@ -379,7 +379,7 @@ public class FXMLDocumentController implements Initializable {
     private void stepBackward(Event event) {
         stateHistory.remove(stateHistory.size() - 1);
         regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
-        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister().intValue());
+        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
         updateStateDisplays();
     }
 
