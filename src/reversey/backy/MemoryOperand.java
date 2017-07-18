@@ -16,12 +16,12 @@ class MemoryOperand extends Operand {
     /**
      * Name of the base register.
      */
-    private final String baseReg;
+    private final Optional<String> baseReg;
 
     /**
      * Name of the index register.
      */
-    private final String indexReg;
+    private final Optional<String> indexReg;
 
     /**
      * The scaling factor for the index register.
@@ -39,8 +39,8 @@ class MemoryOperand extends Operand {
     private final OpSize opSize;
 
     public MemoryOperand(String baseReg, String indexReg, int scale, int offset, OpSize opSize) {
-        this.baseReg = baseReg;
-        this.indexReg = indexReg;
+        this.baseReg = Optional.ofNullable(baseReg);
+        this.indexReg = Optional.ofNullable(indexReg);
         this.scale = scale;
         this.offset = offset;
         this.opSize = opSize;
@@ -54,12 +54,11 @@ class MemoryOperand extends Operand {
      * @return The effective address.
      */
     public long calculateAddress(MachineState state) {
-        /**
-         * @tricky should this return BigInteger
-         */
-        long address = state.getRegisterValue(baseReg).add(BigInteger.valueOf(offset)).longValue();
-        if (indexReg != null) {
-            address += state.getRegisterValue(indexReg).multiply(BigInteger.valueOf(scale)).longValue();
+        long address = offset;
+        if (baseReg.isPresent()) 
+            address = state.getRegisterValue(baseReg.get()).add(BigInteger.valueOf(address)).longValue();
+        if (indexReg.isPresent()) {
+            address += state.getRegisterValue(indexReg.get()).multiply(BigInteger.valueOf(scale)).longValue();
         }
 
         return address;
@@ -78,18 +77,18 @@ class MemoryOperand extends Operand {
     @Override
     public Set<String> getUsedRegisters() {
         HashSet<String> s = new HashSet<>();
-        if (baseReg != null) // TODO: OPTIONAL!!!
-            s.add(baseReg);
-        if (indexReg != null)
-            s.add(indexReg);
+        if (baseReg.isPresent())
+            s.add(baseReg.get());
+        if (indexReg.isPresent())
+            s.add(indexReg.get());
         return s;
     }
 
     @Override
     public String toString() {
-        String res = offset + "(%" + baseReg;
-        if (indexReg != null) {
-            res += ", %" + indexReg + ", " + scale;
+        String res = offset + "(%" + baseReg.get();
+        if (indexReg.isPresent()) {
+            res += ", %" + indexReg.get() + ", " + scale;
         }
 
         res += ")";
