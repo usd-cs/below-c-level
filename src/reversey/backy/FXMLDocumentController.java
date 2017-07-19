@@ -483,9 +483,6 @@ public class FXMLDocumentController implements Initializable {
         if (loadFile != null) {
             lastLoadedFileName = loadFile.getAbsolutePath();
 
-            // Necessary with tabs?
-            //Stage s = (Stage) instrText.getScene().getWindow();
-            //s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
             BufferedReader bufferedReader = null;
             ArrayList<String> instrTmp = new ArrayList<>();
             try {
@@ -511,8 +508,8 @@ public class FXMLDocumentController implements Initializable {
             for (String instrLine : instrTmp) {
                 try {
                     this.parseLine(newPerry, instrLine, newInstrs);
-                } catch (X86ParsingException e) {
-                    clearSim();
+                } catch (X86ParsingException e) {                 
+                    newInstrs.getItems().clear();
                     Alert fileLoadingError = new Alert(AlertType.ERROR);
                     fileLoadingError.setTitle("File Loading Error");
                     fileLoadingError.setHeaderText("Error Loading File");
@@ -520,8 +517,7 @@ public class FXMLDocumentController implements Initializable {
                             + "\n\n" + instrLine
                             + "\n\nReason: " + e.getMessage());
                     fileLoadingError.showAndWait();
-                    break;
-
+                    return;
                 }
             }
             List<String> newRegHistory = new ArrayList<>();
