@@ -166,8 +166,8 @@ public class MachineState {
                     mem.add(sBottom);
                     mem.add(sTop);
                     mem.remove(entry);
-                } else if (Long.compareUnsigned(newStartAddr, entryEndAddr) <= 0
-                        || Long.compareUnsigned(newEndAddr, entryStartAddr) >= 0){
+                } else if (!(Long.compareUnsigned(newStartAddr, entryEndAddr) > 0
+                        || Long.compareUnsigned(newEndAddr, entryStartAddr) < 0)) {
                     // The old entry either overlaps at the bottom or top of the
                     // old entry, so we'll shrink the old entry.
                     long overlapStartAddr, overlapEndAddr;
