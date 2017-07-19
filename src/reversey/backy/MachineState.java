@@ -221,7 +221,7 @@ public class MachineState {
             }
 
             byte[] valArray = val.get().toByteArray();
-            byte[] finalArray = new byte[size];
+            byte[] fullArrayBigEndian = new byte[size];
             int numToFill = size - valArray.length;
             byte toFill = 0;
 
@@ -229,16 +229,23 @@ public class MachineState {
                 toFill = -1; // i.e. 0xFF
             }
 
+            // Sign extend to fill total requested size
             for (int i = 0; i < numToFill; i++) {
-                finalArray[i] = toFill;
+                fullArrayBigEndian[i] = toFill;
             }
 
+            // copy over the original value
             for (int dest = numToFill, src = 0; dest < size; dest++, src++) {
-                finalArray[dest] = valArray[src];
+                fullArrayBigEndian[dest] = valArray[src];
+            }
+            
+            byte[] fullArrayLittleEndian = new byte[size];
+            for (int src = 0, dest = size-1; src < size; src++, dest--) {
+                fullArrayLittleEndian[dest] = fullArrayBigEndian[src];
             }
 
             StackEntry entry = new StackEntry(address, address + size - 1, 
-                                                finalArray, rip);
+                                                fullArrayLittleEndian, rip);
             mem.add(entry);
         }
         
