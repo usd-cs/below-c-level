@@ -114,6 +114,7 @@ public class MachineState {
             Optional<BigInteger> val,
             int size, Map<String, Boolean> flags,
             boolean incrementRIP) {
+        
         List<StackEntry> mem = this.memory;
         Map<String, RegisterState> reg = this.registers;
 
@@ -121,23 +122,33 @@ public class MachineState {
         if (val.isPresent()) {
             long startAddr = address;
             long endAddr = address + size - 1;
-            mem = new ArrayList<StackEntry>(this.memory);
-            reg = new HashMap<String, RegisterState>(this.registers);
+            mem = new ArrayList<>(this.memory);
             for (StackEntry se : this.memory) {
                 long start = se.getStartAddress();
                 long end = se.getEndAddress();
-                if (Long.compareUnsigned(startAddr, start) <= 0 && Long.compareUnsigned(endAddr, end) >= 0) {
+                
+                if (Long.compareUnsigned(startAddr, start) <= 0 
+                        && Long.compareUnsigned(endAddr, end) >= 0) {
+                    // The new StackEntry completely ensconces the old, so we'll
+                    // simply remove the old one
                     mem.remove(se);
-                } else if (Long.compareUnsigned(startAddr, end) > 0 || Long.compareUnsigned(endAddr, start) < 0) {
-                    continue;
-                } else if (Long.compareUnsigned(startAddr, start) > 0 && Long.compareUnsigned(endAddr, end) < 0) {
+                } else if (Long.compareUnsigned(startAddr, end) > 0 
+                        || Long.compareUnsigned(endAddr, start) < 0) {
+                    // There is no overlap of old and new StackEntries
+                } else if (Long.compareUnsigned(startAddr, start) > 0 
+                        && Long.compareUnsigned(endAddr, end) < 0) {
+                    // The new stack entry is contained completed within the old
+                    // entry so we'll split the old entry into two entries.
                     long bottomStart = start;
                     long bottomEnd = startAddr - 1;
                     long topStart = endAddr + 1;
                     long topEnd = end;
                     byte[] valOld = se.getValueArr();
-                    byte[] valBottom = Arrays.copyOfRange(valOld, 0, (int) ((bottomEnd - bottomStart) + 1));
-                    byte[] valTop = Arrays.copyOfRange(valOld, ((int) ((endAddr - startAddr) + 1)) + valBottom.length, valOld.length);
+                    byte[] valBottom = Arrays.copyOfRange(valOld, 0, 
+                            (int) ((bottomEnd - bottomStart) + 1));
+                    byte[] valTop = Arrays.copyOfRange(valOld, 
+                            ((int) ((endAddr - startAddr) + 1)) + valBottom.length, 
+                            valOld.length);
 
                     StackEntry sBottom = new StackEntry(bottomStart, bottomEnd, valBottom, se.getOrigin());
                     StackEntry sTop = new StackEntry(topStart, topEnd, valTop, se.getOrigin());
@@ -145,23 +156,23 @@ public class MachineState {
                     mem.add(sTop);
                     mem.remove(se);
                 } else {
-                    long overlapStart = 0;
-                    long overlapEnd = 0;
-                    //overlap start calc 
+                    // The old entry either overlaps at the bottom or top of the
+                    // old entry, so we'll shrink the old entry.
+                    long overlapStart, overlapEnd;
+                    
                     if (Long.compareUnsigned(startAddr, start) < 0) {
                         overlapStart = start;
                     } else {
                         overlapStart = startAddr;
                     }
-                    //overlap end calc
+
                     if (Long.compareUnsigned(endAddr, end) < 0) {
                         overlapEnd = endAddr;
                     } else {
                         overlapEnd = end;
                     }
 
-                    long startNew = 0;
-                    long endNew = 0;
+                    long startNew, endNew;
                     if (Long.compareUnsigned(overlapStart, start) > 0) {
                         startNew = start;
                     } else {
@@ -173,10 +184,12 @@ public class MachineState {
                     } else {
                         endNew = overlapStart - 1;
                     }
+                    
                     int sizeOverlap = (int) ((overlapEnd - overlapStart) + 1);
                     int sizeNew = (int) ((endNew - startNew) + 1);
-                    int startI = 0;
-                    int endI = 0;
+                    
+                    // Determine the range of indices to keep (by copying over)
+                    int startI, endI;
                     byte[] valOld = se.getValueArr();
                     if (Long.compareUnsigned(start, overlapStart) == 0) {
                         startI = sizeOverlap;
@@ -186,7 +199,8 @@ public class MachineState {
                         endI = valOld.length - sizeOverlap;
                     }
                     byte[] valNew = Arrays.copyOfRange(valOld, startI, endI + 1);
-                    StackEntry newSe = new StackEntry(startNew, endNew, valNew, se.getOrigin());
+                    StackEntry newSe = new StackEntry(startNew, endNew, 
+                                                        valNew, se.getOrigin());
                     mem.add(newSe);
                     mem.remove(se);
                 }
@@ -198,7 +212,7 @@ public class MachineState {
             byte toFill = 0;
 
             if (val.get().signum() == -1) {
-                toFill = (byte) 0xFF;
+                toFill = -1; // i.e. 0xFF
             }
 
             for (int i = 0; i < numToFill; i++) {
@@ -209,13 +223,13 @@ public class MachineState {
                 finalArray[dest] = valArray[src];
             }
 
-            StackEntry entry = new StackEntry(address, address + size - 1, finalArray, rip);
+            StackEntry entry = new StackEntry(address, address + size - 1, 
+                                                finalArray, rip);
             mem.add(entry);
         }
-        int newRipVal = rip;
-        if (incrementRIP) {
-            newRipVal++;
-        }
+        
+        int newRipVal = this.rip;
+        if (incrementRIP) newRipVal++;
 
         mergeFlags(flags);
 
