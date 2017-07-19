@@ -177,7 +177,7 @@ public class FXMLDocumentController implements Initializable {
 
     /**
      * Comparator for registers, based on their relative prominence then their
-     * lexagraphical ordering.
+     * lexicographical ordering.
      */
     private final Comparator<Register> regComp = (Register r1, Register r2) -> {
         if (r1.getProminence() > r2.getProminence()) {
@@ -188,7 +188,21 @@ public class FXMLDocumentController implements Initializable {
             return 1;
         }
     };
+    
+    /**
+     * Comparator for stackEntries, based on their start addresses.
+     */
+    private final Comparator<StackEntry> stackComp = (StackEntry s1, StackEntry s2) -> {
+        if (s1.getStartAddress() > s2.getStartAddress()) {
+            return 1;
+        } else if (s1.getStartAddress() == s2.getStartAddress()) {
+            return 0;
+        } else {
+            return -1;
+        }
+    };
 
+    // TODO: Comment
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
         // Initialize the simulation state.
@@ -210,7 +224,8 @@ public class FXMLDocumentController implements Initializable {
         originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
 
         stackTableList = FXCollections.observableArrayList(stateHistory.get(this.stateHistory.size() - 1).getStackEntries());
-        stackTable.setItems(stackTableList);
+        SortedList<StackEntry> stackSortedList = stackTableList.sorted(stackComp);
+        stackTable.setItems(stackSortedList);
 
         // Initialize the register table
         registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
