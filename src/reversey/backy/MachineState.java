@@ -198,7 +198,7 @@ public class MachineState {
                         startI = 0;
                         endI = valOld.length - sizeOverlap;
                     }
-                    byte[] valNew = Arrays.copyOfRange(valOld, startI, endI + 1);
+                    byte[] valNew = Arrays.copyOfRange(valOld, startI, endI);
                     StackEntry newSe = new StackEntry(startNew, endNew, 
                                                         valNew, se.getOrigin());
                     mem.add(newSe);
