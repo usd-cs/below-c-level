@@ -220,6 +220,9 @@ public class MachineState {
                 }
             }
 
+            // Note: Java stores values in big endian format while x86 requires
+            // little endian. We'll work with the big endian and switch over only
+            // at the end.
             byte[] valArray = val.get().toByteArray();
             byte[] fullArrayBigEndian = new byte[size];
             int numToFill = size - valArray.length;
@@ -239,6 +242,7 @@ public class MachineState {
                 fullArrayBigEndian[dest] = valArray[src];
             }
             
+            // reverse the big endian version to get the little endian
             byte[] fullArrayLittleEndian = new byte[size];
             for (int src = 0, dest = size-1; src < size; src++, dest--) {
                 fullArrayLittleEndian[dest] = fullArrayBigEndian[src];
