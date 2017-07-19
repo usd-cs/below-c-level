@@ -215,10 +215,10 @@ public class FXMLDocumentController implements Initializable {
 
         // Initialize stack table
         startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress())));
+                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
 
         endAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress())));
+                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()).toUpperCase()));
 
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
         originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
