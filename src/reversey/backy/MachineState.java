@@ -119,8 +119,70 @@ public class MachineState {
         Map<String, RegisterState> reg = this.registers;
 
         if (val.isPresent()) {
+            long startAddr = address;
+            long endAddr = address + size - 1;
             mem = new ArrayList<StackEntry>(this.memory);
             reg = new HashMap<String, RegisterState>(this.registers);
+            System.out.println("\nstartAddr: " + Long.toHexString(startAddr) + "\nendAddr : " + Long.toHexString(endAddr));
+            for (StackEntry se : this.memory) {
+                long start = se.getStartAddress();
+                long end = se.getEndAddress();
+                System.out.println("start: " + Long.toHexString(start) + "\nend : " + Long.toHexString(end));
+                if (Long.compareUnsigned(startAddr, start) <= 0 && Long.compareUnsigned(endAddr, end) >= 0) {
+                    mem.remove(se);
+                    System.out.println("complete overlap");
+                } else if (Long.compareUnsigned(startAddr, end) > 0 || Long.compareUnsigned(endAddr, start) < 0){
+                    continue;
+                } else {
+                    long overlapStart = 0;
+                    long overlapEnd = 0;
+                    //overlap start calc 
+                    if (Long.compareUnsigned(startAddr, start) < 0) {
+                        overlapStart = start;
+                    } else {
+                        overlapStart = startAddr;
+                    }
+                    //overlap end calc
+                    if (Long.compareUnsigned(endAddr, end) < 0) {
+                        overlapEnd = endAddr;
+                    } else {
+                        overlapEnd = end;
+                    }
+
+                    long startNew = 0;
+                    long endNew = 0;
+                    if (Long.compareUnsigned(overlapStart, start) > 0) {
+                        startNew = start;
+                    } else {
+                        startNew = overlapEnd + 1;
+                    }
+
+                    if (Long.compareUnsigned(overlapEnd, end) < 0) {
+                        endNew = end;
+                    } else {
+                        endNew = overlapStart - 1;
+                    }
+                    int sizeOverlap = (int) ((overlapEnd - overlapStart) + 1);
+                    int sizeNew = (int) ((endNew - startNew) + 1);
+                    int startI = 0;
+                    int endI = 0;
+                    byte [] valOld = se.getValueArr();
+                    if (Long.compareUnsigned(start, overlapStart) == 0){
+                        startI = sizeOverlap;
+                        endI = valOld.length;
+                    } else {
+                        startI = 0;
+                        endI = valOld.length - sizeOverlap;
+                    }
+                    byte [] valNew = Arrays.copyOfRange(valOld, startI, endI + 1);
+                    StackEntry newSe = new StackEntry(startNew, endNew, valNew, se.getOrigin());
+                    mem.add(newSe);
+                    mem.remove(se);
+                }
+            }
+            //mem.addAll(toAdd);
+            //mem.removeAll(toDelete);
+            
             byte[] valArray = val.get().toByteArray();
             byte[] finalArray = new byte[size];
             int numToFill = size - valArray.length;
@@ -139,9 +201,7 @@ public class MachineState {
                 }
                       
                 StackEntry entry = new StackEntry(address, address + size - 1, finalArray, rip);
-                mem.add(entry);
-                
-                
+                mem.add(entry);                
         }
         int newRipVal = rip;
         if (incrementRIP) {

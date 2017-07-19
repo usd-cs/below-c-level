@@ -193,9 +193,9 @@ public class FXMLDocumentController implements Initializable {
      * Comparator for stackEntries, based on their start addresses.
      */
     private final Comparator<StackEntry> stackComp = (StackEntry s1, StackEntry s2) -> {
-        if (s1.getStartAddress() > s2.getStartAddress()) {
+        if (Long.compareUnsigned(s1.getStartAddress(), s2.getStartAddress()) < 0) {
             return 1;
-        } else if (s1.getStartAddress() == s2.getStartAddress()) {
+        } else if (Long.compareUnsigned(s1.getStartAddress(), s2.getStartAddress()) == 0) {
             return 0;
         } else {
             return -1;
