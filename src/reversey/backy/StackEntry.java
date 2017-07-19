@@ -29,9 +29,9 @@ public class StackEntry {
         // Convert the value to a hex string, stripping off any leading 0's
         String s = "";
         for (byte i : val) {
-            s += String.format("%02x", i);
+            s += String.format("%02X", i);
         }
-        if (s.charAt(0) == '0') s = s.replaceFirst("0+", "");
+        if (s.charAt(0) == '0') s = s.replaceFirst("0+", "0");
         s = "0x" + s;
         
         value = new SimpleStringProperty(s);

@@ -515,21 +515,21 @@ public class MachineState {
             String fullS = "";
             for(int i = 0; i < 8 - ba.length; i++){
                 if(b.signum() == -1){
-                    fullS += "ff";
+                    fullS += "FF";
                 } else {
                     fullS += "00";
                 }
             } 
             if (ba.length != 8){
                 if(b.signum() == -1){
-                    s += "f...";
+                    s += "F...";
                 } else {
                     s += "0...";
                 }
             }
             for (byte i : ba) {
-                s += String.format("%02x", i);
-                fullS += String.format("%02x", i);
+                s += String.format("%02X", i);
+                fullS += String.format("%02X", i);
             }
             int regHist = regHistory.lastIndexOf(entry.getKey());
             arr.add(new Register(entry.getKey(), s, regHist, entry.getValue().getOrigin(), fullS));
@@ -558,7 +558,7 @@ public class MachineState {
             byte[] ba = b.toByteArray();
             s += "\t" + entry.getKey() + ": " + b.toString() + " (0x";
             for (byte i : ba) {
-                s += String.format("%02x", i);
+                s += String.format("%02X", i);
             }
             s += ")\n";
         }
@@ -573,7 +573,7 @@ public class MachineState {
             byte [] ba = e.getValueArr();
             s += "\t" + Long.toHexString(e.getStartAddress()) + ": ";
             for(byte b : ba){
-                s += String.format("%02x", b);
+                s += String.format("%02X", b);
             }
             s += "\n";
         }
