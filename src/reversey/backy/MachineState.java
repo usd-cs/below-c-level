@@ -120,89 +120,103 @@ public class MachineState {
 
         // TODO: Comment
         if (val.isPresent()) {
-            long startAddr = address;
-            long endAddr = address + size - 1;
+            long newStartAddr = address;
+            long newEndAddr = address + size - 1;
+            
+            // FIXME: make sure there wasn't overflow causing newEndAddr
+            // to be less than newStartAddr
+            
             mem = new ArrayList<>(this.memory);
-            for (StackEntry se : this.memory) {
-                long start = se.getStartAddress();
-                long end = se.getEndAddress();
+            
+            for (StackEntry entry : this.memory) {
+                long entryStartAddr = entry.getStartAddress();
+                long entryEndAddr = entry.getEndAddress();
                 
-                if (Long.compareUnsigned(startAddr, start) <= 0 
-                        && Long.compareUnsigned(endAddr, end) >= 0) {
+                if (Long.compareUnsigned(newStartAddr, entryStartAddr) <= 0 
+                        && Long.compareUnsigned(newEndAddr, entryEndAddr) >= 0) {
                     // The new StackEntry completely ensconces the old, so we'll
                     // simply remove the old one
-                    mem.remove(se);
-                } else if (Long.compareUnsigned(startAddr, end) > 0 
-                        || Long.compareUnsigned(endAddr, start) < 0) {
-                    // There is no overlap of old and new StackEntries
-                } else if (Long.compareUnsigned(startAddr, start) > 0 
-                        && Long.compareUnsigned(endAddr, end) < 0) {
+                    mem.remove(entry);
+                } else if (Long.compareUnsigned(newStartAddr, entryStartAddr) > 0 
+                        && Long.compareUnsigned(newEndAddr, entryEndAddr) < 0) {
                     // The new stack entry is contained completed within the old
-                    // entry so we'll split the old entry into two entries.
-                    long bottomStart = start;
-                    long bottomEnd = startAddr - 1;
-                    long topStart = endAddr + 1;
-                    long topEnd = end;
-                    byte[] valOld = se.getValueArr();
+                    // entry so we'll split the old entry into two entries, one
+                    // for the bottom part and one for the top part
+                    long bottomStartAddr = entryStartAddr;
+                    long bottomEndAddr = newStartAddr - 1;
+                    
+                    byte[] valOld = entry.getValueArr();
                     byte[] valBottom = Arrays.copyOfRange(valOld, 0, 
-                            (int) ((bottomEnd - bottomStart) + 1));
+                            (int) ((bottomEndAddr - bottomStartAddr) + 1));
+                    
+                    long topStartAddr = newEndAddr + 1;
+                    long topEndAddr = entryEndAddr;
                     byte[] valTop = Arrays.copyOfRange(valOld, 
-                            ((int) ((endAddr - startAddr) + 1)) + valBottom.length, 
+                            ((int) ((newEndAddr - newStartAddr) + 1)) + valBottom.length, 
                             valOld.length);
 
-                    StackEntry sBottom = new StackEntry(bottomStart, bottomEnd, valBottom, se.getOrigin());
-                    StackEntry sTop = new StackEntry(topStart, topEnd, valTop, se.getOrigin());
+                    StackEntry sBottom = new StackEntry(bottomStartAddr, 
+                                                        bottomEndAddr, 
+                                                        valBottom, 
+                                                        entry.getOrigin());
+                    StackEntry sTop = new StackEntry(topStartAddr, 
+                                                        topEndAddr, 
+                                                        valTop, 
+                                                        entry.getOrigin());
                     mem.add(sBottom);
                     mem.add(sTop);
-                    mem.remove(se);
-                } else {
+                    mem.remove(entry);
+                } else if (Long.compareUnsigned(newStartAddr, entryEndAddr) <= 0
+                        || Long.compareUnsigned(newEndAddr, entryStartAddr) >= 0){
                     // The old entry either overlaps at the bottom or top of the
                     // old entry, so we'll shrink the old entry.
-                    long overlapStart, overlapEnd;
+                    long overlapStartAddr, overlapEndAddr;
                     
-                    if (Long.compareUnsigned(startAddr, start) < 0) {
-                        overlapStart = start;
+                    if (Long.compareUnsigned(newStartAddr, entryStartAddr) < 0) {
+                        overlapStartAddr = entryStartAddr;
                     } else {
-                        overlapStart = startAddr;
+                        overlapStartAddr = newStartAddr;
                     }
 
-                    if (Long.compareUnsigned(endAddr, end) < 0) {
-                        overlapEnd = endAddr;
+                    if (Long.compareUnsigned(newEndAddr, entryEndAddr) < 0) {
+                        overlapEndAddr = newEndAddr;
                     } else {
-                        overlapEnd = end;
+                        overlapEndAddr = entryEndAddr;
                     }
 
-                    long startNew, endNew;
-                    if (Long.compareUnsigned(overlapStart, start) > 0) {
-                        startNew = start;
+                    long shrunkenStartAddr, shrunkenEndAddr;
+                    if (Long.compareUnsigned(overlapStartAddr, entryStartAddr) > 0) {
+                        shrunkenStartAddr = entryStartAddr;
                     } else {
-                        startNew = overlapEnd + 1;
+                        shrunkenStartAddr = overlapEndAddr + 1;
                     }
 
-                    if (Long.compareUnsigned(overlapEnd, end) < 0) {
-                        endNew = end;
+                    if (Long.compareUnsigned(overlapEndAddr, entryEndAddr) < 0) {
+                        shrunkenEndAddr = entryEndAddr;
                     } else {
-                        endNew = overlapStart - 1;
+                        shrunkenEndAddr = overlapStartAddr - 1;
                     }
                     
-                    int sizeOverlap = (int) ((overlapEnd - overlapStart) + 1);
-                    int sizeNew = (int) ((endNew - startNew) + 1);
+                    int overlapRegionSize = (int) ((overlapEndAddr - overlapStartAddr) + 1);
                     
                     // Determine the range of indices to keep (by copying over)
-                    int startI, endI;
-                    byte[] valOld = se.getValueArr();
-                    if (Long.compareUnsigned(start, overlapStart) == 0) {
-                        startI = sizeOverlap;
-                        endI = valOld.length;
+                    int copyRangeStart, copyRangeEnd;
+                    byte[] valOld = entry.getValueArr();
+                    if (Long.compareUnsigned(entryStartAddr, overlapStartAddr) == 0) {
+                        copyRangeStart = overlapRegionSize;
+                        copyRangeEnd = valOld.length;
                     } else {
-                        startI = 0;
-                        endI = valOld.length - sizeOverlap;
+                        copyRangeStart = 0;
+                        copyRangeEnd = valOld.length - overlapRegionSize;
                     }
-                    byte[] valNew = Arrays.copyOfRange(valOld, startI, endI);
-                    StackEntry newSe = new StackEntry(startNew, endNew, 
-                                                        valNew, se.getOrigin());
-                    mem.add(newSe);
-                    mem.remove(se);
+                    byte[] valNew = Arrays.copyOfRange(valOld, copyRangeStart, copyRangeEnd);
+                    
+                    StackEntry shrunkenEntry = new StackEntry(shrunkenStartAddr, 
+                                                                shrunkenEndAddr, 
+                                                                valNew, 
+                                                                entry.getOrigin());
+                    mem.add(shrunkenEntry);
+                    mem.remove(entry);
                 }
             }
 
@@ -240,8 +254,8 @@ public class MachineState {
      * Determines which parts of the full 8-byte register will be used by the
      * given register.
      *
-     * @return Pair of the start (inclusive) and end (exclusive) indices for
-     * given register in its full register's byte array.
+     * @return Pair of the entryStartAddr (inclusive) and entryEndAddr (exclusive) indices for
+ given register in its full register's byte array.
      */
     private static Pair<Integer, Integer> getByteRange(String regName) {
         String quadRegNames = "^r(ax|bx|cx|dx|si|di|bp|sp|8|9|10|11|12|13|14|15)$";
@@ -292,7 +306,7 @@ public class MachineState {
         } else if (Pattern.matches(wordRegNames, regName)) {
             if (regName.charAt(0) != 'r') {
                 return "r" + regName;
-            } else // just strip off the "d" from the end
+            } else // just strip off the "d" from the entryEndAddr
             {
                 return regName.substring(0, regName.length() - 1);
             }
@@ -342,7 +356,7 @@ public class MachineState {
 
         // TODO: make sure extendedSize isn't less than valArray's extendedSize
         // The value may be small enough that it doesn't need all of the
-        // bytes available in newVal. We'll start the process of filling
+        // bytes available in newVal. We'll entryStartAddr the process of filling
         // in newVal by copying over what bytes we have at the appropriate
         // offset (since java is big endian).
         for (int src = 0, dest = (newVal.length - valArray.length);
@@ -432,7 +446,7 @@ public class MachineState {
             byte[] newVal = new byte[endIndex - startIndex];
 
             // The value may be small enough that it doesn't need all of the
-            // bytes available in newVal. We'll start the process of filling
+            // bytes available in newVal. We'll entryStartAddr the process of filling
             // in newVal by copying over what bytes we have at the appropriate
             // offset (since java is big endian).
             for (int src = 0, dest = (newVal.length - valArray.length);
