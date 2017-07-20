@@ -14,6 +14,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -215,10 +217,10 @@ public class FXMLDocumentController implements Initializable {
 
         // Initialize stack table
         startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress())));
+                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
 
         endAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress())));
+                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()).toUpperCase()));
 
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
         originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
@@ -294,8 +296,12 @@ public class FXMLDocumentController implements Initializable {
         loadMenuItem.setOnAction(this::loadFile);
         saveAsMenuItem.setOnAction(this::saveFileAs);
 
-        newMenuItem.setOnAction((event) -> {
-            createTab("New File", new ArrayList<>(), new ListView<>(), new X86Parser(), null);
+        newMenuItem.setOnAction((event) -> {    
+            listViewTabPane.getSelectionModel().select(createTab("New File",
+                    new ArrayList<>(),
+                    new ListView<>(),
+                    new X86Parser(),
+                    null));
         });
 
         // TODO: reorderMenuItem
@@ -542,7 +548,11 @@ public class FXMLDocumentController implements Initializable {
             if (!newInstrs.getItems().isEmpty()) {
                 newRegHistory.addAll(newInstrs.getItems().get(0).getUsedRegisters());
             }
-            createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1), newRegHistory, newInstrs, newPerry, lastLoadedFileName);
+            listViewTabPane.getSelectionModel().select(createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1),
+                            newRegHistory, 
+                            newInstrs, 
+                            newPerry, 
+                            lastLoadedFileName));
         }
     }
 
@@ -559,9 +569,7 @@ public class FXMLDocumentController implements Initializable {
         saveFileChoice.getExtensionFilters().add(extFilter);
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
         lastLoadedFileName = file.getAbsolutePath();
-        // TODO: Rename tab when saved
-        Stage s = (Stage) instrText.getScene().getWindow();
-        s.setTitle(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + " - Below C-Level Stack Simulator");
+        listViewTabPane.getSelectionModel().getSelectedItem().setText(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1));
         if (file != null) {
             try {
                 FileWriter fileWriter = new FileWriter(file);
@@ -616,7 +624,7 @@ public class FXMLDocumentController implements Initializable {
      * @param tabName
      * @return t new tab
      */
-    private void createTab(String tabName, List<String> tabRegHistory, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
+    private Tab createTab(String tabName, List<String> tabRegHistory, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
         Tab t = new Tab(tabName);
         List<MachineState> tabStateHistory = new ArrayList<>();
         tabStateHistory.add(new MachineState());
@@ -632,7 +640,16 @@ public class FXMLDocumentController implements Initializable {
             lastLoadedFileName = tabMap.get(t).getCurrFileName();
             updateStateDisplays();
         });
-    }
+        // TODO: Set only if existing file is different: how to do this on new files?
+        t.setOnCloseRequest((event) -> {
+            Alert closingConfirmation = new Alert(AlertType.CONFIRMATION);
+            closingConfirmation.setTitle("Closing Tab Confirmation");
+            closingConfirmation.setHeaderText("Unsaved changes");
+            closingConfirmation.setContentText("Selecting OK will close this file immediately. Any unsaved changes will be lost.");
+            closingConfirmation.showAndWait();
+        });
+        return t;
+        }
     
     /**
      * Custom cell factory for instruction list entry.
