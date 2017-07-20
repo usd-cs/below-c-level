@@ -14,8 +14,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -31,7 +29,6 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.scene.text.Font;
 import javafx.scene.shape.Circle;
-import javafx.stage.Stage;
 
 /**
  * Class that controls the main FXML file.
@@ -297,11 +294,11 @@ public class FXMLDocumentController implements Initializable {
         saveAsMenuItem.setOnAction(this::saveFileAs);
 
         newMenuItem.setOnAction((event) -> {    
-            listViewTabPane.getSelectionModel().select(createTab("New File",
+            createTab("New File",
                     new ArrayList<>(),
                     new ListView<>(),
                     new X86Parser(),
-                    null));
+                    null);
         });
 
         // TODO: reorderMenuItem
@@ -320,6 +317,7 @@ public class FXMLDocumentController implements Initializable {
                         fW.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                     }
                     fW.close();
+                    tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(false);
                 } catch (IOException e) {
                     System.out.println("File cannot be saved.");
                 }
@@ -469,6 +467,7 @@ public class FXMLDocumentController implements Initializable {
                 parseErrorText.setText(null);
                 parseErrorText.setGraphic(null);
                 instrText.clear();
+                tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(true);
             } catch (X86ParsingException e) {
                 // If we had a parsing error, set the background to pink,
                 // select the part of the input that reported the error,
@@ -548,11 +547,11 @@ public class FXMLDocumentController implements Initializable {
             if (!newInstrs.getItems().isEmpty()) {
                 newRegHistory.addAll(newInstrs.getItems().get(0).getUsedRegisters());
             }
-            listViewTabPane.getSelectionModel().select(createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1),
+            createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1),
                             newRegHistory, 
                             newInstrs, 
                             newPerry, 
-                            lastLoadedFileName));
+                            lastLoadedFileName);
         }
     }
 
@@ -577,21 +576,12 @@ public class FXMLDocumentController implements Initializable {
                     fileWriter.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                 }
                 fileWriter.close();
+                tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(false);
             } catch (IOException ex) {
                 //TODO: ?
                 System.out.println("Unable to save to file.");
             }
         }
-    }
-
-    // TODO: method comment
-    private void clearSim() {
-        parser.clear();
-        stateHistory.clear();
-        instrList.getItems().clear();
-        regHistory.clear();
-        stateHistory.add(new MachineState());
-        updateStateDisplays();
     }
 
     // TODO: method comment
@@ -624,7 +614,7 @@ public class FXMLDocumentController implements Initializable {
      * @param tabName
      * @return t new tab
      */
-    private Tab createTab(String tabName, List<String> tabRegHistory, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
+    private void createTab(String tabName, List<String> tabRegHistory, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
         Tab t = new Tab(tabName);
         List<MachineState> tabStateHistory = new ArrayList<>();
         tabStateHistory.add(new MachineState());
@@ -632,24 +622,34 @@ public class FXMLDocumentController implements Initializable {
         listViewTabPane.getTabs().add(t);
         tabInstrList.setCellFactory(this::instructionListCellFactory);
         t.setContent(tabInstrList);
+
         t.setOnSelectionChanged((event) -> {
-            instrList = tabMap.get(t).getCurrTabInstrList();
-            stateHistory = tabMap.get(t).getCurrTabStateHistory();
-            regHistory = tabMap.get(t).getCurrTabRegHistory();
-            parser = tabMap.get(t).getCurrTabParser();
-            lastLoadedFileName = tabMap.get(t).getCurrFileName();
-            updateStateDisplays();
+            if (t.isSelected()) {
+                instrList = tabMap.get(t).getCurrTabInstrList();
+                stateHistory = tabMap.get(t).getCurrTabStateHistory();
+                regHistory = tabMap.get(t).getCurrTabRegHistory();
+                X86Parser oldParser = parser;
+                parser = tabMap.get(t).getCurrTabParser();
+                lastLoadedFileName = tabMap.get(t).getCurrFileName();
+                updateStateDisplays();
+            }
         });
-        // TODO: Set only if existing file is different: how to do this on new files?
         t.setOnCloseRequest((event) -> {
-            Alert closingConfirmation = new Alert(AlertType.CONFIRMATION);
-            closingConfirmation.setTitle("Closing Tab Confirmation");
-            closingConfirmation.setHeaderText("Unsaved changes");
-            closingConfirmation.setContentText("Selecting OK will close this file immediately. Any unsaved changes will be lost.");
-            closingConfirmation.showAndWait();
+            if (tabMap.get(t).getCurrTabIsEdited()) {
+                Alert closingConfirmation = new Alert(AlertType.CONFIRMATION);
+                closingConfirmation.setTitle("Closing Tab Confirmation");
+                closingConfirmation.setHeaderText("Unsaved changes");
+                closingConfirmation.setContentText("Selecting OK will close this file immediately. Any unsaved changes will be lost.");
+                closingConfirmation.showAndWait();
+            }
         });
-        return t;
-        }
+        t.setOnClosed((event) -> {
+            if (listViewTabPane.getTabs().isEmpty()) {
+                createTab("New File", new ArrayList<>(), new ListView<>(), new X86Parser(), null);
+            }
+        });
+        listViewTabPane.getSelectionModel().select(t);
+    }
     
     /**
      * Custom cell factory for instruction list entry.
@@ -722,7 +722,7 @@ public class FXMLDocumentController implements Initializable {
                         parseErrorText.setGraphic(null);
                         entryStatusLabel.setText(null);
                         cell.setStyle("");
-
+                        tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(true);
                         // Find where the existing instruction was and replace
                         // it with the new instruction.
                         int i = 0;
