@@ -21,21 +21,24 @@ public class StackEntry {
     private final SimpleIntegerProperty origin;
     private final byte[] valueArr;
     
-    public StackEntry (long l1, long l2, byte[] val, int orig) {
-        startAddress = new SimpleLongProperty(l1);
-        endAddress = new SimpleLongProperty(l2);
-        valueArr = val;
+    public StackEntry (long startAddress, long endAddress, byte[] val, int orig) {
+        this.startAddress = new SimpleLongProperty(startAddress);
+        this.endAddress = new SimpleLongProperty(endAddress);
+        this.valueArr = val;
         
         // Convert the value to a hex string, stripping off any leading 0's
         String s = "";
-        for (byte i : val) {
-            s += String.format("%02X", i);
+        
+        // Note: we go through the array in reverse order because the value was
+        // stored in little endian format.
+        for (int i = (val.length - 1); i >= 0; i--) {
+            s += String.format("%02X", val[i]);
         }
         if (s.charAt(0) == '0') s = s.replaceFirst("0+", "0");
         s = "0x" + s;
         
-        value = new SimpleStringProperty(s);
-        origin = new SimpleIntegerProperty(orig);
+        this.value = new SimpleStringProperty(s);
+        this.origin = new SimpleIntegerProperty(orig);
     }
     
     public long getStartAddress(){
