@@ -262,7 +262,7 @@ public class FXMLDocumentController implements Initializable {
         // items.
         nextInstr.setOnAction(this::stepForward);
         forwardMenuItem.setOnAction(this::stepForward);
-
+        
         skipToEnd.setOnAction(this::runForward);
         runMenuItem.setOnAction(this::runForward);
 
@@ -353,6 +353,7 @@ public class FXMLDocumentController implements Initializable {
      * history and selecting the next instruction.
      */
     private void evalCurrentInstruction() {
+
         // evaluate the current instruction, adding its new state to our history
         stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(stateHistory.get(stateHistory.size() - 1)));
 
@@ -369,6 +370,7 @@ public class FXMLDocumentController implements Initializable {
     private void stepForward(Event event) {
         evalCurrentInstruction();
         updateStateDisplays();
+        checkEnding();
     }
 
     /**
@@ -380,7 +382,7 @@ public class FXMLDocumentController implements Initializable {
     private void runForward(Event event) {
         // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
         // appear to be stuck in an infinite loop?
-        for (int x = instrList.getSelectionModel().getSelectedIndex(); x < instrList.getItems().size(); x++) {
+        while (stateHistory.get(stateHistory.size() - 1).getRipRegister() <= instrList.getItems().size() - 1) {
             evalCurrentInstruction();
             if (instrList.getSelectionModel().getSelectedItem().getBreakpoint()) {
                 break;
@@ -388,6 +390,7 @@ public class FXMLDocumentController implements Initializable {
         }
 
         updateStateDisplays();
+        checkEnding();
     }
 
     /**
@@ -397,9 +400,12 @@ public class FXMLDocumentController implements Initializable {
      */
     private void stepBackward(Event event) {
         stateHistory.remove(stateHistory.size() - 1);
+        if(!instrList.getSelectionModel().isEmpty()){ 
         regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        }
         instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
         updateStateDisplays();
+        checkEnding();
     }
 
     /**
@@ -416,8 +422,24 @@ public class FXMLDocumentController implements Initializable {
         stateHistory.add(new MachineState());
         regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
         updateStateDisplays();
+        checkEnding();
     }
 
+    /**
+     * Checks if end of program has been reached and if so, disable nextInstr 
+     * and skipToEnd buttons.
+     */
+    private void checkEnding(){
+        if(stateHistory.get(stateHistory.size() - 1).getRipRegister() <= instrList.getItems().size() - 1){
+            nextInstr.setOnAction(this::stepForward);
+            skipToEnd.setOnAction(this::runForward);
+        } else {
+            nextInstr.setOnAction(null);
+            skipToEnd.setOnAction(null);
+            instrList.getSelectionModel().clearSelection();
+        }
+    }
+    
     /**
      * Updates all the graphical elements that display state information based
      * on the current state.
