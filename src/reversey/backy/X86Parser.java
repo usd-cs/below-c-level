@@ -21,7 +21,7 @@ public class X86Parser {
     private static final String allRegNames = "(" + qRegNames + "|" + lRegNames + "|" + wRegNames + "|" + bRegNames + ")";
 
     // Regular expressions used for parsing operands
-    private static final String constOpRegEx = "\\$(?<const>-?\\p{Digit}+)";
+    private static final String constOpRegEx = "\\$?(?<const>-?\\p{Digit}+)";
     private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
     private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
     private static final String labelOpEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
@@ -187,6 +187,10 @@ public class X86Parser {
         Matcher labelMatcher = Pattern.compile(labelOpEx).matcher(str);
 
         if (constMatcher.matches()) {
+            if (!str.contains("$"))
+                throw new X86ParsingException("Missing $ before constant", 
+                                                constMatcher.start(),
+                                                constMatcher.end());
             // Found a constant operand
             if (!opReqs.canBeConst())
                 throw new X86ParsingException("operand cannot be a constant", 
