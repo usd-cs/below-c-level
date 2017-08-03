@@ -726,6 +726,11 @@ public class FXMLDocumentController implements Initializable {
         MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
 
         deleteItem.setOnAction(event -> {
+            if (cell.getItem() instanceof x86Label) {
+                x86Label l = (x86Label) cell.getItem();
+                parser.removeLabel(l.getName());
+            }
+            
             lv.getItems().remove(cell.getItem());
             int i = 0;
             for (x86ProgramLine line : lv.getItems()) {
@@ -733,6 +738,7 @@ public class FXMLDocumentController implements Initializable {
                 i++;
             }
             parser.setCurrLineNum(i);
+            
             this.restartSim(null);
 
         });
