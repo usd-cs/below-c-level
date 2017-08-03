@@ -472,6 +472,19 @@ public class FXMLDocumentController implements Initializable {
         }
         instrText.clear();
     }
+    
+    /**
+     * Sets the currently selected tab as having unsaved changes.
+     */
+    public void setCurrTabAsEdited() {
+        Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
+        if (lastLoadedFileName != null) {
+            currTab.setText(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + "*");
+        } else {
+            currTab.setText("New File*");
+        }
+        tabMap.get(currTab).setIsEdited(true);
+    }
 
     /**
      * Gets input from instruction entry text field, parses it, and (if
@@ -491,7 +504,9 @@ public class FXMLDocumentController implements Initializable {
                 parseErrorText.setText(null);
                 parseErrorText.setGraphic(null);
                 instrText.clear();
-                tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(true);
+                
+                setCurrTabAsEdited();
+                
             } catch (X86ParsingException e) {
                 // If we had a parsing error, set the background to pink,
                 // select the part of the input that reported the error,
@@ -732,10 +747,10 @@ public class FXMLDocumentController implements Initializable {
 
         editItem.setOnAction(event -> {
             /* 
-                 * Visually indicate that text box will be used for editing by:
-                 * 1. Changing its background color and the background color of the
-                 *    item in the list.
-                 * 2. Updating label next to box to say that we are editing a line.
+             * Visually indicate that text box will be used for editing by:
+             * 1. Changing its background color and the background color of the
+             *    item in the list.
+             * 2. Updating label next to box to say that we are editing a line.
              */
             instrText.setStyle("-fx-control-inner-background: #77c0f4;");
             instrText.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
@@ -758,8 +773,9 @@ public class FXMLDocumentController implements Initializable {
                         parseErrorText.setText(null);
                         parseErrorText.setGraphic(null);
                         entryStatusLabel.setText(null);
-                        cell.setStyle("");
-                        tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(true);
+                        cell.setStyle(""); // previously background was set to blue
+                        setCurrTabAsEdited();
+                        
                         // Find where the existing instruction was and replace
                         // it with the new instruction.
                         int i = 0;
