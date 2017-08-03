@@ -374,8 +374,7 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
-     * Executes instructions until it reaches the end of the program (TODO: or a
-     * breakpoint).
+     * Executes instructions until it reaches the end of the program.
      *
      * @param event The event that triggered this action.
      */
