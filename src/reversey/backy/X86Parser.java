@@ -24,7 +24,7 @@ public class X86Parser {
     private static final String constOpRegEx = "\\$(?<const>-?\\p{Digit}+)";
     private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
     private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
-    private static final String labelOpEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
+    private static final String labelOpEx = "(?!" + allRegNames + ")(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
     private static final String operandRegEx = "\\s*(?<operand>" + constOpRegEx + "|" + regOpRegEx + "|" + memOpRegEx + "|" + labelOpEx + ")\\s*";
 
     /**
@@ -302,8 +302,6 @@ public class X86Parser {
             
             String labelName = labelMatcher.group("label");
             op = new LabelOperand(labelName, labels.get(labelName));
-            // TODO: Instruction validation - allow instructions with labels that have not been created yet
-            // What happens when instruction with jmp label is executed but jumps to a label that hasn't been created yet?
         } else {
             // TODO: throw X86ParsingException here
             System.out.println("ERROR: Unknown type of operand.");
