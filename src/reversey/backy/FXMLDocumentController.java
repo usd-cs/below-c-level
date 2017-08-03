@@ -400,8 +400,10 @@ public class FXMLDocumentController implements Initializable {
      */
     private void stepBackward(Event event) {
         stateHistory.remove(stateHistory.size() - 1);
-        if(!instrList.getSelectionModel().isEmpty()){ 
-        regHistory.removeAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        if (!instrList.getSelectionModel().isEmpty()) {
+            regHistory.removeAll(instrList.getSelectionModel()
+                                          .getSelectedItem()
+                                          .getUsedRegisters());
         }
         instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
         updateStateDisplays();
