@@ -596,7 +596,9 @@ public class FXMLDocumentController implements Initializable {
                 for (int i = 0; i < instrList.getItems().size(); i++) {
                     fw.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                 }
-                tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(false);
+                TabState currTabState = tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem());
+                currTabState.setIsEdited(false);
+                currTabState.setFileName(lastLoadedFileName);
             } catch (IOException ex) {
                 System.out.println("Unable to save to file.");
             }
