@@ -534,7 +534,6 @@ public class FXMLDocumentController implements Initializable {
                 }
             }
 
-            BufferedReader bufferedReader = null;
             ArrayList<String> instrTmp = new ArrayList<>();
             try (BufferedReader br = new BufferedReader(new FileReader(loadFile))) {
                 String tmp;
