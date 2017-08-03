@@ -352,9 +352,10 @@ public class FXMLDocumentController implements Initializable {
      * history and selecting the next instruction.
      */
     private void evalCurrentInstruction() {
-
         // evaluate the current instruction, adding its new state to our history
-        stateHistory.add(instrList.getSelectionModel().getSelectedItem().eval(stateHistory.get(stateHistory.size() - 1)));
+        x86ProgramLine currLine = instrList.getSelectionModel().getSelectedItem();
+        MachineState nextState = currLine.eval(stateHistory.get(stateHistory.size()-1));
+        stateHistory.add(nextState);
 
         // select next instruction based on the updated value of the rip register
         instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
@@ -381,7 +382,8 @@ public class FXMLDocumentController implements Initializable {
     private void runForward(Event event) {
         // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
         // appear to be stuck in an infinite loop?
-        while (stateHistory.get(stateHistory.size() - 1).getRipRegister() <= instrList.getItems().size() - 1) {
+        int numLines = instrList.getItems().size();
+        while (stateHistory.get(stateHistory.size() - 1).getRipRegister() < numLines) {
             evalCurrentInstruction();
             if (instrList.getSelectionModel().getSelectedItem().getBreakpoint()) {
                 break;
