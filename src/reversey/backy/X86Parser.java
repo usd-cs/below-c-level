@@ -24,7 +24,7 @@ public class X86Parser {
     private static final String constOpRegEx = "\\$(?<const>-?\\p{Digit}+)";
     private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
     private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
-    private static final String labelOpEx = "(?!" + allRegNames + ")(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
+    private static final String labelOpEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
     private static final String operandRegEx = "\\s*(?<operand>" + constOpRegEx + "|" + regOpRegEx + "|" + memOpRegEx + "|" + labelOpEx + ")\\s*";
 
     /**
@@ -294,13 +294,18 @@ public class X86Parser {
 
             op = new MemoryOperand(baseReg, indexReg, scale, offset, opReqs.getSize());
         } else if (labelMatcher.matches()) {
+            String labelName = labelMatcher.group("label");
+            if (labelName.matches(allRegNames))
+                throw new X86ParsingException("Possibly missing % before register name", 
+                                                labelMatcher.start(), 
+                                                labelMatcher.end());
+            
             // Found a label operand
              if (!opReqs.canBeLabel())
                 throw new X86ParsingException("operand cannot be a label", 
                                                 labelMatcher.start(), 
                                                 labelMatcher.end());
             
-            String labelName = labelMatcher.group("label");
             op = new LabelOperand(labelName, labels.get(labelName));
         } else {
             // TODO: throw X86ParsingException here
@@ -488,6 +493,11 @@ public class X86Parser {
         } else {
             // This line contains a label
             String labelName = labelMatcher.group("label");
+            
+            if (labelName.matches(allRegNames))
+                throw new X86ParsingException("Label name should not be a register name", 
+                                                labelMatcher.start("label"), 
+                                                labelMatcher.end("label"));
 
             // Make sure this label doesn't already exist
             if (labels.containsKey(labelName)) {
