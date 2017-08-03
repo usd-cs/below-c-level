@@ -88,13 +88,6 @@
               <MenuItem fx:id="exitMenuItem" mnemonicParsing="false" text="Exit" />
             </items>
           </Menu>
-            <Menu fx:id="editOption" mnemonicParsing="false" text="Edit">
-              <items>
-                <MenuItem fx:id="undoMenuItem" mnemonicParsing="false" text="Undo" />
-                  <MenuItem fx:id="redoMenuItem" mnemonicParsing="false" text="Redo" />
-                  <MenuItem fx:id="reorderMenuItem" mnemonicParsing="false" text="Reorder" />
-              </items>
-            </Menu>
             <Menu mnemonicParsing="false" text="Simulation">
               <items>
                 <MenuItem fx:id="forwardMenuItem" mnemonicParsing="false" text="Step Forward" />
