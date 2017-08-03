@@ -173,6 +173,8 @@ public class FXMLDocumentController implements Initializable {
      * Parser for current tab.
      */
     private X86Parser parser;
+    
+    ListCell<x86ProgramLine> cellBeingEdited;
 
     /**
      * Comparator for registers, based on their relative prominence then their
@@ -524,6 +526,15 @@ public class FXMLDocumentController implements Initializable {
 
         if (loadFile != null) {
             lastLoadedFileName = loadFile.getAbsolutePath();
+            
+            // make sure we don't already have that file open in another tab
+            for (Map.Entry<Tab, TabState> entry : tabMap.entrySet()) {
+                String tabFileName = entry.getValue().getCurrFileName();
+                if (tabFileName != null && tabFileName.equals(lastLoadedFileName)) {
+                    // TODO: alert box?
+                    return;
+                }
+            }
 
             BufferedReader bufferedReader = null;
             ArrayList<String> instrTmp = new ArrayList<>();
@@ -655,6 +666,14 @@ public class FXMLDocumentController implements Initializable {
                 lastLoadedFileName = tabMap.get(t).getCurrFileName();
                 updateStateDisplays();
             }
+            instrText.setOnKeyPressed(this::parseAndAddInstruction);
+            instrText.setStyle("-fx-control-inner-background: white;");
+            instrText.clear();
+            entryStatusLabel.setText(null);
+            if (cellBeingEdited != null) {
+                cellBeingEdited.setStyle("");
+                cellBeingEdited = null;
+            }
         });
         t.setOnCloseRequest((event) -> {
             if (tabMap.get(t).getCurrTabIsEdited()) {
@@ -669,6 +688,7 @@ public class FXMLDocumentController implements Initializable {
             if (listViewTabPane.getTabs().isEmpty()) {
                 createTab("New File", new ArrayList<>(), new ListView<>(), new X86Parser(), null);
             }
+            tabMap.remove(t);
         });
         listViewTabPane.getSelectionModel().select(t);
     }
@@ -727,6 +747,7 @@ public class FXMLDocumentController implements Initializable {
             instrText.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
             entryStatusLabel.setText("Editing line " + cell.getItem().getLineNum());
             cell.setStyle("-fx-background-color: #77c0f4;");
+            cellBeingEdited = cell;
 
             // Change instruction entry box to replace instruction rather
             // than adding a new one at the end.
@@ -760,6 +781,7 @@ public class FXMLDocumentController implements Initializable {
                             }
                             i++;
                         }
+                        cellBeingEdited = null; // oh whale
 
                         instrText.clear();
                         restartSim(null);
