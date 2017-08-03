@@ -513,9 +513,6 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void loadFile(Event event) {
-        // Force user to reset? All previously entered instructions are removed currently
-        //clearSim();
-
         FileChooser loadFileChoice = new FileChooser();
         loadFileChoice.setTitle("Open File");
 
@@ -575,8 +572,6 @@ public class FXMLDocumentController implements Initializable {
                 }
             }
             List<String> newRegHistory = new ArrayList<>();
-            List<MachineState> newStateHistory = new ArrayList<>();
-            newStateHistory.add(new MachineState());
 
             if (!newInstrs.getItems().isEmpty()) {
                 newRegHistory.addAll(newInstrs.getItems().get(0).getUsedRegisters());
@@ -601,9 +596,10 @@ public class FXMLDocumentController implements Initializable {
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
         saveFileChoice.getExtensionFilters().add(extFilter);
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
-        lastLoadedFileName = file.getAbsolutePath();
-        listViewTabPane.getSelectionModel().getSelectedItem().setText(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1));
+        
         if (file != null) {
+            lastLoadedFileName = file.getAbsolutePath();
+            listViewTabPane.getSelectionModel().getSelectedItem().setText(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1));
             try {
                 FileWriter fileWriter = new FileWriter(file);
                 for (int i = 0; i < instrList.getItems().size(); i++) {
