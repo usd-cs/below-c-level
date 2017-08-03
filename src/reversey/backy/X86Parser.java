@@ -24,7 +24,7 @@ public class X86Parser {
     private static final String constOpRegEx = "\\$(?<const>-?\\p{Digit}+)";
     private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
     private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
-    private static final String labelOpEx = "(?<label>\\w+)";
+    private static final String labelOpEx = "(?<label>[\\.\\w]+)";
     private static final String operandRegEx = "\\s*(?<operand>" + constOpRegEx + "|" + regOpRegEx + "|" + memOpRegEx + "|" + labelOpEx + ")\\s*";
 
     /**
@@ -393,7 +393,7 @@ public class X86Parser {
         }
         
         Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
-        Matcher labelMatcher = Pattern.compile("\\s*(?<label>\\w+):\\s*").matcher(instr);
+        Matcher labelMatcher = Pattern.compile("\\s*" + labelOpEx + ":\\s*").matcher(instr);
         
         // The line should be either a label or an instruction
         if (!instMatcher.matches() && !labelMatcher.matches()) {
