@@ -53,7 +53,7 @@ public class x86NullaryInstruction extends x86Instruction {
         Map<String, Boolean> flags = new HashMap<>();
         
         // step 1: store (%rsp) value in rip register 
-        MemoryOperand src = new MemoryOperand("rsp", null, 1, 0, this.opSize);
+        MemoryOperand src = new MemoryOperand("rsp", null, null, null, this.opSize);
         MachineState tmp = state.cloneWithNewRIP(src.getValue(state).intValue());
 
         // step 2: add 8 to rsp
