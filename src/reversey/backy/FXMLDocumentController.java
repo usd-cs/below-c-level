@@ -531,7 +531,8 @@ public class FXMLDocumentController implements Initializable {
             for (Map.Entry<Tab, TabState> entry : tabMap.entrySet()) {
                 String tabFileName = entry.getValue().getCurrFileName();
                 if (tabFileName != null && tabFileName.equals(lastLoadedFileName)) {
-                    // TODO: alert box?
+                    // just open the tab that has this file open
+                    listViewTabPane.getSelectionModel().select(entry.getKey());
                     return;
                 }
             }
