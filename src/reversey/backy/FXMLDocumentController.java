@@ -312,13 +312,10 @@ public class FXMLDocumentController implements Initializable {
          */
         saveMenuItem.setOnAction((event) -> {
             if (lastLoadedFileName != null) {
-                try {
-                    File file = new File(lastLoadedFileName);
-                    FileWriter fW = new FileWriter(file);
+                try (FileWriter fW = new FileWriter(new File(lastLoadedFileName))) {
                     for (int i = 0; i < instrList.getItems().size(); i++) {
                         fW.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                     }
-                    fW.close();
                     tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(false);
                 } catch (IOException e) {
                     System.out.println("File cannot be saved.");
@@ -536,22 +533,15 @@ public class FXMLDocumentController implements Initializable {
 
             BufferedReader bufferedReader = null;
             ArrayList<String> instrTmp = new ArrayList<>();
-            try {
-                bufferedReader = new BufferedReader(new FileReader(loadFile));
+            try (BufferedReader br = new BufferedReader(new FileReader(loadFile))) {
                 String tmp;
-                while ((tmp = bufferedReader.readLine()) != null) {
+                while ((tmp = br.readLine()) != null) {
                     instrTmp.add(tmp.trim());
                 }
             } catch (FileNotFoundException e) {
                 System.out.println("File does not exist: please choose a valid text file.");
             } catch (IOException e) {
                 System.out.println("Invalid file.");
-            } finally {
-                try {
-                    bufferedReader.close();
-                } catch (IOException e) {
-                    System.out.println("Invalid file.");
-                }
             }
 
             ListView<x86ProgramLine> newInstrs = new ListView<>();
@@ -600,15 +590,12 @@ public class FXMLDocumentController implements Initializable {
         if (file != null) {
             lastLoadedFileName = file.getAbsolutePath();
             listViewTabPane.getSelectionModel().getSelectedItem().setText(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1));
-            try {
-                FileWriter fileWriter = new FileWriter(file);
+            try (FileWriter fw = new FileWriter(file)) {
                 for (int i = 0; i < instrList.getItems().size(); i++) {
-                    fileWriter.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
+                    fw.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                 }
-                fileWriter.close();
                 tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(false);
             } catch (IOException ex) {
-                //TODO: ?
                 System.out.println("Unable to save to file.");
             }
         }
