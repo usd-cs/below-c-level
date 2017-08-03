@@ -21,7 +21,10 @@ public class X86Parser {
     private static final String allRegNames = "(" + qRegNames + "|" + lRegNames + "|" + wRegNames + "|" + bRegNames + ")";
 
     // Regular expressions used for parsing operands
-    private static final String constOpRegEx = "\\$?(?<const>-?\\p{Digit}+)";
+    private static final String decimalNumEx = "-?(?!0x)\\p{Digit}+";
+    private static final String hexNumEx = "-?0x\\p{XDigit}+";
+    private static final String constOpRegEx = "\\$?(?<const>" + decimalNumEx + "|" + hexNumEx + ")";
+
     private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
     private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
     private static final String labelOpEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
@@ -199,8 +202,14 @@ public class X86Parser {
             
             // TODO: make sure constant fits in the size of the constant
             
-            op = new ConstantOperand(Integer.parseInt(constMatcher.group("const")), 
-                                        opReqs.getSize()); // TODO: handle hex
+            String constStr = constMatcher.group("const");
+            int base = 10;
+            if (constStr.contains("0x")) {
+                base = 16;
+                constStr = constStr.replace("0x", "");
+            }
+            op = new ConstantOperand(Integer.parseInt(constStr, base), 
+                                        opReqs.getSize());
         } else if (regMatcher.matches()) {
             // Found a register operand
             if (!opReqs.canBeReg())
