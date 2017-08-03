@@ -26,19 +26,19 @@ class MemoryOperand extends Operand {
     /**
      * The scaling factor for the index register.
      */
-    private final int scale;
+    private final Optional<Integer> scale;
 
     /**
      * The offset amount.
      */
-    private final int offset;
+    private final Optional<Integer> offset;
 
-    public MemoryOperand(String baseReg, String indexReg, int scale, int offset, OpSize opSize) {
+    public MemoryOperand(String baseReg, String indexReg, Integer scale, Integer offset, OpSize opSize) {
         super(opSize);
         this.baseReg = Optional.ofNullable(baseReg);
         this.indexReg = Optional.ofNullable(indexReg);
-        this.scale = scale;
-        this.offset = offset;
+        this.scale = Optional.ofNullable(scale);
+        this.offset = Optional.ofNullable(offset);
     }
 
     /**
@@ -49,11 +49,13 @@ class MemoryOperand extends Operand {
      * @return The effective address.
      */
     public long calculateAddress(MachineState state) {
-        long address = offset;
+        long address = offset.isPresent() ? offset.get() : 0;
+        long scaleFactor = scale.isPresent() ? scale.get() : 1;
         if (baseReg.isPresent()) 
             address = state.getRegisterValue(baseReg.get()).add(BigInteger.valueOf(address)).longValue();
         if (indexReg.isPresent()) {
-            address += state.getRegisterValue(indexReg.get()).multiply(BigInteger.valueOf(scale)).longValue();
+            BigInteger indexRegVal = state.getRegisterValue(indexReg.get());
+            address += indexRegVal.multiply(BigInteger.valueOf(scaleFactor)).longValue();
         }
 
         return address;
@@ -81,12 +83,21 @@ class MemoryOperand extends Operand {
 
     @Override
     public String toString() {
-        String res = offset + "(%" + baseReg.get();
-        if (indexReg.isPresent()) {
-            res += ", %" + indexReg.get() + ", " + scale;
-        }
+        String res = "";
+        if (offset.isPresent()) res += offset.get();
+        if (baseReg.isPresent() || indexReg.isPresent()) {
+            res += "(";
+            
+            if (baseReg.isPresent())
+                res += "%" + baseReg.get();
+            if (indexReg.isPresent()) {
+                res += ",%" + indexReg.get();
+                if (scale.isPresent())
+                    res += "," + scale.get();
+            }
 
-        res += ")";
+            res += ")";
+        }
         return res;
     }
 }

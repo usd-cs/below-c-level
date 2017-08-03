@@ -237,7 +237,7 @@ public class X86Parser {
             // Note that our regular expression should eliminate the possiblity
             // of getting a memory operand with no components present.
             // Look for an offset, which can be any integral value
-            int offset = 0;
+            Integer offset = null;
             String offsetStr = memMatcher.group("imm");
             if (offsetStr != null) {
                 offset = Integer.parseInt(offsetStr); // TODO: handle hex
@@ -281,7 +281,7 @@ public class X86Parser {
             }
 
             // Look for a scaling factor, which should be 1, 2, 4, or 8
-            int scale = 1;
+            Integer scale = null;
             String scaleStr = memMatcher.group("scale");
             if (scaleStr != null) {
                 scale = Integer.parseInt(scaleStr);
