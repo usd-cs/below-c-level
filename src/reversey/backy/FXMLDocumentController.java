@@ -316,7 +316,7 @@ public class FXMLDocumentController implements Initializable {
                     for (int i = 0; i < instrList.getItems().size(); i++) {
                         fW.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                     }
-                    tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(false);
+                    tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(false);
                 } catch (IOException e) {
                     System.out.println("File cannot be saved.");
                 }
@@ -491,7 +491,7 @@ public class FXMLDocumentController implements Initializable {
                 parseErrorText.setText(null);
                 parseErrorText.setGraphic(null);
                 instrText.clear();
-                tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(true);
+                tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(true);
             } catch (X86ParsingException e) {
                 // If we had a parsing error, set the background to pink,
                 // select the part of the input that reported the error,
@@ -526,7 +526,7 @@ public class FXMLDocumentController implements Initializable {
             
             // make sure we don't already have that file open in another tab
             for (Map.Entry<Tab, TabState> entry : tabMap.entrySet()) {
-                String tabFileName = entry.getValue().getCurrFileName();
+                String tabFileName = entry.getValue().getFileName();
                 if (tabFileName != null && tabFileName.equals(lastLoadedFileName)) {
                     // just open the tab that has this file open
                     listViewTabPane.getSelectionModel().select(entry.getKey());
@@ -596,7 +596,7 @@ public class FXMLDocumentController implements Initializable {
                 for (int i = 0; i < instrList.getItems().size(); i++) {
                     fw.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                 }
-                tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(false);
+                tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(false);
             } catch (IOException ex) {
                 System.out.println("Unable to save to file.");
             }
@@ -644,12 +644,12 @@ public class FXMLDocumentController implements Initializable {
 
         t.setOnSelectionChanged((event) -> {
             if (t.isSelected()) {
-                instrList = tabMap.get(t).getCurrTabInstrList();
-                stateHistory = tabMap.get(t).getCurrTabStateHistory();
-                regHistory = tabMap.get(t).getCurrTabRegHistory();
+                instrList = tabMap.get(t).getInstrList();
+                stateHistory = tabMap.get(t).getStateHistory();
+                regHistory = tabMap.get(t).getRegHistory();
                 X86Parser oldParser = parser;
-                parser = tabMap.get(t).getCurrTabParser();
-                lastLoadedFileName = tabMap.get(t).getCurrFileName();
+                parser = tabMap.get(t).getParser();
+                lastLoadedFileName = tabMap.get(t).getFileName();
                 updateStateDisplays();
             }
             instrText.setOnKeyPressed(this::parseAndAddInstruction);
@@ -662,7 +662,7 @@ public class FXMLDocumentController implements Initializable {
             }
         });
         t.setOnCloseRequest((event) -> {
-            if (tabMap.get(t).getCurrTabIsEdited()) {
+            if (tabMap.get(t).getIsEdited()) {
                 Alert closingConfirmation = new Alert(AlertType.CONFIRMATION);
                 closingConfirmation.setTitle("Closing Tab Confirmation");
                 closingConfirmation.setHeaderText("Unsaved changes");
@@ -757,7 +757,7 @@ public class FXMLDocumentController implements Initializable {
                         parseErrorText.setGraphic(null);
                         entryStatusLabel.setText(null);
                         cell.setStyle("");
-                        tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setCurrTabIsEdited(true);
+                        tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(true);
                         // Find where the existing instruction was and replace
                         // it with the new instruction.
                         int i = 0;

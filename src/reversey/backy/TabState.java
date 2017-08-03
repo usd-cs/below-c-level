@@ -15,56 +15,64 @@ import javafx.scene.control.ListView;
  */
 public class TabState {
 
-    private List<String> currTabRegHistory;
-    private List<MachineState> currTabStateHistory;
-    private ListView<x86ProgramLine> currTabInstrList;
-    private X86Parser currTabParser;
-    private String currTabFileName;
-    private boolean currTabIsEdited;
+    private final List<String> regHistory;
+    private final List<MachineState> stateHistory;
+    private final ListView<x86ProgramLine> instrList;
+    private final X86Parser parser;
+    private String fileName;
+    private boolean isEdited;
 
     public TabState() {
-        this.currTabRegHistory = new ArrayList<String>();
-        this.currTabStateHistory = new ArrayList<MachineState>();
-        this.currTabInstrList = new ListView<x86ProgramLine>();
-        this.currTabParser = new X86Parser();
-        this.currTabFileName = null;
-        this.currTabIsEdited = false;
+        this.regHistory = new ArrayList<>();
+        this.stateHistory = new ArrayList<>();
+        this.instrList = new ListView<>();
+        this.parser = new X86Parser();
+        this.fileName = null;
+        this.isEdited = false;
     }
 
-    public TabState(List<String> tabRegs, List<MachineState> tabStates, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
-        this.currTabRegHistory = tabRegs;
-        this.currTabStateHistory = tabStates;
-        this.currTabInstrList = tabInstrList;
-        this.currTabParser = tabParser;
-        this.currTabFileName = tabFileName;
-        this.currTabIsEdited = false;
+    public TabState(List<String> regHistory,
+                    List<MachineState> stateHistory, 
+                    ListView<x86ProgramLine> instrList,
+                    X86Parser parser, 
+                    String fileName) {
+        this.regHistory = regHistory;
+        this.stateHistory = stateHistory;
+        this.instrList = instrList;
+        this.parser = parser;
+        this.fileName = fileName;
+        this.isEdited = false;
     }
 
-    public List<String> getCurrTabRegHistory() {
-        return this.currTabRegHistory;
+    public List<String> getRegHistory() {
+        return this.regHistory;
     }
 
-    public List<MachineState> getCurrTabStateHistory() {
-        return this.currTabStateHistory;
+    public List<MachineState> getStateHistory() {
+        return this.stateHistory;
     }
 
-    public ListView<x86ProgramLine> getCurrTabInstrList() {
-        return this.currTabInstrList;
+    public ListView<x86ProgramLine> getInstrList() {
+        return this.instrList;
     }
 
-    public X86Parser getCurrTabParser() {
-        return this.currTabParser;
+    public X86Parser getParser() {
+        return this.parser;
     }
 
-    public String getCurrFileName() {
-        return this.currTabFileName;
+    public String getFileName() {
+        return this.fileName;
     }
     
-    public boolean getCurrTabIsEdited(){
-        return this.currTabIsEdited;
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
     
-    public void setCurrTabIsEdited(boolean b){
-        currTabIsEdited = b;
+    public boolean getIsEdited(){
+        return this.isEdited;
+    }
+    
+    public void setIsEdited(boolean b){
+        isEdited = b;
     }
 }
