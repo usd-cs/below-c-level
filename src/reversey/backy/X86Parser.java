@@ -209,7 +209,8 @@ public class X86Parser {
                 constStr = constStr.replace("0x", "");
             }
             op = new ConstantOperand(Integer.parseInt(constStr, base), 
-                                        opReqs.getSize());
+                                        opReqs.getSize(),
+                                        base);
         } else if (regMatcher.matches()) {
             // Found a register operand
             if (!opReqs.canBeReg())

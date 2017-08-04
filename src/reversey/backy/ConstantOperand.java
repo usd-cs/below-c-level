@@ -17,10 +17,17 @@ public class ConstantOperand extends Operand {
      * The operand's value.
      */
     private final long constant;
+    
+    /**
+     * The base representation that was entered by the user (e.g. 16 = hex)
+     */
+    private final int base;
 
-    public ConstantOperand(long val, OpSize size) {
+    public ConstantOperand(long val, OpSize size, int base) {
         super(size);
         this.constant = val;
+        assert(base == 10 || base == 16);
+        this.base = base;
     }
 
     @Override
@@ -41,7 +48,11 @@ public class ConstantOperand extends Operand {
 
     @Override
     public String toString() {
-        return "$" + constant;
+        String s = "$";
+        if (base == 16) s += "0x";
+        s += Long.toString(constant, base).toUpperCase();
+        s = s.replace("0x-", "-0x");
+        return s;
     }
 }
 
