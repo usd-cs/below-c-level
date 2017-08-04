@@ -158,6 +158,14 @@ public class x86UnaryInstruction extends x86Instruction {
         return modDest.updateState(tmp, Optional.of(modResult), new HashMap<>(), true);
     }
 
+    /**
+     * Perform the operation dest++.
+     *
+     * @param state The state in which to work.
+     * @param dest The operand that will be incremented and then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest+1)}.
+     */
     private MachineState inc(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).add(BigInteger.ONE);
 
@@ -170,6 +178,14 @@ public class x86UnaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation dest--.
+     *
+     * @param state The state in which to work.
+     * @param dest The operand that will be decremented and then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code (dest-1)}.
+     */
     private MachineState dec(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).subtract(BigInteger.ONE);
 
@@ -182,6 +198,14 @@ public class x86UnaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation -dest.
+     *
+     * @param state The state in which to work.
+     * @param dest The operand that will be negated and then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code -dest}.
+     */
     private MachineState neg(MachineState state, Operand dest) {
         BigInteger orig = dest.getValue(state);
 
@@ -200,12 +224,29 @@ public class x86UnaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Perform the operation ~dest.
+     *
+     * @param state The state in which to work.
+     * @param dest The operand whose bits will be inverted and then updated.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of {@code ~dest}.
+     */
     private MachineState not(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).not();
         Map<String, Boolean> flags = new HashMap<>();
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
+    /**
+     * Pushes the source operand onto the stack..
+     *
+     * @param state The state in which to work.
+     * @param src The operand that will written to the top of the stack.
+     * @return A clone of {@code state}, but with an incremented rip, {@code %rsp}
+     * decremented by 8 and memory updated to contain {@code src} at the address
+     * {@code %rsp}.
+     */
     private MachineState push(MachineState state, Operand src) {
         Map<String, Boolean> flags = new HashMap<>();
 
@@ -219,6 +260,15 @@ public class x86UnaryInstruction extends x86Instruction {
         return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags, true);
     }
 
+    /**
+     * Pops the value off the top of the stack, storing it in dest.
+     *
+     * @param state The state in which to work.
+     * @param dest The location where the popped value will be stored.
+     * @return A clone of {@code state}, but with an incremented rip, 
+     * {@code dest} updated with the value at {@code %rsp}, and {@code %rsp}
+     * incremented by 8.
+     */
     private MachineState pop(MachineState state, Operand dest) {
         Map<String, Boolean> flags = new HashMap<>();
 
@@ -232,12 +282,29 @@ public class x86UnaryInstruction extends x86Instruction {
         return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
     }
 
+    /**
+     * Sets dest to 0 or 1 based on the condition associated with this instruction.
+     *
+     * @param state The state in which to work.
+     * @param dest The operand that will be set to 0 or 1 based on the condition.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} updated with the value of 0 or 1 based on the condition.
+     */
     private MachineState set(MachineState state, Operand dest) {
         assert this.conditionCheck.isPresent();
         BigInteger result = this.conditionCheck.get().test(state) ? BigInteger.ONE : BigInteger.ZERO;
         return dest.updateState(state, Optional.of(result), new HashMap<>(), true);
     }
 
+    /**
+     * Jumps to a destination if the instruction's condition is true, otherwise
+     * falling through to the next instruction after the jump.
+     *
+     * @param state The state in which to work.
+     * @param dest The label we will jump to.
+     * @return A clone of {@code state}, but with a rip changed based on the
+     * result of the condition.
+     */
     private MachineState jump(MachineState state, Operand dest) {
         assert this.conditionCheck.isPresent();
         Map<String, Boolean> flags = new HashMap<>();
@@ -248,6 +315,15 @@ public class x86UnaryInstruction extends x86Instruction {
         }
     }
 
+    /**
+     * Jumps to a destination, storing the location of the next instruction (i.e.
+     * the return address) onto the stack.
+     *
+     * @param state The state in which to work.
+     * @param dest The label we will jump to.
+     * @return A clone of {@code state}, but with a rip set to the address of
+     * {@code dest} and the memory updated to contain rip+1 at the top of the stack.
+     */
     private MachineState call(MachineState state, Operand dest) {
         Map<String, Boolean> flags = new HashMap<>();
 
