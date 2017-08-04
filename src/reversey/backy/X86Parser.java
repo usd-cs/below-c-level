@@ -49,6 +49,8 @@ public class X86Parser {
         labelUsers = new HashMap<>();
     }
     
+
+    
     /**
      * Class to represent information about the instruction being parsed,
      * including it's type, size, and operand requirements.
@@ -679,16 +681,15 @@ public class X86Parser {
 
 /**
  * A class representing the requirements for an operand.
- * 
- * @author sat
  */
 class OperandRequirements {
+
     private final OpSize size;
     private final boolean canBeConst;
     private final boolean canBeReg;
     private final boolean canBeMem;
     private final boolean canBeLabel;
-    
+
     public OperandRequirements(OpSize size, boolean con, boolean reg, boolean mem, boolean lab) {
         this.size = size;
         this.canBeConst = con;
@@ -696,10 +697,24 @@ class OperandRequirements {
         this.canBeMem = mem;
         this.canBeLabel = lab;
     }
-    
-    public OpSize getSize() { return this.size; }
-    public boolean canBeConst() { return this.canBeConst; }
-    public boolean canBeReg() { return this.canBeReg; }
-    public boolean canBeMem() { return this.canBeMem; }
-    public boolean canBeLabel() { return this.canBeLabel; }
+
+    public OpSize getSize() {
+        return this.size;
+    }
+
+    public boolean canBeConst() {
+        return this.canBeConst;
+    }
+
+    public boolean canBeReg() {
+        return this.canBeReg;
+    }
+
+    public boolean canBeMem() {
+        return this.canBeMem;
+    }
+
+    public boolean canBeLabel() {
+        return this.canBeLabel;
+    }
 }
