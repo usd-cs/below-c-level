@@ -70,8 +70,7 @@ public class X86Parser {
      * Checks that instruction is a valid, supported x86 instruction.
      *
      * @param instrName The name of the instruction (e.g. addl)
-     * @return A pair containing both the instruction type and op size unary
-     * instruction.
+     * @return Object containing the type and the operand requirements for this instruction.
      * @throws X86ParsingException If it is not a valid instruction or if the
      * size suffix is invalid.
      */
@@ -178,8 +177,7 @@ public class X86Parser {
      * Construct an operand based on a given string.
      *
      * @param str String containing the operand at the beginning.
-     * @param instrOpSize The size of the instruction that will use this *
-     * operand.
+     * @param opReqs The requirements for this operand.
      * @return The parsed operand.
      * @throws X86ParsingException There was an error parsing the string.
      */
@@ -344,7 +342,7 @@ public class X86Parser {
      * comma separated.
      *
      * @param operandsStr The string to parse for operands.
-     * @param opSize The expected size of the operand.
+     * @param opReqs List of requirements for each operand that is expected.
      * @return The list of operands that were parsed.
      * @throws X86ParsingException There was a problem parsing the operands.
      */
@@ -400,7 +398,7 @@ public class X86Parser {
      * Create an x86-64 instruction by parsing a given string.
      *
      * @param instr A string representation of the instruction.
-     * @return The parsed instruction.
+     * @return The parsed line.
      * @throws X86ParsingException There was a problem parsing the line.
      */
     public x86ProgramLine parseLine(String instr) throws X86ParsingException {
@@ -542,20 +540,42 @@ public class X86Parser {
         // TODO: allow lines that contain both a label and an instruction?
     }
 
+    /**
+     * Resets the parser back to its starting state.
+     */
     public void clear() {
         labels.clear();
         labelUsers.clear();
         currLineNum = 0;
     }
     
+    /**
+     * Sets the line number of next parsed line.
+     * 
+     * @param l The next line number.
+     */
     public void setCurrLineNum(int l) {
         if (l >= 0) currLineNum = l;
     }
     
+    /**
+     * Removes the given label from our parser.
+     * 
+     * @param labelName The label to remove.
+     */
     public void removeLabel(String labelName){
         labels.remove(labelName);
     }
     
+    /**
+     * Returns a list of operand requirements for an instruction of the given type
+     * with the given operand sizes.
+     * 
+     * @param type The type of the instruction.
+     * @param sizes A List of sizes for the operands the instruction expects.
+     * 
+     * @return A List containing the requirements for each of the operands of the instruction.
+     */
     private static List<OperandRequirements> getOperandReqs(InstructionType type, List<OpSize> sizes) {
         List<OperandRequirements> opReqs = new ArrayList<>();
         
@@ -658,6 +678,11 @@ public class X86Parser {
     }
 }
 
+/**
+ * A class representing the requirements for an operand.
+ * 
+ * @author sat
+ */
 class OperandRequirements {
     private final OpSize size;
     private final boolean canBeConst;
