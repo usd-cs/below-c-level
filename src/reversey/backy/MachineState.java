@@ -447,33 +447,14 @@ public class MachineState {
             Pair<Integer, Integer> range = getByteRange(regName);
             int startIndex = range.getKey();
             int endIndex = range.getValue();
+            
+            System.out.println("startIndex = " + startIndex);
+            System.out.println("endIndex = " + endIndex);
 
             reg = new HashMap<>(this.registers);
 
             byte[] newVal = getExtendedByteArray(val.get(), (endIndex - startIndex), (endIndex - startIndex), false);
 
-            /*
-            byte[] valArray = val.get().toByteArray();
-            byte[] newVal = new byte[endIndex - startIndex];
-
-            // The value may be small enough that it doesn't need all of the
-            // bytes available in newVal. We'll entryStartAddr the process of filling
-            // in newVal by copying over what bytes we have at the appropriate
-            // offset (since java is big endian).
-            for (int src = 0, dest = (newVal.length - valArray.length);
-                    src < valArray.length; src++, dest++) {
-                newVal[dest] = valArray[src];
-            }
-
-            // Fill in unused parts of newVal by sign extending.
-            // Note that all bytes newVal are initialized to 0 so we only need
-            // to make changes when this is a negative number.
-            if (val.get().signum() == -1) {
-                for (int i = 0; i < newVal.length - valArray.length; i++) {
-                    newVal[i] = (byte) 0xFF;
-                }
-            }
-             */
             byte[] newValQuad = Arrays.copyOf(this.registers.get(quadName).getValue(), 8);
             for (int src = 0, dest = startIndex; dest < endIndex; src++, dest++) {
                 newValQuad[dest] = newVal[src];
@@ -482,7 +463,8 @@ public class MachineState {
             // Long word registers (e.g. eax) are special in that we zero extend
             // them to fill the whole quad word. Other register sizes don't get
             // extended (e.g. al only modifies the least significant byte).
-            if (startIndex == 4 && endIndex == 7) {
+            if (startIndex == 4 && endIndex == 8) {
+                System.out.println("zero filling long to quad");
                 for (int i = 0; i < 4; i++) {
                     newValQuad[i] = 0;
                 }
