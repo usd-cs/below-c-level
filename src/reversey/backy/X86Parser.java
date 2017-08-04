@@ -85,7 +85,7 @@ public class X86Parser {
          * "add") followed by a single character suffix to indicate the size
          * (e.g. "q").
          */
-        String validSizedInstrNames = "(?<name>add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret)(?<size>b|w|l|q)";
+        String validSizedInstrNames = "(?<name>add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret|clt)(?<size>b|w|l|q)";
         Matcher sizedInstrMatcher = Pattern.compile(validSizedInstrNames).matcher(instrName);
         
         /*
@@ -109,7 +109,7 @@ public class X86Parser {
             type = InstructionType.valueOf(sizedInstrMatcher.group("name").toUpperCase());
 
             // some instructions can only be quad sized so check for that first
-            if (sizedInstrMatcher.group("name").matches("(lea|push|pop|call|ret)")
+            if (sizedInstrMatcher.group("name").matches("(lea|push|pop|call|ret|clt)")
                     && !sizedInstrMatcher.group("size").equals("q")) {
                 throw new X86ParsingException("instruction must have quad suffix (i.e. q)",
                         sizedInstrMatcher.start("size"),
@@ -670,7 +670,8 @@ public class X86Parser {
                 break;
                 
             case RET:
-                // ret has no operands
+            case CLT:
+                // these are nullary instructions (i.e. no operands)
                 break;
             default:
         }

@@ -41,6 +41,9 @@ public class x86NullaryInstruction extends x86Instruction {
         this.comment = Optional.ofNullable(c);
 
         switch (instType) {
+            case CLT:
+                this.operation = this::clt;
+                break;
             case RET:
                 this.operation = this::ret;
                 break;
@@ -49,6 +52,18 @@ public class x86NullaryInstruction extends x86Instruction {
         }
     }
 
+    public MachineState clt(MachineState state) {
+        // Gets the value of eax, sign extends it then updates rax with that value
+        RegOperand eaxReg = new RegOperand("eax", OpSize.LONG);
+        BigInteger eaxVal = eaxReg.getValue(state);
+        byte[] raxByteArray = MachineState.getExtendedByteArray(eaxVal, 4, 8, false);
+        BigInteger raxVal = new BigInteger(raxByteArray);
+        RegOperand raxReg = new RegOperand("rax", OpSize.QUAD);
+        
+        // TODO: make sure CLT doesn't update any status flags
+        return raxReg.updateState(state, Optional.of(raxVal), new HashMap<>(), true);
+    }
+    
     public MachineState ret(MachineState state) {
         Map<String, Boolean> flags = new HashMap<>();
         
@@ -84,6 +99,7 @@ public class x86NullaryInstruction extends x86Instruction {
         
         // Check for implicitly used registers
         if (this.type == InstructionType.RET) result.add("rsp");
+        else if (this.type == InstructionType.CLT) result.add("rax");
         return result;
     }
 }
