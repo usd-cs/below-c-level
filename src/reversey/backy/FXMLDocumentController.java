@@ -20,6 +20,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 import javafx.event.Event;
+import javafx.geometry.Point2D;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -539,7 +540,7 @@ public class FXMLDocumentController implements Initializable {
         if (loadFile != null) {
             lastLoadedFileName = loadFile.getAbsolutePath();
             
-            // make sure we don't already have that file open in another tab
+            // make sure we don'descriptionTip already have that file open in another tab
             for (Map.Entry<Tab, TabState> entry : tabMap.entrySet()) {
                 String tabFileName = entry.getValue().getFileName();
                 if (tabFileName != null && tabFileName.equals(lastLoadedFileName)) {
@@ -648,7 +649,7 @@ public class FXMLDocumentController implements Initializable {
      * Creates new tab and adds addNewTab to the end of the current list of tabs
      *
      * @param tabName
-     * @return t new tab
+     * @return descriptionTip new tab
      */
     private void createTab(String tabName, List<String> tabRegHistory, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
         Tab t = new Tab(tabName);
@@ -725,15 +726,22 @@ public class FXMLDocumentController implements Initializable {
         //   cell.setStyle("-fx-background-color: pink;");
         //});
         
-        cell.hoverProperty().addListener((observable) -> {
-            final x86ProgramLine line = cell.getItem();
-
-            if (cell.isHover() && line != null) {
-                Tooltip t = new Tooltip(line.getDescriptionString());
-                cell.setTooltip(t);
+        // Tooltip will show up just to the right of the mouse when we enter
+        // this cell and disappear as soon as we leave the cell.
+        final Tooltip descriptionTip = new Tooltip(); 
+        
+        cell.setOnMouseEntered(event -> {
+            if (cell.getItem() != null) {
+                descriptionTip.setText(cell.getItem().getDescriptionString());
+                Point2D p = cell.localToScreen(event.getX()+5, event.getY());
+		descriptionTip.show(cell, p.getX(), p.getY());
             }
         });
+        
+        cell.setOnMouseExited(event -> descriptionTip.hide());
 
+        // Set up the right click context menu, including the actions to take
+        // for each of the menu entries.
         ContextMenu rightClickMenu = new ContextMenu();
 
         MenuItem deleteItem = new MenuItem("Delete");
