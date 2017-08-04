@@ -484,7 +484,6 @@ public class x86BinaryInstruction extends x86Instruction {
      */
     public MachineState movz(MachineState state, Operand src, Operand dest) {
         BigInteger orig = src.getValue(state);
-        // FIXME: constants are wrong!
         byte[] extendedOrig = MachineState.getExtendedByteArray(orig, 
                                                 src.getOpSize().numBytes(), 
                                                 dest.getOpSize().numBytes(), 
