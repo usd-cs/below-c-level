@@ -327,8 +327,8 @@ public class x86BinaryInstruction extends x86Instruction {
      * {@code dest} updated with the value of {@code (dest << src)}.
      */
     public MachineState sal(MachineState state, Operand src, Operand dest) {
-        // FIXME: max shift amount should based on size of dest
-        int shamt = src.getValue(state).intValue() % 64; // max shift amount is 63
+        // destination size determines the maximum shift amount
+        int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
         BigInteger result = orig.shiftLeft(shamt);
 
@@ -366,8 +366,8 @@ public class x86BinaryInstruction extends x86Instruction {
      * {@code dest} updated with the value of {@code (dest >> src)}.
      */
     public MachineState sar(MachineState state, Operand src, Operand dest) {
-        // FIXME: max shift amount should based on size of dest
-        int shamt = src.getValue(state).intValue() % 64; // max shift amount is 63
+        // destination size determines the maximum shift amount
+        int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
         BigInteger result = orig.shiftRight(shamt);
 
@@ -404,8 +404,8 @@ public class x86BinaryInstruction extends x86Instruction {
      * {@code dest} updated with the value of {@code (dest >> src)}.
      */
     public MachineState shr(MachineState state, Operand src, Operand dest) {
-        // FIXME: max shift amount should based on size of dest
-        int shamt = src.getValue(state).intValue() % 64; // max shift amount is 63
+        // destination size determines the maximum shift amount
+        int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
 
         // BigInteger doesn't have logical right shift (>>>)
