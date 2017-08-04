@@ -26,9 +26,11 @@ public class X86Parser {
     private static final String constOpRegEx = "\\$?(?<const>" + decimalNumEx + "|" + hexNumEx + ")";
 
     private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
-    private static final String memOpRegEx = "(?<imm>-?\\p{Digit}+)?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
-    private static final String labelOpEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
-    private static final String operandRegEx = "\\s*(?<operand>" + constOpRegEx + "|" + regOpRegEx + "|" + memOpRegEx + "|" + labelOpEx + ")\\s*";
+    private static final String memOpRegEx = "(?<imm>" + decimalNumEx + "|" + hexNumEx + ")?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
+    private static final String labelOpRegEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
+    
+    // ordering is important here: constant must go after mem
+    private static final String operandRegEx = "\\s*(?<operand>" + memOpRegEx + "|" + regOpRegEx + "|" + labelOpRegEx + "|" + constOpRegEx + ")\\s*";
 
     /**
      * The line number that will be given to the next parsed line.
@@ -187,14 +189,15 @@ public class X86Parser {
         Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
         Matcher regMatcher = Pattern.compile(regOpRegEx).matcher(str);
         Matcher memMatcher = Pattern.compile(memOpRegEx).matcher(str);
-        Matcher labelMatcher = Pattern.compile(labelOpEx).matcher(str);
+        Matcher labelMatcher = Pattern.compile(labelOpRegEx).matcher(str);
 
         if (constMatcher.matches()) {
+            // Found a constant operand
             if (!str.contains("$"))
                 throw new X86ParsingException("Missing $ before constant", 
                                                 constMatcher.start(),
                                                 constMatcher.end());
-            // Found a constant operand
+
             if (!opReqs.canBeConst())
                 throw new X86ParsingException("operand cannot be a constant", 
                                                 constMatcher.start(),
@@ -254,7 +257,12 @@ public class X86Parser {
             Integer offset = null;
             String offsetStr = memMatcher.group("imm");
             if (offsetStr != null) {
-                offset = Integer.parseInt(offsetStr); // TODO: handle hex
+                int base = 10;
+                if (offsetStr.contains("0x")) {
+                    base = 16;
+                    offsetStr = offsetStr.replace("0x", "");
+                }
+                offset = Integer.parseInt(offsetStr, base);
             }
 
             // Look for a base register, which should be a quad sized register
@@ -308,6 +316,7 @@ public class X86Parser {
 
             op = new MemoryOperand(baseReg, indexReg, scale, offset, opReqs.getSize());
         } else if (labelMatcher.matches()) {
+            // Found a label operand
             String labelName = labelMatcher.group("label");
             if (labelName.matches(allRegNames))
                 throw new X86ParsingException("Possibly missing % before register name", 
@@ -410,7 +419,7 @@ public class X86Parser {
         }
         
         Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
-        Matcher labelMatcher = Pattern.compile("\\s*" + labelOpEx + ":\\s*").matcher(instr);
+        Matcher labelMatcher = Pattern.compile("\\s*" + labelOpRegEx + ":\\s*").matcher(instr);
         
         // The line should be either a label or an instruction
         if (!instMatcher.matches() && !labelMatcher.matches()) {
