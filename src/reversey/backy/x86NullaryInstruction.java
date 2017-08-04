@@ -52,7 +52,7 @@ public class x86NullaryInstruction extends x86Instruction {
         }
     }
 
-    public MachineState clt(MachineState state) {
+    private MachineState clt(MachineState state) {
         // Gets the value of eax, sign extends it then updates rax with that value
         RegOperand eaxReg = new RegOperand("eax", OpSize.LONG);
         BigInteger eaxVal = eaxReg.getValue(state);
@@ -64,7 +64,7 @@ public class x86NullaryInstruction extends x86Instruction {
         return raxReg.updateState(state, Optional.of(raxVal), new HashMap<>(), true);
     }
     
-    public MachineState ret(MachineState state) {
+    private MachineState ret(MachineState state) {
         Map<String, Boolean> flags = new HashMap<>();
         
         // step 1: store (%rsp) value in rip register 

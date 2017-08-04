@@ -119,7 +119,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A state that is a clone of the starting state but updated to account
      * for the execution of this instruction.
      */
-    public MachineState idiv(MachineState state, Operand src) {
+    private MachineState idiv(MachineState state, Operand src) {
         BigInteger src1 = state.getCombinedRegisterValue(opSize);
         BigInteger src2 = src.getValue(state);
         
@@ -156,7 +156,7 @@ public class x86UnaryInstruction extends x86Instruction {
         return modDest.updateState(tmp, Optional.of(modResult), new HashMap<>(), true);
     }
 
-    public MachineState inc(MachineState state, Operand dest) {
+    private MachineState inc(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).add(BigInteger.ONE);
 
         Map<String, Boolean> flags = new HashMap<>();
@@ -168,7 +168,7 @@ public class x86UnaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
-    public MachineState dec(MachineState state, Operand dest) {
+    private MachineState dec(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).subtract(BigInteger.ONE);
 
         Map<String, Boolean> flags = new HashMap<>();
@@ -180,7 +180,7 @@ public class x86UnaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
-    public MachineState neg(MachineState state, Operand dest) {
+    private MachineState neg(MachineState state, Operand dest) {
         BigInteger orig = dest.getValue(state);
         
         // The x64 manual states that neg does 0 - operand so we'll do the
@@ -198,13 +198,13 @@ public class x86UnaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
-    public MachineState not(MachineState state, Operand dest) {
+    private MachineState not(MachineState state, Operand dest) {
         BigInteger result = dest.getValue(state).not();
         Map<String, Boolean> flags = new HashMap<>();
         return dest.updateState(state, Optional.of(result), flags, true);
     }
 
-    public MachineState push(MachineState state, Operand src) {
+    private MachineState push(MachineState state, Operand src) {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: subtract 8 from rsp
@@ -217,7 +217,7 @@ public class x86UnaryInstruction extends x86Instruction {
         return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags, true);
     }
 
-    public MachineState pop(MachineState state, Operand dest) {
+    private MachineState pop(MachineState state, Operand dest) {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: store (%rsp) value in dest operand 
@@ -230,13 +230,13 @@ public class x86UnaryInstruction extends x86Instruction {
         return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
     }
 
-    public MachineState set(MachineState state, Operand dest) {
+    private MachineState set(MachineState state, Operand dest) {
         assert this.conditionCheck.isPresent();
         BigInteger result = this.conditionCheck.get().test(state) ? BigInteger.ONE : BigInteger.ZERO;
         return dest.updateState(state, Optional.of(result), new HashMap<>(), true);
     }
 
-    public MachineState jump(MachineState state, Operand dest) {
+    private MachineState jump(MachineState state, Operand dest) {
         assert this.conditionCheck.isPresent();
         Map<String, Boolean> flags = new HashMap<>();
         if(this.conditionCheck.get().test(state)){
@@ -246,7 +246,7 @@ public class x86UnaryInstruction extends x86Instruction {
         }
     }
     
-    public MachineState call(MachineState state, Operand dest) {
+    private MachineState call(MachineState state, Operand dest) {
         Map<String, Boolean> flags = new HashMap<>();
         
         // step 1: subtract 8 from rsp
