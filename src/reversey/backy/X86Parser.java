@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import javafx.util.Pair;
 
 /**
  * Class for parsing X86-64 programs.
