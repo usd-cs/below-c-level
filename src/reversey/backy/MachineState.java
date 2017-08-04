@@ -447,9 +447,6 @@ public class MachineState {
             Pair<Integer, Integer> range = getByteRange(regName);
             int startIndex = range.getKey();
             int endIndex = range.getValue();
-            
-            System.out.println("startIndex = " + startIndex);
-            System.out.println("endIndex = " + endIndex);
 
             reg = new HashMap<>(this.registers);
 
@@ -464,7 +461,6 @@ public class MachineState {
             // them to fill the whole quad word. Other register sizes don't get
             // extended (e.g. al only modifies the least significant byte).
             if (startIndex == 4 && endIndex == 8) {
-                System.out.println("zero filling long to quad");
                 for (int i = 0; i < 4; i++) {
                     newValQuad[i] = 0;
                 }
