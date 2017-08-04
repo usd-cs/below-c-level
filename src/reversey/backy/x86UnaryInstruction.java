@@ -301,5 +301,79 @@ public class x86UnaryInstruction extends x86Instruction {
         }
         return s;
     }
+
+    @Override
+    public String getDescriptionString() {
+            switch (this.type) {
+            case IDIV:
+                return "Concatenates %rdx and %rax, divides that by the operand and stores the quotient in %rax and the remainder in %rdx.";
+            case INC:
+                return "Increments the operand by 1.";
+            case DEC:
+                return "Decrements the operand by 1.";
+            case NEG:
+                return "Negates the operand (i.e. performs the - operation).";
+            case NOT:
+                return "Inverts all the bits of the operand (i.e. performs the ~ operation).";
+            case SETE:
+                return "Sets the operand to 1 if the result of the last comparison was equal/zero, otherwise 0 (i.e. operand = ZF)";
+            case SETNE:
+                return "Sets the operand to 1 if the result of the last comparison was not equal/zero, otherwise 0 (i.e. operand = ~ZF)";
+            case SETS:
+                return "Sets the operand to 1 if the result of the last operation was negative, otherwise 0 (i.e. operand = SF)";
+            case SETNS:
+                return "Sets the operand to 1 if the result of the last operation was non-negative, otherwise 0 (i.e. operand = ~SF)";
+            case SETG:
+                return "Sets the operand to 1 if the result of the last signed comparison was greater than, otherwise 0 (i.e. operand = ~(SF ^ OF) & ~ZF)";
+            case SETGE:
+                return "Sets the operand to 1 if the result of the last signed comparison was greater than or equal, otherwise 0 (i.e. operand = ~(SF ^ OF))";
+            case SETL:
+                return "Sets the operand to 1 if the result of the last signed comparison was less than, otherwise 0 (i.e. operand = SF ^ OF)";
+            case SETLE:
+                return "Sets the operand to 1 if the result of the last signed comparison was less than or equal, otherwise 0 (i.e. operand = (SF ^ OF) | ZF)";
+            case SETA:
+                return "Sets the operand to 1 if the result of the last unsigned comparison was greater than, otherwise 0 (i.e. operand = ~CF & ~ZF)";
+            case SETAE:
+                return "Sets the operand to 1 if the result of the last unsigned comparison was greater than or equal, otherwise 0 (i.e. operand = ~CF)";
+            case SETB:
+                return "Sets the operand to 1 if the result of the last unsigned comparison was less than, otherwise 0 (i.e. operand = CF)";
+            case SETBE:
+                return "Sets the operand to 1 if the result of the last unsigned comparison was less than or equal, otherwise 0 (i.e. operand = CF | ZF)";
+            case JE:
+                return "Jumps to the target if the result of the last comparison was equal, otherwise moves to next line (i.e. jump if ZF == 1)";
+            case JNE:
+                return "Jumps to the target if the result of the last comparison was not equal, otherwise moves to next line (i.e. jump if ZF == 0)";
+            case JS:
+                return "Jumps to the target if the result of the last operation was negative, otherwise moves to next line (i.e. jump if SF == 1)";
+            case JNS:
+                return "Jumps to the target if the result of the last operation was non-negative, otherwise moves to next line (i.e. jump if SF == 0)";
+            case JG:
+                return "Jumps to the target if the result of the last signed comparison was greater than, otherwise moves to next line (i.e. jump if ~(SF ^ OF) & ~ZF == 1)";
+            case JGE:
+                return "Jumps to the target if the result of the last signed comparison was greater than or equal, otherwise moves to next line (i.e. jump if ~(SF ^ OF) == 1)";
+            case JL:
+                 return "Jumps to the target if the result of the last signed comparison was less than, otherwise moves to next line (i.e. jump if SF ^ OF == 1)";
+            case JLE:
+                 return "Jumps to the target if the result of the last signed comparison was less than or equal, otherwise moves to next line (i.e. jump if (SF ^ OF) | ZF == 1)";
+            case JA:
+                 return "Jumps to the target if the result of the last unsigned comparison was greater than, otherwise moves to next line (i.e. jump if ~CF & ~ZF == 1)";
+            case JAE:
+                 return "Jumps to the target if the result of the last unsigned comparison was greater than or equal, otherwise moves to next line (i.e. jump if CF == 0)";
+            case JB:
+                 return "Jumps to the target if the result of the last unsigned comparison was less than, otherwise moves to next line (i.e. jump if CF == 1)";
+            case JBE:
+                 return "Jumps to the target if the result of the last unsigned comparison was less than or equal, otherwise moves to next line (i.e. jump if CF | ZF == 1)";
+            case JMP:
+                 return "Jumps to the target";
+            case PUSH:
+                return "Decrements %rsp by 8 and stores the operand at the updated value for %rsp.";
+            case POP:
+                return "Stores the value at the top of the stack into the operand and increments %rsp by 8.";
+            case CALL:
+                return "Pushes the return address (i.e. the address of the instruction after this call) onto the stack and jumps to the label";
+            default:
+                throw new RuntimeException("unsupported instr type: " + this.type);
+        }
+    }
 }
 

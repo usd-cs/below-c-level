@@ -8,6 +8,7 @@ import java.util.Set;
 
 @FunctionalInterface
 interface BinaryX86Operation {
+
     MachineState apply(MachineState state, Operand src, Operand dest);
 }
 
@@ -17,11 +18,12 @@ interface BinaryX86Operation {
  * @author Sat Garcia (sat@sandiego.edu)
  */
 public class x86BinaryInstruction extends x86Instruction {
+
     /**
      * The operand where the instruction will write its results.
      */
     protected Operand destination;
-    
+
     /**
      * An operand used solely as a source for the operation.
      */
@@ -46,7 +48,7 @@ public class x86BinaryInstruction extends x86Instruction {
         this.opSize = size;
         this.lineNum = line;
         this.comment = Optional.ofNullable(c);
-        
+
         switch (instType) {
             case ADD:
                 this.operation = this::add;
@@ -88,7 +90,7 @@ public class x86BinaryInstruction extends x86Instruction {
             case MOVS:
                 this.operation = this::mov;
                 break;
-           case MOVZ:
+            case MOVZ:
                 this.operation = this::movz;
                 break;
             case LEA:
@@ -101,7 +103,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation dest += src.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to add to {@code dest}.
      * @param dest The operand that will be added to and then updated.
@@ -119,62 +121,61 @@ public class x86BinaryInstruction extends x86Instruction {
         result = truncate(result);
 
         setSignAndZeroFlags(result, flags);
-        
+
         // If src1 and src2 are both negative, their msbs will both be 1, which
         // will always generate a carry out.
-        if (src1.signum() == -1 && src2.signum() == -1)
+        if (src1.signum() == -1 && src2.signum() == -1) {
             flags.put("cf", true);
-        
-        // If one src is negative and the other is non-negative, we can look
+        } // If one src is negative and the other is non-negative, we can look
         // at the sign of the result to determine whether there is a carry out
         // or not.
         else if ((src1.signum() == -1 || src2.signum() == -1)
                 && src1.signum() != src2.signum()
-                && result.signum() != -1)
+                && result.signum() != -1) {
             flags.put("cf", true);
-        else
+        } else {
             flags.put("cf", false);
-        
+        }
+
         return dest.updateState(state, Optional.of(result), flags, true);
     }
-    
+
     /**
      * Calculates the value for the carry flag (CF) of the operation a - b.
-     * 
+     *
      * @param a Value being subtracted from.
      * @param b The value to subtract.
-     * 
-     * @return {@code true} if a-b causes CF to be set, {@code false} otherwise. 
+     *
+     * @return {@code true} if a-b causes CF to be set, {@code false} otherwise.
      */
     private boolean calculateCarryForSub(BigInteger a, BigInteger b) {
         // cf set when both numbers have the same sign and a is less than
         // b (i.e. subtracing larger value from smaller value)
         if (((a.signum() >= 0 && b.signum() >= 0)
                 || (a.signum() == -1 && b.signum() == -1))
-              && a.compareTo(b) == -1) {
+                && a.compareTo(b) == -1) {
             return true;
-        }
-        
-        // also possible to get a cf when b is negative (i.e. has msb of 1)
+        } // also possible to get a cf when b is negative (i.e. has msb of 1)
         // while a is non-negative (i.e. msb is 0)
-        else if (a.signum() >= 0 && b.signum() == -1)
+        else if (a.signum() >= 0 && b.signum() == -1) {
             return true;
-        else
+        } else {
             return false;
+        }
     }
-    
+
     /**
      * Perform dest - src, storing the result back in dest only when specified.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The value being subtracted.
      * @param dest The value being subtracted from.
      * @param updateDest Whether to update the destination with the result.
-     * @return A clone of {@code state}, but with an incremented rip and,
-     * if specified, the destination updated with the value of {@code (dest-src)}.
+     * @return A clone of {@code state}, but with an incremented rip and, if
+     * specified, the destination updated with the value of {@code (dest-src)}.
      */
-    private MachineState subtract(MachineState state, Operand src, Operand dest, 
-                                    boolean updateDest) {
+    private MachineState subtract(MachineState state, Operand src, Operand dest,
+            boolean updateDest) {
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.subtract(src2);
@@ -184,18 +185,20 @@ public class x86BinaryInstruction extends x86Instruction {
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
         flags.put("cf", calculateCarryForSub(src1, src2));
         setSignAndZeroFlags(result, flags);
-        
-        if (updateDest)
+
+        if (updateDest) {
             return dest.updateState(state, Optional.of(result), flags, true);
-        else
+        } else {
             return dest.updateState(state, Optional.empty(), flags, true);
+        }
     }
 
     /**
      * Perform the operation dest -= src.
-     * 
+     *
      * @param state The state in which to work.
-     * @param src The operand specifying the value to subtract from {@code dest}.
+     * @param src The operand specifying the value to subtract from
+     * {@code dest}.
      * @param dest The operand that will be subtracted from then updated.
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest-src)}.
@@ -203,12 +206,13 @@ public class x86BinaryInstruction extends x86Instruction {
     private MachineState sub(MachineState state, Operand src, Operand dest) {
         return subtract(state, src, dest, true);
     }
- 
+
     /**
      * Perform the operation dest - src, without updating dest.
-     * 
+     *
      * @param state The state in which to work.
-     * @param src The operand specifying the value to subtract from {@code dest}.
+     * @param src The operand specifying the value to subtract from
+     * {@code dest}.
      * @param dest The operand that will be subtracted from.
      * @return A clone of {@code state}, but with an incremented rip and status
      * flags set accordingly.
@@ -216,10 +220,10 @@ public class x86BinaryInstruction extends x86Instruction {
     private MachineState cmp(MachineState state, Operand src, Operand dest) {
         return subtract(state, src, dest, false);
     }
-    
+
     /**
      * Perform the operation dest *= src.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to multiply by.
      * @param dest The operand that will be multiplied from then updated.
@@ -260,7 +264,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation dest ^= src.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to xor by.
      * @param dest The operand that will be xor'ed then updated.
@@ -275,7 +279,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation dest |= src.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to or by.
      * @param dest The operand that will be or'ed then updated.
@@ -290,7 +294,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation dest &= src.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to and by.
      * @param dest The operand that will be and'ed then updated.
@@ -305,7 +309,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation dest & src but without updating dest.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to and by.
      * @param dest The operand that will be and'ed.
@@ -319,7 +323,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation {@code dest <<= src}.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to shift by.
      * @param dest The operand that will be shifted left then updated.
@@ -350,7 +354,7 @@ public class x86BinaryInstruction extends x86Instruction {
             // doesn't it?
             flags.put("of", false);
         }
-        
+
         result = truncate(result);
 
         return dest.updateState(state, Optional.of(result), flags, true);
@@ -358,7 +362,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation {@code dest >>= src} (i.e. arithmetic shift right).
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to shift by.
      * @param dest The operand that will be shifted right then updated.
@@ -396,7 +400,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation {@code dest >>>= src} (i.e. logical shift right).
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to shift by.
      * @param dest The operand that will be shifted right then updated.
@@ -437,7 +441,6 @@ public class x86BinaryInstruction extends x86Instruction {
         }
         BigInteger result = new BigInteger(s);
 
-
         Map<String, Boolean> flags = new HashMap<>();
         setSignAndZeroFlags(result, flags);
 
@@ -461,7 +464,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
     /**
      * Perform the operation {@code dest = src}.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to assign to {@code dest}.
      * @param dest The operand that will be assigned to.
@@ -471,11 +474,11 @@ public class x86BinaryInstruction extends x86Instruction {
     private MachineState mov(MachineState state, Operand src, Operand dest) {
         return dest.updateState(state, Optional.of(src.getValue(state)), new HashMap<>(), true);
     }
-    
+
     /**
      * Perform the operation {@code dest = src}, performing zero extension to
      * fill in the size difference between src and dest.
-     * 
+     *
      * @param state The state in which to work.
      * @param src The operand specifying the value to assign to {@code dest}.
      * @param dest The operand that will be assigned to.
@@ -484,19 +487,20 @@ public class x86BinaryInstruction extends x86Instruction {
      */
     private MachineState movz(MachineState state, Operand src, Operand dest) {
         BigInteger orig = src.getValue(state);
-        byte[] extendedOrig = MachineState.getExtendedByteArray(orig, 
-                                                src.getOpSize().numBytes(), 
-                                                dest.getOpSize().numBytes(), 
-                                                true);
+        byte[] extendedOrig = MachineState.getExtendedByteArray(orig,
+                src.getOpSize().numBytes(),
+                dest.getOpSize().numBytes(),
+                true);
         BigInteger extended = new BigInteger(extendedOrig);
         return dest.updateState(state, Optional.of(extended), new HashMap<>(), true);
     }
 
     /**
      * Perform the operation {@code dest = &src}.
-     * 
+     *
      * @param state The state in which to work.
-     * @param src The memory operand specifying the address to assign to {@code dest}.
+     * @param src The memory operand specifying the address to assign to
+     * {@code dest}.
      * @param dest The operand that will be assigned to.
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} assigned the value of {@code &src} (i.e. the address pointed
@@ -514,7 +518,6 @@ public class x86BinaryInstruction extends x86Instruction {
         return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), new HashMap<>(), true);
     }
 
-
     @Override
     public MachineState eval(MachineState state) {
         return operation.apply(state, this.source, this.destination);
@@ -527,31 +530,70 @@ public class x86BinaryInstruction extends x86Instruction {
         sourceRegs.addAll(destRegs);
         return sourceRegs;
     }
-    
+
     @Override
-    public void updateLabels(String labelName, x86Label label){
+    public void updateLabels(String labelName, x86Label label) {
         destination.updateLabels(labelName, label);
         source.updateLabels(labelName, label);
     }
-    
+
     @Override
     public String toString() {
         String instrTypeStr = getInstructionTypeString();
-        
+
         // MOVS and MOVZ have two size suffices: instrTypeStr will already have 
         // the second suffix (i.e. the destination size suffix) but we'll have
         // to insert the other (i.e. source size suffix).
-        if (this.type == InstructionType.MOVS 
+        if (this.type == InstructionType.MOVS
                 || this.type == InstructionType.MOVZ) {
-            instrTypeStr = instrTypeStr.substring(0, instrTypeStr.length()-1) 
-                    + source.getOpSize().getAbbreviation() 
-                    + instrTypeStr.charAt(instrTypeStr.length()-1);
+            instrTypeStr = instrTypeStr.substring(0, instrTypeStr.length() - 1)
+                    + source.getOpSize().getAbbreviation()
+                    + instrTypeStr.charAt(instrTypeStr.length() - 1);
         }
 
         String s = lineNum + ": \t" + instrTypeStr + " " + source.toString() + ", " + destination.toString();
-        if(comment.isPresent()){
+        if (comment.isPresent()) {
             s += comment.get().toString();
         }
         return s;
+    }
+
+    @Override
+    public String getDescriptionString() {
+        switch (this.type) {
+            case ADD:
+                return "Adds the first operand to the second operand, \nstoring the result in the second operand.";
+            case SUB:
+                return "Subtracts the first operand from the second operand, storing the result in the second operand.";
+            case IMUL:
+                return "Multiplies the first operand by the second operand, storing the result in the second operand.";
+            case CMP:
+                return "Subtracts the first operand from the second operand, but does NOT store the result.";
+            case XOR:
+                return "Bitwise XORs the first operand with the second operand, storing the result in the second operand.";
+            case OR:
+                return "Bitwise ORs the first operand with the second operand, storing the result in the second operand.";
+            case AND:
+                return "Bitwise ANDs the first operand with the second operand, storing the result in the second operand.";
+            case TEST:
+                return "Bitwise ANDs the first operand from the second operand, but does NOT store the result.";
+            case SAL:
+            case SHL:
+                return "Shifts the second operand left by the amount specified by the first operand, storing the result back in the second operand.";
+            case SAR:
+                return "Arithmetically shifts (i.e. shifts in the most significant bit) the second operand left by the amount specified by the first operand, storing the result back in the second operand.";
+            case SHR:
+                return "Logically shifts (i.e. shifts in 0's) the second operand left by the amount specified by the first operand, storing the result back in the second operand.";
+            case MOV:
+                return "Copies the first operand into the second operand.";
+            case MOVS:
+                return "Copies the sign-extended first operand into the second operand.";
+            case MOVZ:
+                return "Copies the zero-extended first operand into the second operand.";
+            case LEA:
+                return "Calculates address of first memory operand, storing this address in the second operand.";
+            default:
+                throw new RuntimeException("unsupported instr type: " + this.type);
+        }
     }
 }

@@ -38,4 +38,13 @@ public class x86BlankLine extends x86ProgramLine {
         }
             return s;
     }
+
+    @Override
+    public String getDescriptionString() {
+        if (comment.isPresent()) {
+            return "A line with only a comment.";
+        } else {
+            return "A blank line.";
+        }
+    }
 }

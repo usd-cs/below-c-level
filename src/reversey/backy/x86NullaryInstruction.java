@@ -102,4 +102,16 @@ public class x86NullaryInstruction extends x86Instruction {
         else if (this.type == InstructionType.CLT) result.add("rax");
         return result;
     }
+
+    @Override
+    public String getDescriptionString() {
+        switch (this.type) {
+            case CLT:
+                return "Sign-extends register %eax to fill register %rax.";
+            case RET:
+                return "Pops return address off the stack and jumps to that address.";
+            default:
+                throw new RuntimeException("unsupported instr type: " + this.type);
+        }
+    }
 }

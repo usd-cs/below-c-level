@@ -720,6 +720,19 @@ public class FXMLDocumentController implements Initializable {
                 }
             }
         };
+        
+        //cell.setOnMouseClicked(event -> {
+        //   cell.setStyle("-fx-background-color: pink;");
+        //});
+        
+        cell.hoverProperty().addListener((observable) -> {
+            final x86ProgramLine line = cell.getItem();
+
+            if (cell.isHover() && line != null) {
+                Tooltip t = new Tooltip(line.getDescriptionString());
+                cell.setTooltip(t);
+            }
+        });
 
         ContextMenu rightClickMenu = new ContextMenu();
 

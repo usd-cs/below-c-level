@@ -49,4 +49,9 @@ public class x86Label extends x86ProgramLine {
     public Set<String> getUsedRegisters(){
         return new HashSet<>();
     }
+
+    @Override
+    public String getDescriptionString() {
+        return "A label with the name: " + name;
+    }
 }

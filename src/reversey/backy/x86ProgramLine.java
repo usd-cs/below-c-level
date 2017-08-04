@@ -63,4 +63,6 @@ public abstract class x86ProgramLine {
     public void toggleBreakpoint(){
         hasBreakpoint = !hasBreakpoint;
     }
+    
+    public abstract String getDescriptionString();
 }
