@@ -56,7 +56,6 @@ public enum InstructionType {
     CALL(1),
     RET(0),
     CLT(0);
-    // TODO: set instructions for unsigned (e.g. seta)
 
     /**
      * Number of operands used by the instruction.
