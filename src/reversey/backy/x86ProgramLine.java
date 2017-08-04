@@ -64,5 +64,11 @@ public abstract class x86ProgramLine {
         hasBreakpoint = !hasBreakpoint;
     }
     
+    /**
+     * Constructs a string that provides an explanation of the line of code does
+     * and/or means.
+     * 
+     * @return A string with a description of this line of code.
+     */
     public abstract String getDescriptionString();
 }

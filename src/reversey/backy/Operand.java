@@ -56,5 +56,10 @@ public abstract class Operand {
      */
     public void updateLabels(String labelName, x86Label label) {}
     
+    /**
+     * Constructs a string that provides a description of this operand.
+     * 
+     * @return A string with a description of this operand.
+     */
     public abstract String getDescriptionString();
 }

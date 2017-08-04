@@ -40,6 +40,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @param destOp Operand representing the destination of the instruction.
      * @param size Number of bytes this instruction works on.
      * @param line The line number associated with this instruction.
+     * @param c A comment to be associated with this instruction (or null if none).
      */
     public x86UnaryInstruction(InstructionType instType, Operand destOp, OpSize size, int line, x86Comment c) {
         this.type = instType;
