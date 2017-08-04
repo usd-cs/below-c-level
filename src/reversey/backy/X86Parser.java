@@ -183,7 +183,7 @@ public class X86Parser {
      * @return The parsed operand.
      * @throws X86ParsingException There was an error parsing the string.
      */
-    public Operand parseOperand(String str, OperandRequirements opReqs) throws X86ParsingException {
+    private Operand parseOperand(String str, OperandRequirements opReqs) throws X86ParsingException {
         Operand op = null;
 
         Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
@@ -348,7 +348,7 @@ public class X86Parser {
      * @return The list of operands that were parsed.
      * @throws X86ParsingException There was a problem parsing the operands.
      */
-    public List<Operand> parseOperands(String operandsStr, List<OperandRequirements> opReqs) throws X86ParsingException {
+    private List<Operand> parseOperands(String operandsStr, List<OperandRequirements> opReqs) throws X86ParsingException {
         List<Operand> operands = new ArrayList<>();
 
         Matcher m = Pattern.compile(operandRegEx).matcher(operandsStr);
