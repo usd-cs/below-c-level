@@ -100,4 +100,23 @@ class MemoryOperand extends Operand {
         }
         return res;
     }
+
+    @Override
+    public String getDescriptionString() {
+        String s = "memory at address (";
+        if (baseReg.isPresent()){
+            s += "%" + baseReg.get();
+        } 
+        if (indexReg.isPresent()){
+            s += " + %" + indexReg.get();
+            if(scale.isPresent()){
+                s += " * " + scale.get();
+            }
+        }
+        if (offset.isPresent()){
+            s += " + " + offset.get();
+        }
+        s += ")";
+        return s;
+    }
 }

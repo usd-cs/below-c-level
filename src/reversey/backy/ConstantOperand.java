@@ -54,5 +54,10 @@ public class ConstantOperand extends Operand {
         s = s.replace("0x-", "-0x");
         return s;
     }
+
+    @Override
+    public String getDescriptionString() {
+        return "" + constant;
+    }
 }
 

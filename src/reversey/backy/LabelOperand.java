@@ -74,4 +74,9 @@ public class LabelOperand extends Operand {
         String res = "" + name;
         return res;
     }
+
+    @Override
+    public String getDescriptionString() {
+        return "the label " + name;
+    }
 }

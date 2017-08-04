@@ -9,6 +9,7 @@ import java.util.function.Predicate;
 
 @FunctionalInterface
 interface UnaryX86Operation {
+
     MachineState apply(MachineState state, Operand dest);
 }
 
@@ -18,11 +19,12 @@ interface UnaryX86Operation {
  * @author Sat Garcia (sat@sandiego.edu)
  */
 public class x86UnaryInstruction extends x86Instruction {
+
     /**
      * The operand where the instruction will write its results.
      */
     protected Operand destination;
-    
+
     /**
      * The function that this instruction performs.
      */
@@ -109,27 +111,27 @@ public class x86UnaryInstruction extends x86Instruction {
                 throw new RuntimeException("unsupported instr type: " + instType);
         }
     }
-    
+
     /**
      * Performs "signed" division, storing the quotient and remainder in two
      * different registers.
-     * 
+     *
      * @param state The state on which to perform the operation.
      * @param src An operand that acts as the divisor.
-     * @return A state that is a clone of the starting state but updated to account
-     * for the execution of this instruction.
+     * @return A state that is a clone of the starting state but updated to
+     * account for the execution of this instruction.
      */
     private MachineState idiv(MachineState state, Operand src) {
         BigInteger src1 = state.getCombinedRegisterValue(opSize);
         BigInteger src2 = src.getValue(state);
-        
+
         // quotient and remainder are both calculated
         BigInteger divResult = src1.divide(src2);
         BigInteger modResult = src1.mod(src2);
-        
+
         RegOperand modDest = null;
         RegOperand divDest = null;
-        
+
         // determine which registers will be used for the quotient and remainder
         switch (this.opSize) {
             case QUAD:
@@ -182,7 +184,7 @@ public class x86UnaryInstruction extends x86Instruction {
 
     private MachineState neg(MachineState state, Operand dest) {
         BigInteger orig = dest.getValue(state);
-        
+
         // The x64 manual states that neg does 0 - operand so we'll do the
         // same even though BigInteger has a negate method
         BigInteger result = BigInteger.ZERO.subtract(orig);
@@ -191,7 +193,7 @@ public class x86UnaryInstruction extends x86Instruction {
         flags.put("of", (result.bitLength() + 1) > this.opSize.numBits());
 
         result = truncate(result);
-        
+
         setSignAndZeroFlags(result, flags);
         flags.put("cf", orig.compareTo(BigInteger.ZERO) != 0);
 
@@ -239,20 +241,20 @@ public class x86UnaryInstruction extends x86Instruction {
     private MachineState jump(MachineState state, Operand dest) {
         assert this.conditionCheck.isPresent();
         Map<String, Boolean> flags = new HashMap<>();
-        if(this.conditionCheck.get().test(state)){
-            return dest.updateState(state, Optional.of(dest.getValue(state)), flags, false); 
+        if (this.conditionCheck.get().test(state)) {
+            return dest.updateState(state, Optional.of(dest.getValue(state)), flags, false);
         } else {
-            return dest.updateState(state, Optional.empty(), flags, true); 
+            return dest.updateState(state, Optional.empty(), flags, true);
         }
     }
-    
+
     private MachineState call(MachineState state, Operand dest) {
         Map<String, Boolean> flags = new HashMap<>();
-        
+
         // step 1: subtract 8 from rsp
         RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
         MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
-        
+
         int rA = tmp.getRipRegister() + 1;
         BigInteger returnAddr = new BigInteger("" + rA);
 
@@ -261,7 +263,7 @@ public class x86UnaryInstruction extends x86Instruction {
         tmp = rspMemOperand.updateState(tmp, Optional.of(returnAddr), flags, false);
 
         // return new state with rip set to beginning of callee
-        return dest.updateState(tmp, Optional.of(dest.getValue(state)), flags, false); 
+        return dest.updateState(tmp, Optional.of(dest.getValue(state)), flags, false);
     }
 
     @Override
@@ -272,7 +274,7 @@ public class x86UnaryInstruction extends x86Instruction {
     @Override
     public Set<String> getUsedRegisters() {
         Set<String> result = destination.getUsedRegisters();
-        
+
         // Check for implicitly used registers
         switch (this.type) {
             case PUSH:
@@ -282,21 +284,23 @@ public class x86UnaryInstruction extends x86Instruction {
                 break;
             case IDIV:
                 result.add("rax");
-                if (this.opSize != OpSize.BYTE) result.add("rdx");
+                if (this.opSize != OpSize.BYTE) {
+                    result.add("rdx");
+                }
                 break;
         }
         return result;
     }
-    
+
     @Override
-    public void updateLabels(String labelName, x86Label label){
+    public void updateLabels(String labelName, x86Label label) {
         destination.updateLabels(labelName, label);
     }
-    
+
     @Override
     public String toString() {
         String s = lineNum + ": \t" + getInstructionTypeString() + " " + destination.toString();
-        if(comment.isPresent()){
+        if (comment.isPresent()) {
             s += comment.get().toString();
         }
         return s;
@@ -304,76 +308,78 @@ public class x86UnaryInstruction extends x86Instruction {
 
     @Override
     public String getDescriptionString() {
-            switch (this.type) {
+        String destDesc = destination.getDescriptionString();
+        String setTemplate = "Sets " + destDesc + " to 1 if the result of the last ";
+        String jumpTemplate = "Jumps to " + destDesc + " if the result of the last ";
+        switch (this.type) {
             case IDIV:
-                return "Concatenates %rdx and %rax, divides that by the operand and stores the quotient in %rax and the remainder in %rdx.";
+                return "Concatenates %rdx and %rax, divides that by " + destDesc + " and stores the quotient in %rax and the remainder in %rdx.";
             case INC:
-                return "Increments the operand by 1.";
+                return "Increments " + destDesc + " by 1.";
             case DEC:
-                return "Decrements the operand by 1.";
+                return "Decrements " + destDesc + " by 1.";
             case NEG:
-                return "Negates the operand (i.e. performs the - operation).";
+                return "Negates " + destDesc + " (i.e. performs the - operation).";
             case NOT:
-                return "Inverts all the bits of the operand (i.e. performs the ~ operation).";
+                return "Inverts all the bits in " + destDesc + " (i.e. performs the ~ operation).";
             case SETE:
-                return "Sets the operand to 1 if the result of the last comparison was equal/zero, otherwise 0 (i.e. operand = ZF)";
+                return setTemplate + "comparison was equal/zero, \notherwise 0 (i.e. operand = ZF)";
             case SETNE:
-                return "Sets the operand to 1 if the result of the last comparison was not equal/zero, otherwise 0 (i.e. operand = ~ZF)";
+                return setTemplate + "comparison was not equal/zero, \notherwise 0 (i.e. operand = ~ZF)";
             case SETS:
-                return "Sets the operand to 1 if the result of the last operation was negative, otherwise 0 (i.e. operand = SF)";
+                return setTemplate + "operation was negative, \notherwise 0 (i.e. operand = SF)";
             case SETNS:
-                return "Sets the operand to 1 if the result of the last operation was non-negative, otherwise 0 (i.e. operand = ~SF)";
+                return setTemplate + "operation was non-negative, \notherwise 0 (i.e. operand = ~SF)";
             case SETG:
-                return "Sets the operand to 1 if the result of the last signed comparison was greater than, otherwise 0 (i.e. operand = ~(SF ^ OF) & ~ZF)";
+                return setTemplate + "signed comparison was greater than, \notherwise 0 (i.e. operand = ~(SF ^ OF) & ~ZF)";
             case SETGE:
-                return "Sets the operand to 1 if the result of the last signed comparison was greater than or equal, otherwise 0 (i.e. operand = ~(SF ^ OF))";
+                return setTemplate + "signed comparison was greater than or equal, \notherwise 0 (i.e. operand = ~(SF ^ OF))";
             case SETL:
-                return "Sets the operand to 1 if the result of the last signed comparison was less than, otherwise 0 (i.e. operand = SF ^ OF)";
+                return setTemplate + "signed comparison was less than, \notherwise 0 (i.e. operand = SF ^ OF)";
             case SETLE:
-                return "Sets the operand to 1 if the result of the last signed comparison was less than or equal, otherwise 0 (i.e. operand = (SF ^ OF) | ZF)";
+                return setTemplate + "signed comparison was less than or equal, \notherwise 0 (i.e. operand = (SF ^ OF) | ZF)";
             case SETA:
-                return "Sets the operand to 1 if the result of the last unsigned comparison was greater than, otherwise 0 (i.e. operand = ~CF & ~ZF)";
+                return setTemplate + "unsigned comparison was greater than, \notherwise 0 (i.e. operand = ~CF & ~ZF)";
             case SETAE:
-                return "Sets the operand to 1 if the result of the last unsigned comparison was greater than or equal, otherwise 0 (i.e. operand = ~CF)";
+                return setTemplate + "unsigned comparison was greater than or equal, \notherwise 0 (i.e. operand = ~CF)";
             case SETB:
-                return "Sets the operand to 1 if the result of the last unsigned comparison was less than, otherwise 0 (i.e. operand = CF)";
+                return setTemplate + "unsigned comparison was less than, \notherwise 0 (i.e. operand = CF)";
             case SETBE:
-                return "Sets the operand to 1 if the result of the last unsigned comparison was less than or equal, otherwise 0 (i.e. operand = CF | ZF)";
+                return setTemplate + "unsigned comparison was less than or equal, \notherwise 0 (i.e. operand = CF | ZF)";
             case JE:
-                return "Jumps to the target if the result of the last comparison was equal, otherwise moves to next line (i.e. jump if ZF == 1)";
+                return jumpTemplate + "comparison was equal, \notherwise moves to next line (i.e. jump if ZF == 1)";
             case JNE:
-                return "Jumps to the target if the result of the last comparison was not equal, otherwise moves to next line (i.e. jump if ZF == 0)";
+                return jumpTemplate + "comparison was not equal, \notherwise moves to next line (i.e. jump if ZF == 0)";
             case JS:
-                return "Jumps to the target if the result of the last operation was negative, otherwise moves to next line (i.e. jump if SF == 1)";
+                return jumpTemplate + "operation was negative, \notherwise moves to next line (i.e. jump if SF == 1)";
             case JNS:
-                return "Jumps to the target if the result of the last operation was non-negative, otherwise moves to next line (i.e. jump if SF == 0)";
+                return jumpTemplate + "operation was non-negative, \notherwise moves to next line (i.e. jump if SF == 0)";
             case JG:
-                return "Jumps to the target if the result of the last signed comparison was greater than, otherwise moves to next line (i.e. jump if ~(SF ^ OF) & ~ZF == 1)";
+                return jumpTemplate + "signed comparison was greater than, \notherwise moves to next line (i.e. jump if ~(SF ^ OF) & ~ZF == 1)";
             case JGE:
-                return "Jumps to the target if the result of the last signed comparison was greater than or equal, otherwise moves to next line (i.e. jump if ~(SF ^ OF) == 1)";
+                return jumpTemplate + "signed comparison was greater than or equal, \notherwise moves to next line (i.e. jump if ~(SF ^ OF) == 1)";
             case JL:
-                 return "Jumps to the target if the result of the last signed comparison was less than, otherwise moves to next line (i.e. jump if SF ^ OF == 1)";
+                return jumpTemplate + "signed comparison was less than, \notherwise moves to next line (i.e. jump if SF ^ OF == 1)";
             case JLE:
-                 return "Jumps to the target if the result of the last signed comparison was less than or equal, otherwise moves to next line (i.e. jump if (SF ^ OF) | ZF == 1)";
+                return jumpTemplate + "signed comparison was less than or equal, \notherwise moves to next line (i.e. jump if (SF ^ OF) | ZF == 1)";
             case JA:
-                 return "Jumps to the target if the result of the last unsigned comparison was greater than, otherwise moves to next line (i.e. jump if ~CF & ~ZF == 1)";
+                return jumpTemplate + "unsigned comparison was greater than, \notherwise moves to next line (i.e. jump if ~CF & ~ZF == 1)";
             case JAE:
-                 return "Jumps to the target if the result of the last unsigned comparison was greater than or equal, otherwise moves to next line (i.e. jump if CF == 0)";
+                return jumpTemplate + "unsigned comparison was greater than or equal, \notherwise moves to next line (i.e. jump if CF == 0)";
             case JB:
-                 return "Jumps to the target if the result of the last unsigned comparison was less than, otherwise moves to next line (i.e. jump if CF == 1)";
+                return jumpTemplate + "unsigned comparison was less than, \notherwise moves to next line (i.e. jump if CF == 1)";
             case JBE:
-                 return "Jumps to the target if the result of the last unsigned comparison was less than or equal, otherwise moves to next line (i.e. jump if CF | ZF == 1)";
+                return jumpTemplate + "unsigned comparison was less than or equal, \notherwise moves to next line (i.e. jump if CF | ZF == 1)";
             case JMP:
-                 return "Jumps to the target";
+                return "Jumps to " + destDesc;
             case PUSH:
-                return "Decrements %rsp by 8 and stores the operand at the updated value for %rsp.";
+                return "Decrements %rsp by 8 and stores " + destDesc + " at the updated value for %rsp.";
             case POP:
-                return "Stores the value at the top of the stack into the operand and increments %rsp by 8.";
+                return "Stores the value at the top of the stack into " + destDesc + " and increments %rsp by 8.";
             case CALL:
-                return "Pushes the return address (i.e. the address of the instruction after this call) onto the stack and jumps to the label";
+                return "Pushes the return address (i.e. the address of the instruction after this call) \nonto the stack and jumps to " + destDesc;
             default:
                 throw new RuntimeException("unsupported instr type: " + this.type);
         }
     }
 }
-

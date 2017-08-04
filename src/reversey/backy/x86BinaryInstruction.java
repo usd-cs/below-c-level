@@ -560,38 +560,42 @@ public class x86BinaryInstruction extends x86Instruction {
 
     @Override
     public String getDescriptionString() {
+        String sourceDesc = source.getDescriptionString();
+        String destDesc = destination.getDescriptionString();
+        String template =  " the value of " + sourceDesc + " to the value of " + destDesc + ", \nstoring the result in " + destDesc + ".";
+        String template2 = " the value of " + sourceDesc + " from the value of " + destDesc + ", \nbut does NOT store the result.";
         switch (this.type) {
             case ADD:
-                return "Adds the first operand to the second operand, \nstoring the result in the second operand.";
+                return "Adds" + template;
             case SUB:
-                return "Subtracts the first operand from the second operand, storing the result in the second operand.";
+                return "Subtracts" + template;
             case IMUL:
-                return "Multiplies the first operand by the second operand, storing the result in the second operand.";
+                return "Multiplies" + template;
             case CMP:
-                return "Subtracts the first operand from the second operand, but does NOT store the result.";
+                return "Subtracts" + template2;
             case XOR:
-                return "Bitwise XORs the first operand with the second operand, storing the result in the second operand.";
+                return "Bitwise XORs" + template;
             case OR:
-                return "Bitwise ORs the first operand with the second operand, storing the result in the second operand.";
+                return "Bitwise ORs" + template;
             case AND:
-                return "Bitwise ANDs the first operand with the second operand, storing the result in the second operand.";
+                return "Bitwise ANDs" + template;
             case TEST:
-                return "Bitwise ANDs the first operand from the second operand, but does NOT store the result.";
+                return "Bitwise ANDs" + template2;
             case SAL:
             case SHL:
-                return "Shifts the second operand left by the amount specified by the first operand, storing the result back in the second operand.";
+                return "Shifts " + destDesc + " left by the amount specified by " + sourceDesc + ", \nstoring the result back in " + destDesc + ".";
             case SAR:
-                return "Arithmetically shifts (i.e. shifts in the most significant bit) the second operand left by the amount specified by the first operand, storing the result back in the second operand.";
+                return "Arithmetically shifts (i.e. shifts in the most significant bit) " + destDesc + " left by the amount specified by " + sourceDesc + ", \nstoring the result back in " + destDesc + ".";
             case SHR:
-                return "Logically shifts (i.e. shifts in 0's) the second operand left by the amount specified by the first operand, storing the result back in the second operand.";
+                return "Logically shifts (i.e. shifts in 0's) " + destDesc + " left by the amount specified by " + sourceDesc + ", \nstoring the result back in " + destDesc + ".";
             case MOV:
-                return "Copies the first operand into the second operand.";
+                return "Copies " + sourceDesc + " into " + destDesc + ".";
             case MOVS:
-                return "Copies the sign-extended first operand into the second operand.";
+                return "Copies the sign-extended " + sourceDesc + " into " + destDesc + ".";
             case MOVZ:
-                return "Copies the zero-extended first operand into the second operand.";
+                return "Copies the zero-extended " + sourceDesc + " into " + destDesc + ".";
             case LEA:
-                return "Calculates address of first memory operand, storing this address in the second operand.";
+                return "Calculates address of " + sourceDesc + ", \nstoring this address in " + destDesc + ".";
             default:
                 throw new RuntimeException("unsupported instr type: " + this.type);
         }

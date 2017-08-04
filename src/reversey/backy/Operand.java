@@ -55,4 +55,6 @@ public abstract class Operand {
      * @param label The new value for the label.
      */
     public void updateLabels(String labelName, x86Label label) {}
+    
+    public abstract String getDescriptionString();
 }

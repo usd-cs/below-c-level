@@ -45,4 +45,9 @@ public class RegOperand extends Operand {
     public String toString() {
         return "%" + regName;
     }
+
+    @Override
+    public String getDescriptionString() {
+        return "%" + regName;
+    }
 }
