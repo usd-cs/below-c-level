@@ -341,6 +341,24 @@ public class FXMLDocumentController implements Initializable {
             helpStage.show();
         });
         
+        /**
+         * Event handler for "Report Bug" menu item.
+         * This will create a WebView that pulls up GitHub BCL Issues page.
+         */
+        reportBugMenuItem.setOnAction((event) -> {
+            WebView webV = new WebView();
+            WebEngine webE = webV.getEngine();
+            // Gives a StringIndexOutofBounds exception error but successfully pulls up window
+            String url = "https://github.com/caf365/reverseybacky/issues";
+            webE.load(url);
+            
+            Scene s = new Scene(webV, 700, 550);
+            Stage reportBugStage = new Stage();
+            reportBugStage.setTitle("Below C Level - Help");
+            reportBugStage.setScene(s);
+            reportBugStage.show();
+        });
+        
         //TODO: Resizing icons/nodes to pane
         // Initialize buttons with fancy graphics.
         ImageView skipToStartImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToStart.png")));
