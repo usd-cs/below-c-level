@@ -21,15 +21,20 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 import javafx.event.Event;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.scene.text.Font;
 import javafx.scene.shape.Circle;
+import javafx.stage.Stage;
 
 /**
  * Class that controls the main FXML file.
@@ -66,16 +71,9 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private MenuItem restartMenuItem;
     @FXML
-    private MenuItem aboutMenuItem;
+    private MenuItem helpMenuItem;
     @FXML
-    private MenuItem undoMenuItem;
-    @FXML
-    private MenuItem redoMenuItem;
-    @FXML
-    private MenuItem reorderMenuItem;
-
-    @FXML
-    private BorderPane entirePane;
+    private MenuItem reportBugMenuItem;
 
     // Fields for TabPane
     @FXML
@@ -269,7 +267,7 @@ public class FXMLDocumentController implements Initializable {
         skipToEnd.setOnAction(this::runForward);
         runMenuItem.setOnAction(this::runForward);
 
-        /*
+        /**
          * Event handler for "scroll back to current instruction" button.
          */
         currInstr.setOnAction(event -> {
@@ -304,9 +302,7 @@ public class FXMLDocumentController implements Initializable {
                     null);
         });
 
-        // TODO: reorderMenuItem
-
-        /*
+        /**
          * Event handler for "saveMenuItem" menu.
          * This will save the current simulation to a text file specified 
          * by the user if file does not exist, and save changes to existing file.
@@ -326,6 +322,25 @@ public class FXMLDocumentController implements Initializable {
             }
         });
 
+        /**
+         * Event handler for "Help" menu item.
+         * This will create a WebView that displays the user guide on the BCL 
+         * GitHub wiki.
+         */
+        helpMenuItem.setOnAction((event) -> {
+            WebView webby = new WebView();
+            WebEngine wE = webby.getEngine();
+            // Gives a StringIndexOutofBounds exception error but successfully pulls up window
+            String url = "https://github.com/caf365/reverseybacky/wiki/User-Guide";
+            wE.load(url);
+            
+            Scene scene = new Scene(webby, 700, 550);
+            Stage helpStage = new Stage();
+            helpStage.setTitle("Below C Level - Help");
+            helpStage.setScene(scene);
+            helpStage.show();
+        });
+        
         //TODO: Resizing icons/nodes to pane
         // Initialize buttons with fancy graphics.
         ImageView skipToStartImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToStart.png")));
