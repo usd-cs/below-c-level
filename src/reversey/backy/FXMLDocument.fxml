@@ -98,7 +98,8 @@
             </Menu>
           <Menu fx:id="helpOption" mnemonicParsing="false" text="Help">
             <items>
-              <MenuItem fx:id="aboutMenuItem" mnemonicParsing="false" text="About" />
+              <MenuItem fx:id="helpMenuItem" mnemonicParsing="false" text="Help" />
+                  <MenuItem fx:id="reportBugMenuItem" mnemonicParsing="false" text="Report Bug" />
             </items>
           </Menu>
         </menus>
