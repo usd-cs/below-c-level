@@ -331,7 +331,7 @@ public class FXMLDocumentController implements Initializable {
             WebView webby = new WebView();
             WebEngine wE = webby.getEngine();
             // Gives a StringIndexOutofBounds exception error but successfully pulls up window
-            String url = "https://github.com/caf365/reverseybacky/wiki/User-Guide";
+            String url = "https://github.com/caf365/reverseybacky/wiki/Below-C-Level-User-Guide";
             wE.load(url);
             
             Scene scene = new Scene(webby, 700, 550);
@@ -354,7 +354,7 @@ public class FXMLDocumentController implements Initializable {
             
             Scene s = new Scene(webV, 700, 550);
             Stage reportBugStage = new Stage();
-            reportBugStage.setTitle("Below C Level - Help");
+            reportBugStage.setTitle("Below C Level - Report Bug");
             reportBugStage.setScene(s);
             reportBugStage.show();
         });
