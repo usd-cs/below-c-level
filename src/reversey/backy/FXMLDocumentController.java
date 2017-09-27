@@ -323,7 +323,7 @@ public class FXMLDocumentController implements Initializable {
         });
 
         /**
-         * Event handler for "Help" menu item.
+         * Event handler for "User Guide" menu item.
          * This will create a WebView that displays the user guide on the BCL 
          * GitHub wiki.
          */
