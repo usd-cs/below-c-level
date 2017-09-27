@@ -573,10 +573,9 @@ public class MachineState {
      */
     public BigInteger getMemoryValue(long address, int size) {
         //TODO: Allow addresses that aren't starting addresses but are still valid 
-
         for (StackEntry e : this.memory) {
             if (e.getStartAddress() == address) {
-                return new BigInteger(e.getValueArr());
+                return e.getValAsBigInt();
             }
         }
         System.out.println("Error: No value at address");

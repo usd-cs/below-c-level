@@ -5,6 +5,7 @@
  */
 package reversey.backy;
 
+import java.math.BigInteger;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -19,7 +20,7 @@ public class StackEntry {
     private final SimpleLongProperty endAddress;
     private final SimpleStringProperty value;
     private final SimpleIntegerProperty origin;
-    private final byte[] valueArr;
+    private final byte[] valueArr; // This is stored in little endian array
     
     public StackEntry (long startAddress, long endAddress, byte[] val, int orig) {
         this.startAddress = new SimpleLongProperty(startAddress);
@@ -39,6 +40,13 @@ public class StackEntry {
         
         this.value = new SimpleStringProperty(s);
         this.origin = new SimpleIntegerProperty(orig);
+    }
+    
+    public BigInteger getValAsBigInt() {
+        byte[] bigEndian = new byte[valueArr.length];
+        for (int src = 0, dest = bigEndian.length-1; src < valueArr.length; src++, dest--)
+            bigEndian[dest] = valueArr[src];
+        return new BigInteger(bigEndian);
     }
     
     public long getStartAddress(){
