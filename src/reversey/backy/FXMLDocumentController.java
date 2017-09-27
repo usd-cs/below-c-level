@@ -695,13 +695,7 @@ public class FXMLDocumentController implements Initializable {
 
         t.setOnSelectionChanged((event) -> {
             if (t.isSelected()) {
-                instrList = tabMap.get(t).getInstrList();
-                stateHistory = tabMap.get(t).getStateHistory();
-                regHistory = tabMap.get(t).getRegHistory();
-                X86Parser oldParser = parser;
-                parser = tabMap.get(t).getParser();
-                lastLoadedFileName = tabMap.get(t).getFileName();
-                updateStateDisplays();
+				setAsActiveTab(t);
             }
             instrText.setOnKeyPressed(this::parseAndAddInstruction);
             instrText.setStyle("-fx-control-inner-background: white;");
@@ -728,7 +722,23 @@ public class FXMLDocumentController implements Initializable {
             tabMap.remove(t);
         });
         listViewTabPane.getSelectionModel().select(t);
+		setAsActiveTab(t);
     }
+
+	/**
+	 * Sets the given tab as the active tab, including setting the stack,
+	 * registers, and instruction list to be those associated with this tab.
+	 *
+	 * @param t The tab to make active.
+	 */
+	private void setAsActiveTab(Tab t) {
+		instrList = tabMap.get(t).getInstrList();
+		stateHistory = tabMap.get(t).getStateHistory();
+		regHistory = tabMap.get(t).getRegHistory();
+		parser = tabMap.get(t).getParser();
+		lastLoadedFileName = tabMap.get(t).getFileName();
+		updateStateDisplays();
+	}
     
     /**
      * Custom cell factory for instruction list entry.
