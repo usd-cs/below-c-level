@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -12,6 +7,8 @@
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
@@ -19,10 +16,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.control.Tab?>
 
-<BorderPane fx:id="entirePane" minWidth="500.0" prefHeight="486.0" prefWidth="753.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="reversey.backy.FXMLDocumentController">
+<BorderPane fx:id="entirePane" minWidth="500.0" prefHeight="486.0" prefWidth="753.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="reversey.backy.FXMLDocumentController">
    <left>
       <VBox maxWidth="450.0" BorderPane.alignment="CENTER">
          <children>
@@ -98,7 +93,7 @@
             </Menu>
           <Menu fx:id="helpOption" mnemonicParsing="false" text="Help">
             <items>
-              <MenuItem fx:id="helpMenuItem" mnemonicParsing="false" text="Help" />
+              <MenuItem fx:id="helpMenuItem" mnemonicParsing="false" text="User Guide" />
                   <MenuItem fx:id="reportBugMenuItem" mnemonicParsing="false" text="Report Bug" />
             </items>
           </Menu>
