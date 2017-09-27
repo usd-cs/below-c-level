@@ -433,6 +433,10 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void stepBackward(Event event) {
+        // We'll only have one state in our history when we are at the beginning
+        // of simulation. In this case, going backwards shouldn't do anything.
+        if (stateHistory.size() == 1) return;
+        
         stateHistory.remove(stateHistory.size() - 1);
         if (!instrList.getSelectionModel().isEmpty()) {
             regHistory.removeAll(instrList.getSelectionModel()
@@ -456,7 +460,9 @@ public class FXMLDocumentController implements Initializable {
         regHistory.clear();
 
         stateHistory.add(new MachineState());
-        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        if (!instrList.getSelectionModel().isEmpty()) {
+            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        }
         updateStateDisplays();
         checkEnding();
     }
