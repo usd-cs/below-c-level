@@ -572,7 +572,7 @@ public class FXMLDocumentController implements Initializable {
         loadFileChoice.setTitle("Open File");
 
         // Filter only allows user to choose a text file
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s");
         loadFileChoice.getExtensionFilters().add(extFilter);
         File loadFile = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
 
@@ -640,7 +640,7 @@ public class FXMLDocumentController implements Initializable {
         FileChooser saveFileChoice = new FileChooser();
 
         // Filter only allows user to choose text files
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s");
         saveFileChoice.getExtensionFilters().add(extFilter);
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
         
