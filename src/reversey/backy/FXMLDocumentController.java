@@ -741,21 +741,21 @@ public class FXMLDocumentController implements Initializable {
 		setAsActiveTab(t);
     }
 
-	/**
-	 * Sets the given tab as the active tab, including setting the stack,
-	 * registers, and instruction list to be those associated with this tab.
-	 *
-	 * @param t The tab to make active.
-	 */
-	private void setAsActiveTab(Tab t) {
-		instrList = tabMap.get(t).getInstrList();
-		stateHistory = tabMap.get(t).getStateHistory();
-		regHistory = tabMap.get(t).getRegHistory();
-		parser = tabMap.get(t).getParser();
-		lastLoadedFileName = tabMap.get(t).getFileName();
-		updateStateDisplays();
-	}
-    
+    /**
+     * Sets the given tab as the active tab, including setting the stack,
+     * registers, and instruction list to be those associated with this tab.
+     *
+     * @param t The tab to make active.
+     */
+    private void setAsActiveTab(Tab t) {
+        instrList = tabMap.get(t).getInstrList();
+        stateHistory = tabMap.get(t).getStateHistory();
+        regHistory = tabMap.get(t).getRegHistory();
+        parser = tabMap.get(t).getParser();
+        lastLoadedFileName = tabMap.get(t).getFileName();
+        updateStateDisplays();
+    }
+
     /**
      * Custom cell factory for instruction list entry.
      * This method creates a custom ListCell class then sets up the right-click
