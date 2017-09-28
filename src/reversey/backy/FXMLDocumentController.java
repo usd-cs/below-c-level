@@ -308,6 +308,33 @@ public class FXMLDocumentController implements Initializable {
                     null);
         });
         
+        // Add keyboard shortcuts
+        newMenuItem.setMnemonicParsing(true);
+        newMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.N, 
+                                        KeyCombination.SHORTCUT_DOWN));
+        loadMenuItem.setMnemonicParsing(true);
+        loadMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.O, 
+                                        KeyCombination.SHORTCUT_DOWN));
+        exitMenuItem.setMnemonicParsing(true);
+        exitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.Q, 
+                                        KeyCombination.SHORTCUT_DOWN));
+        saveMenuItem.setMnemonicParsing(true);
+        saveMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.S, 
+                                        KeyCombination.SHORTCUT_DOWN));
+        
+        forwardMenuItem.setMnemonicParsing(true);
+        forwardMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, 
+                                        KeyCombination.SHORTCUT_DOWN));
+        backwardMenuItem.setMnemonicParsing(true);
+        backwardMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.B, 
+                                        KeyCombination.SHORTCUT_DOWN));
+        restartMenuItem.setMnemonicParsing(true);
+        restartMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.R, 
+                                        KeyCombination.SHORTCUT_DOWN));
+        runMenuItem.setMnemonicParsing(true);
+        runMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.E, 
+                                        KeyCombination.SHORTCUT_DOWN));
+        
 
         /**
          * Event handler for "saveMenuItem" menu.
