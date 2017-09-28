@@ -19,11 +19,11 @@
 
 <BorderPane fx:id="entirePane" minWidth="500.0" prefHeight="486.0" prefWidth="753.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="reversey.backy.FXMLDocumentController">
    <left>
-      <VBox maxWidth="450.0" BorderPane.alignment="CENTER">
+      <VBox maxWidth="353.0" BorderPane.alignment="CENTER">
          <children>
             <HBox prefHeight="75.0" prefWidth="353.0">
                <children>
-                  <TextField fx:id="instrText" prefHeight="26.0" prefWidth="239.0" promptText="Enter x86 instruction">
+                  <TextField fx:id="instrText" prefHeight="26.0" prefWidth="239.0" promptText="Enter an x86-64 instruction">
                      <HBox.margin>
                         <Insets right="10.0" />
                      </HBox.margin>
