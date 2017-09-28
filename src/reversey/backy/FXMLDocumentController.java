@@ -257,7 +257,7 @@ public class FXMLDocumentController implements Initializable {
         });
         
         listViewTabPane.getTabs().remove(firstTab);
-        createTab("New File", regHistory, instrList, parser, null);
+        createTab("Untitled", regHistory, instrList, parser, null);
 
         // Set up handlers for simulation control, both via buttons and menu
         // items.
@@ -295,7 +295,7 @@ public class FXMLDocumentController implements Initializable {
         saveAsMenuItem.setOnAction(this::saveFileAs);
 
         newMenuItem.setOnAction((event) -> {    
-            createTab("New File",
+            createTab("Untitled",
                     new ArrayList<>(),
                     new ListView<>(),
                     new X86Parser(),
@@ -528,10 +528,11 @@ public class FXMLDocumentController implements Initializable {
      */
     public void setCurrTabAsEdited() {
         Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
+        // TODO: probably can be simplified to just add * to currTab.getText
         if (lastLoadedFileName != null) {
             currTab.setText(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + "*");
         } else {
-            currTab.setText("New File*");
+            currTab.setText("Untitled*");
         }
         tabMap.get(currTab).setIsEdited(true);
     }
