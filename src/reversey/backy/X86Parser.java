@@ -373,7 +373,9 @@ public class X86Parser {
             // Keep parsing operands until we don't find any more
             while (m.find(nextIndex)) {
                 if (opIndex >= opReqs.size()) {
-                    throw new X86ParsingException("unexpected operand", m.start("operand"), m.end("operand"));
+                    throw new X86ParsingException("too many operand(s)",
+                            nextIndex + m.start("operand"),
+                            operandsStr.length());
                 }
                 opStr = m.group("operand");
                 op = parseOperand(opStr, opReqs.get(opIndex));
@@ -456,13 +458,15 @@ public class X86Parser {
                 try {
                     operands = parseOperands(operandsStr, opReqs);
                 } catch (X86ParsingException e) {
+                    System.out.println(instMatcher.start("operands"));
                     throw new X86ParsingException(e.getMessage(),
                             instMatcher.start("operands") + e.getStartIndex(),
                             instMatcher.start("operands") + e.getEndIndex());
                 }
 
                 if (operands.size() != instrType.numOperands()) {
-                    throw new X86ParsingException("wrong number of operands",
+                    throw new X86ParsingException(
+                            instrName + " should have " + instrType.numOperands() + " operand(s)",
                             instMatcher.start("operands"),
                             instr.length());
                 } else if (instrType.numOperands() == 2) {
@@ -506,6 +510,11 @@ public class X86Parser {
                 }
                 return null; // FIXME: throw exception
             } else {
+                if (instrType.numOperands() != 0)
+                    throw new X86ParsingException(
+                                instrName + " should have " + instrType.numOperands() + " operand(s)",
+                                instMatcher.end("inst"),
+                                instr.length());
                 // nullary skullduggery
                 return new x86NullaryInstruction(instrType,
                         instrSize,

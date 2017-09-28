@@ -396,6 +396,7 @@ public class FXMLDocumentController implements Initializable {
             instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
             regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
         } catch (Exception e) {
+            // TODO: this should catch a custom simulation exception type
             Alert evalError = new Alert(AlertType.ERROR);
             evalError.setTitle("Simulation Error");
             evalError.setHeaderText("Error during simulation");
