@@ -386,14 +386,23 @@ public class FXMLDocumentController implements Initializable {
      * history and selecting the next instruction.
      */
     private void evalCurrentInstruction() {
-        // evaluate the current instruction, adding its new state to our history
-        x86ProgramLine currLine = instrList.getSelectionModel().getSelectedItem();
-        MachineState nextState = currLine.eval(stateHistory.get(stateHistory.size()-1));
-        stateHistory.add(nextState);
+        try {
+            // evaluate the current instruction, adding its new state to our history
+            x86ProgramLine currLine = instrList.getSelectionModel().getSelectedItem();
+            MachineState nextState = currLine.eval(stateHistory.get(stateHistory.size() - 1));
+            stateHistory.add(nextState);
 
-        // select next instruction based on the updated value of the rip register
-        instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
-        regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+            // select next instruction based on the updated value of the rip register
+            instrList.getSelectionModel().select(stateHistory.get(stateHistory.size() - 1).getRipRegister());
+            regHistory.addAll(instrList.getSelectionModel().getSelectedItem().getUsedRegisters());
+        } catch (Exception e) {
+            Alert evalError = new Alert(AlertType.ERROR);
+            evalError.setTitle("Simulation Error");
+            evalError.setHeaderText("Error during simulation");
+            evalError.setContentText("The following error occurred while simulating the current instruction:"
+                    + "\n\n" + e.getMessage());
+            evalError.showAndWait();
+        }
     }
 
     /**

@@ -578,9 +578,11 @@ public class MachineState {
                 return e.getValAsBigInt();
             }
         }
-        System.out.println("Error: No value at address");
-        System.exit(1);
-        return null;
+        
+        // Couldn't find the address on the stack so throw an exception to
+        // be caught by the simulator.
+        throw new RuntimeException("Read from illegal address: " 
+                + String.format("%X", address));
     }
 
     /**
