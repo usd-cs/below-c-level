@@ -554,6 +554,7 @@ public class FXMLDocumentController implements Initializable {
                 parseErrorText.setText(null);
                 parseErrorText.setGraphic(null);
                 instrText.clear();
+                restartSim(keyEvent);
                 
                 setCurrTabAsEdited();
                 
@@ -754,6 +755,7 @@ public class FXMLDocumentController implements Initializable {
         parser = tabMap.get(t).getParser();
         lastLoadedFileName = tabMap.get(t).getFileName();
         updateStateDisplays();
+        checkEnding();
     }
 
     /**
