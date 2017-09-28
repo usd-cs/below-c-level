@@ -167,6 +167,11 @@ public class FXMLDocumentController implements Initializable {
      * Current file name.
      */
     private String lastLoadedFileName;
+    
+    /**
+     * Counter for "untitled" panes.
+     */
+    private int untitledCount = 0;
 
     /**
      * Parser for current tab.
@@ -257,7 +262,8 @@ public class FXMLDocumentController implements Initializable {
         });
         
         listViewTabPane.getTabs().remove(firstTab);
-        createTab("Untitled", regHistory, instrList, parser, null);
+        createTab("untitled-" + untitledCount, regHistory, instrList, parser, null);
+        untitledCount++;
 
         // Set up handlers for simulation control, both via buttons and menu
         // items.
@@ -294,13 +300,14 @@ public class FXMLDocumentController implements Initializable {
         loadMenuItem.setOnAction(this::loadFile);
         saveAsMenuItem.setOnAction(this::saveFileAs);
 
-        newMenuItem.setOnAction((event) -> {    
-            createTab("Untitled",
+        newMenuItem.setOnAction((event) -> {
+            createTab("untitled-" + untitledCount++,
                     new ArrayList<>(),
                     new ListView<>(),
                     new X86Parser(),
                     null);
         });
+        
 
         /**
          * Event handler for "saveMenuItem" menu.
@@ -528,12 +535,12 @@ public class FXMLDocumentController implements Initializable {
      */
     public void setCurrTabAsEdited() {
         Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
-        // TODO: probably can be simplified to just add * to currTab.getText
-        if (lastLoadedFileName != null) {
-            currTab.setText(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1) + "*");
-        } else {
-            currTab.setText("Untitled*");
-        }
+        String currTabName = currTab.getText();
+        
+        // Already indicating we have an edited file so don't need to do anything
+        if (currTabName.endsWith("*")) return;
+        else currTab.setText(currTabName + "*");
+
         tabMap.get(currTab).setIsEdited(true);
     }
 
