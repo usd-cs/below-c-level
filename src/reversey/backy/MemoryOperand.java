@@ -96,9 +96,9 @@ class MemoryOperand extends Operand {
             if (baseReg.isPresent())
                 res += "%" + baseReg.get();
             if (indexReg.isPresent()) {
-                res += ",%" + indexReg.get();
+                res += ", %" + indexReg.get();
                 if (scale.isPresent())
-                    res += "," + scale.get();
+                    res += ", " + scale.get();
             }
 
             res += ")";
