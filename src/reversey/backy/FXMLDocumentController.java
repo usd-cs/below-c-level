@@ -14,6 +14,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -464,17 +466,33 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void runForward(Event event) {
-        // TODO: DANGER WILL ROBISON! Do we want to warn the user if they
-        // appear to be stuck in an infinite loop?
+        int numExecuted = 0; // number of instructions we have executed so far
+        
         int numLines = instrList.getItems().size();
         while (stateHistory.get(stateHistory.size() - 1).getRipRegister() < numLines) {
             evalCurrentInstruction();
+            updateStateDisplays();
+            numExecuted++;
+            
             if (instrList.getSelectionModel().getSelectedItem().getBreakpoint()) {
                 break;
             }
-        }
+            else if (numExecuted % 100 == 0) {
+                // Every 100 instructions we'll confirm that they want to keep 
+                // going (to avoid possible infinite loop)
+                Alert longRunningConfirmation = new Alert(AlertType.CONFIRMATION);
+                longRunningConfirmation.setTitle("Long Running Computation");
+                longRunningConfirmation.setHeaderText("Infinited Loop?");
+                longRunningConfirmation.setContentText("Your program has executed " + numExecuted + " instructions. "
+                                                    + "It is possible it may be stuck in an infinite loop. "
+                                                    + "\n\nClick OK to continue simulation, or Cancel to stop.");
 
-        updateStateDisplays();
+                Optional<ButtonType> result = longRunningConfirmation.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.CANCEL) {
+                    break;
+                }
+            }
+        }
         checkEnding();
     }
 
