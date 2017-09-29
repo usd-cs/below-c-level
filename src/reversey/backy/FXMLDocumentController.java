@@ -792,9 +792,11 @@ public class FXMLDocumentController implements Initializable {
     
     private void closeTab(Event e) {
         Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
-        listViewTabPane.getTabs().remove(currTab);
         currTab.getOnCloseRequest().handle(e);
-        currTab.getOnClosed().handle(e);
+        if (!e.isConsumed()) { 
+            listViewTabPane.getTabs().remove(currTab);
+            currTab.getOnClosed().handle(e);
+        }
     }
 
     /**
