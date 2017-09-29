@@ -789,7 +789,7 @@ public class FXMLDocumentController implements Initializable {
             tabMap.remove(t);
         });
         listViewTabPane.getSelectionModel().select(t);
-		setAsActiveTab(t);
+        setAsActiveTab(t);
     }
     
     /**
