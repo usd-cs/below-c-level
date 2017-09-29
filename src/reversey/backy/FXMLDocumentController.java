@@ -728,7 +728,9 @@ public class FXMLDocumentController implements Initializable {
         m.setFitWidth(size);
     }
 
-    // TODO: method comment
+    /**
+     * Sets the "Status Flags" display based on the current simulation state.
+     */
     private void setStatusFlagLabels() {
         MachineState state = stateHistory.get(stateHistory.size() - 1);
         sfLabel.setText("SF: " + (state.getSignFlag() ? "1" : "0"));
@@ -790,6 +792,11 @@ public class FXMLDocumentController implements Initializable {
 		setAsActiveTab(t);
     }
     
+    /**
+     * Closes the currently selected tab.
+     * 
+     * @param e The event which caused the tab closing to trigger.
+     */
     private void closeTab(Event e) {
         Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
         currTab.getOnCloseRequest().handle(e);
