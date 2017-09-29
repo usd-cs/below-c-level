@@ -22,12 +22,18 @@ public class ConstantOperand extends Operand {
      * The base representation that was entered by the user (e.g. 16 = hex)
      */
     private final int base;
+    
+    /**
+     * The original string representation (entered by the user)
+     */
+    private final String stringRep;
 
-    public ConstantOperand(long val, OpSize size, int base) {
+    public ConstantOperand(long val, OpSize size, int base, String stringRep) {
         super(size);
         this.constant = val;
         assert(base == 10 || base == 16);
         this.base = base;
+        this.stringRep = stringRep;
     }
 
     @Override
@@ -48,16 +54,13 @@ public class ConstantOperand extends Operand {
 
     @Override
     public String toString() {
-        String s = "$";
-        if (base == 16) s += "0x";
-        s += Long.toString(constant, base).toUpperCase();
-        s = s.replace("0x-", "-0x");
-        return s;
+        return "$" + stringRep;
     }
 
     @Override
     public String getDescriptionString() {
-        return "" + constant;
+        //return "" + constant;
+        return stringRep;
     }
 }
 

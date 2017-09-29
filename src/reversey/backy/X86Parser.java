@@ -1,5 +1,6 @@
 package reversey.backy;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -202,17 +203,28 @@ public class X86Parser {
                                                 constMatcher.start(),
                                                 constMatcher.end());
             
-            // TODO: make sure constant fits in the size of the constant
-            
             String constStr = constMatcher.group("const");
             int base = 10;
             if (constStr.contains("0x")) {
                 base = 16;
                 constStr = constStr.replace("0x", "");
             }
-            op = new ConstantOperand(Integer.parseInt(constStr, base), 
+            assert(base == 10 || base == 16);
+            
+            BigInteger val = new BigInteger(constStr, base);
+            
+            // check that the constant is within the operand size limit
+            int valSize = base == 10 ? val.bitLength()+1 : constStr.length()*4;
+            if (valSize > opReqs.getSize().numBits()) {
+                throw new X86ParsingException("constant too large for specified size", 
+                                                constMatcher.start(),
+                                                constMatcher.end());
+            }
+            
+            op = new ConstantOperand(opReqs.getSize().getValue(val), 
                                         opReqs.getSize(),
-                                        base);
+                                        base,
+                                        constMatcher.group("const"));
         } else if (regMatcher.matches()) {
             // Found a register operand
             if (!opReqs.canBeReg())

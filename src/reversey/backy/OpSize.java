@@ -1,5 +1,7 @@
 package reversey.backy;
 
+import java.math.BigInteger;
+
 /**
  * Representation of the size of an x86 instruction or operand.
  */
@@ -50,6 +52,21 @@ public enum OpSize {
                 throw new X86ParsingException("unexpected size suffix",
                                                 0,
                                                 abbrev.length());
+        }
+    }
+    
+    public long getValue(BigInteger b) {
+        switch (this) {
+            case BYTE:
+                return b.byteValue();
+            case WORD:
+                return b.shortValue();
+            case LONG:
+                return b.intValue();
+            case QUAD:
+                return b.longValue();
+            default:
+                throw new RuntimeException("unimplemented opsize");
         }
     }
 }
