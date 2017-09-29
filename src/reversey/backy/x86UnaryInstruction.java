@@ -256,7 +256,7 @@ public class x86UnaryInstruction extends x86Instruction {
         MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
 
         // step 2: store src operand value in (%rsp)
-        MemoryOperand dest = new MemoryOperand("rsp", null, null, null, this.opSize);
+        MemoryOperand dest = new MemoryOperand("rsp", null, null, null, this.opSize, "");
 
         return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags, true);
     }
@@ -274,7 +274,7 @@ public class x86UnaryInstruction extends x86Instruction {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: store (%rsp) value in dest operand 
-        MemoryOperand src = new MemoryOperand("rsp", null, null, null, this.opSize);
+        MemoryOperand src = new MemoryOperand("rsp", null, null, null, this.opSize, "");
         MachineState tmp = dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
 
         // step 2: add 8 to rsp
@@ -336,7 +336,7 @@ public class x86UnaryInstruction extends x86Instruction {
         BigInteger returnAddr = new BigInteger("" + rA);
 
         // step 2: store return address in (%rsp)
-        MemoryOperand rspMemOperand = new MemoryOperand("rsp", null, null, null, this.opSize);
+        MemoryOperand rspMemOperand = new MemoryOperand("rsp", null, null, null, this.opSize, "");
         tmp = rspMemOperand.updateState(tmp, Optional.of(returnAddr), flags, false);
 
         // return new state with rip set to beginning of callee

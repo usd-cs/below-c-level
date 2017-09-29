@@ -32,13 +32,19 @@ class MemoryOperand extends Operand {
      * The offset amount.
      */
     private final Optional<Integer> offset;
+    
+    /**
+     * Original string representation of the offset (as entered by the user
+     */
+    private final String offsetStr;
 
-    public MemoryOperand(String baseReg, String indexReg, Integer scale, Integer offset, OpSize opSize) {
+    public MemoryOperand(String baseReg, String indexReg, Integer scale, Integer offset, OpSize opSize, String offsetStr) {
         super(opSize);
         this.baseReg = Optional.ofNullable(baseReg);
         this.indexReg = Optional.ofNullable(indexReg);
         this.scale = Optional.ofNullable(scale);
         this.offset = Optional.ofNullable(offset);
+        this.offsetStr = offsetStr;
     }
 
     /**
@@ -83,8 +89,7 @@ class MemoryOperand extends Operand {
 
     @Override
     public String toString() {
-        String res = "";
-        if (offset.isPresent()) res += offset.get();
+        String res = offsetStr;
         if (baseReg.isPresent() || indexReg.isPresent()) {
             res += "(";
             
@@ -113,8 +118,8 @@ class MemoryOperand extends Operand {
                 s += " * " + scale.get();
             }
         }
-        if (offset.isPresent()){
-            s += " + " + offset.get();
+        if (offset.isPresent()) {
+            s += (" + " + offsetStr);
         }
         s += ")";
         return s;

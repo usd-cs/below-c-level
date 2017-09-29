@@ -274,6 +274,10 @@ public class X86Parser {
                     offsetStr = offsetStr.replace("0x", "");
                 }
                 offset = Integer.parseInt(offsetStr, base);
+                offsetStr = memMatcher.group("imm"); // back to orig string for display later
+            }
+            else {
+                offsetStr = "";
             }
 
             // Look for a base register, which should be a quad sized register
@@ -325,7 +329,7 @@ public class X86Parser {
                 }
             }
 
-            op = new MemoryOperand(baseReg, indexReg, scale, offset, opReqs.getSize());
+            op = new MemoryOperand(baseReg, indexReg, scale, offset, opReqs.getSize(), offsetStr);
         } else if (labelMatcher.matches()) {
             // Found a label operand
             String labelName = labelMatcher.group("label");
