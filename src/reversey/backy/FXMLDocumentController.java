@@ -63,6 +63,8 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private MenuItem saveAsMenuItem;
     @FXML
+    private MenuItem closeTabMenuItem;
+    @FXML
     private MenuItem forwardMenuItem;
     @FXML
     private MenuItem backwardMenuItem;
@@ -315,6 +317,9 @@ public class FXMLDocumentController implements Initializable {
         loadMenuItem.setMnemonicParsing(true);
         loadMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.O, 
                                         KeyCombination.SHORTCUT_DOWN));
+        closeTabMenuItem.setMnemonicParsing(true);
+        closeTabMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.W, 
+                                        KeyCombination.SHORTCUT_DOWN));
         exitMenuItem.setMnemonicParsing(true);
         exitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.Q, 
                                         KeyCombination.SHORTCUT_DOWN));
@@ -355,6 +360,8 @@ public class FXMLDocumentController implements Initializable {
                 saveFileAs(event);
             }
         });
+        
+        closeTabMenuItem.setOnAction(this::closeTab);
 
         /**
          * Event handler for "User Guide" menu item.
@@ -764,17 +771,30 @@ public class FXMLDocumentController implements Initializable {
                 closingConfirmation.setTitle("Closing Tab Confirmation");
                 closingConfirmation.setHeaderText("Unsaved changes");
                 closingConfirmation.setContentText("Selecting OK will close this file immediately. Any unsaved changes will be lost.");
-                closingConfirmation.showAndWait();
+                closingConfirmation.showAndWait()
+                                   .filter(response -> response == ButtonType.CANCEL)
+                                   .ifPresent(response -> event.consume());
             }
         });
         t.setOnClosed((event) -> {
             if (listViewTabPane.getTabs().isEmpty()) {
-                createTab("New File", new ArrayList<>(), new ListView<>(), new X86Parser(), null);
+                createTab("untitled-" + untitledCount++,
+                        new ArrayList<>(),
+                        new ListView<>(),
+                        new X86Parser(),
+                        null);
             }
             tabMap.remove(t);
         });
         listViewTabPane.getSelectionModel().select(t);
 		setAsActiveTab(t);
+    }
+    
+    private void closeTab(Event e) {
+        Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
+        listViewTabPane.getTabs().remove(currTab);
+        currTab.getOnCloseRequest().handle(e);
+        currTab.getOnClosed().handle(e);
     }
 
     /**

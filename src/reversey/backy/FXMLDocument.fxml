@@ -80,6 +80,7 @@
                   <MenuItem fx:id="loadMenuItem" mnemonicParsing="false" text="Load" />
                   <MenuItem fx:id="saveMenuItem" mnemonicParsing="false" text="Save" />
                   <MenuItem fx:id="saveAsMenuItem" mnemonicParsing="false" text="Save As..." />
+                  <MenuItem fx:id="closeTabMenuItem" mnemonicParsing="false" text="Close Tab" />
               <MenuItem fx:id="exitMenuItem" mnemonicParsing="false" text="Exit" />
             </items>
           </Menu>
