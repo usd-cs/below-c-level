@@ -500,20 +500,20 @@ public class FXMLDocumentController implements Initializable {
         setStatusFlagLabels();
     }
 
-    private void parseLine(X86Parser perry, String line, ListView<x86ProgramLine> instructions) throws X86ParsingException {
+    private void parseLine(X86Parser perry, Simulation sim, String line, ListView<x86ProgramLine> instructions) throws X86ParsingException {
         x86ProgramLine x = perry.parseLine(line);
         instrText.setStyle("-fx-control-inner-background: white;");
         parseErrorText.setText(null);
         parseErrorText.setGraphic(null);
 
-        simulator.addLineToEnd(x);
+        sim.addLineToEnd(x);
 
         // If this is the first instruction entered, "select" it and appropriately
         //  update the register table
         if (instructions.getItems().size() == 1) {
             instructions.getSelectionModel().select(0);
 
-            registerTableList = FXCollections.observableArrayList(simulator.getRegisters());
+            registerTableList = FXCollections.observableArrayList(sim.getRegisters());
             SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
             promRegTable.setItems(regSortedList1);
         }
@@ -547,7 +547,7 @@ public class FXMLDocumentController implements Initializable {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             String text = instrText.getText();
             try {
-                this.parseLine(parser, text, instrList);
+                this.parseLine(parser, simulator, text, instrList);
 
                 // If we reach this point, the parsing was successful so get
                 // rid of any error indicators that may have been set up.
@@ -615,9 +615,10 @@ public class FXMLDocumentController implements Initializable {
 
             ListView<x86ProgramLine> newInstrs = new ListView<>();
             X86Parser newPerry = new X86Parser();
+            Simulation newSim = new Simulation(newInstrs.getItems());
             for (String instrLine : instrTmp) {
                 try {
-                    this.parseLine(newPerry, instrLine, newInstrs);
+                    this.parseLine(newPerry, newSim, instrLine, newInstrs);
                 } catch (X86ParsingException e) {
                     newInstrs.getItems().clear();
                     Alert fileLoadingError = new Alert(AlertType.ERROR);
@@ -634,6 +635,7 @@ public class FXMLDocumentController implements Initializable {
             createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1),
                     newInstrs,
                     newPerry,
+                    newSim,
                     lastLoadedFileName);
         }
     }
@@ -692,15 +694,21 @@ public class FXMLDocumentController implements Initializable {
         ofLabel.setText("OF: " + (simulator.hasOverflowFlagSet() ? "1" : "0"));
         cfLabel.setText("CF: " + (simulator.hasCarryFlagSet() ? "1" : "0"));
     }
+    
+    /**
+     * Creates new tab and adds addNewTab to the end of the current list of tabs
+     */
+    private void createTab(String tabName, ListView<x86ProgramLine> tabInstrList,
+            X86Parser tabParser, String tabFileName) {
+        Simulation tabSimulator = new Simulation(tabInstrList.getItems());
+        createTab(tabName, tabInstrList, tabParser, tabSimulator, tabFileName);
+    }
 
     /**
      * Creates new tab and adds addNewTab to the end of the current list of tabs
-     *
-     * @return descriptionTip new tab
      */
-    private void createTab(String tabName, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, String tabFileName) {
+    private void createTab(String tabName, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, Simulation tabSimulator, String tabFileName) {
         Tab t = new Tab(tabName);
-        Simulation tabSimulator = new Simulation(tabInstrList.getItems());
         tabMap.put(t, new TabState(tabInstrList, tabParser, tabSimulator, tabFileName));
         listViewTabPane.getTabs().add(t);
         tabInstrList.setCellFactory(this::instructionListCellFactory);
@@ -765,6 +773,7 @@ public class FXMLDocumentController implements Initializable {
      */
     private void setAsActiveTab(Tab t) {
         instrList = tabMap.get(t).getInstrList();
+        simulator = tabMap.get(t).getSimulator();
         parser = tabMap.get(t).getParser();
         lastLoadedFileName = tabMap.get(t).getFileName();
         updateStateDisplays();
