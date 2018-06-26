@@ -15,41 +15,34 @@ import javafx.scene.control.ListView;
  */
 public class TabState {
 
-    private final List<String> regHistory;
-    private final List<MachineState> stateHistory;
+    // TODO: remove this field?
     private final ListView<x86ProgramLine> instrList;
     private final X86Parser parser;
+    private final Simulation simulator;
     private String fileName;
     private boolean isEdited;
 
     public TabState() {
-        this.regHistory = new ArrayList<>();
-        this.stateHistory = new ArrayList<>();
         this.instrList = new ListView<>();
         this.parser = new X86Parser();
+        this.simulator = new Simulation(this.instrList.getItems());
         this.fileName = null;
         this.isEdited = false;
     }
 
-    public TabState(List<String> regHistory,
-                    List<MachineState> stateHistory, 
-                    ListView<x86ProgramLine> instrList,
-                    X86Parser parser, 
+    public TabState(ListView<x86ProgramLine> instrList,
+                    X86Parser parser,
+                    Simulation simulator,
                     String fileName) {
-        this.regHistory = regHistory;
-        this.stateHistory = stateHistory;
         this.instrList = instrList;
         this.parser = parser;
+        this.simulator = simulator;
         this.fileName = fileName;
         this.isEdited = false;
     }
 
-    public List<String> getRegHistory() {
-        return this.regHistory;
-    }
-
-    public List<MachineState> getStateHistory() {
-        return this.stateHistory;
+    public Simulation getSimulator() {
+        return this.simulator;
     }
 
     public ListView<x86ProgramLine> getInstrList() {
