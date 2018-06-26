@@ -260,7 +260,7 @@ public class FXMLDocumentController implements Initializable {
         });
 
         listViewTabPane.getTabs().remove(firstTab);
-        createTab("untitled-" + untitledCount, instrList, parser, null);
+        createTab("untitled-" + untitledCount, instrList, parser, Optional.empty(), null);
         untitledCount++;
 
         // Set up handlers for simulation control, both via buttons and menu
@@ -302,6 +302,7 @@ public class FXMLDocumentController implements Initializable {
             createTab("untitled-" + untitledCount++,
                     new ListView<>(),
                     new X86Parser(),
+                    Optional.empty(),
                     null);
         });
 
@@ -635,7 +636,7 @@ public class FXMLDocumentController implements Initializable {
             createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1),
                     newInstrs,
                     newPerry,
-                    newSim,
+                    Optional.of(newSim),
                     lastLoadedFileName);
         }
     }
@@ -699,17 +700,11 @@ public class FXMLDocumentController implements Initializable {
      * Creates new tab and adds addNewTab to the end of the current list of tabs
      */
     private void createTab(String tabName, ListView<x86ProgramLine> tabInstrList,
-            X86Parser tabParser, String tabFileName) {
-        Simulation tabSimulator = new Simulation(tabInstrList.getItems());
-        createTab(tabName, tabInstrList, tabParser, tabSimulator, tabFileName);
-    }
-
-    /**
-     * Creates new tab and adds addNewTab to the end of the current list of tabs
-     */
-    private void createTab(String tabName, ListView<x86ProgramLine> tabInstrList, X86Parser tabParser, Simulation tabSimulator, String tabFileName) {
+                            X86Parser tabParser, Optional<Simulation> tabSimulator,
+                            String tabFileName) {
         Tab t = new Tab(tabName);
-        tabMap.put(t, new TabState(tabInstrList, tabParser, tabSimulator, tabFileName));
+        Simulation sim = tabSimulator.orElse(new Simulation(tabInstrList.getItems()));
+        tabMap.put(t, new TabState(tabInstrList, tabParser, sim, tabFileName));
         listViewTabPane.getTabs().add(t);
         tabInstrList.setCellFactory(this::instructionListCellFactory);
         t.setContent(tabInstrList);
@@ -743,6 +738,7 @@ public class FXMLDocumentController implements Initializable {
                 createTab("untitled-" + untitledCount++,
                         new ListView<>(),
                         new X86Parser(),
+                        Optional.empty(),
                         null);
             }
             tabMap.remove(t);
