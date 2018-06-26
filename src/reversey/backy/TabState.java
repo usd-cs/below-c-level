@@ -7,6 +7,8 @@ package reversey.backy;
 
 import java.util.ArrayList;
 import java.util.List;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.scene.control.ListView;
 
 /**
@@ -14,27 +16,14 @@ import javafx.scene.control.ListView;
  * @author Caitlin
  */
 public class TabState {
-
-    // TODO: remove this field?
-    private final ListView<x86ProgramLine> instrList;
     private final X86Parser parser;
     private final Simulation simulator;
     private String fileName;
     private boolean isEdited;
 
-    public TabState() {
-        this.instrList = new ListView<>();
-        this.parser = new X86Parser();
-        this.simulator = new Simulation(this.instrList.getItems());
-        this.fileName = null;
-        this.isEdited = false;
-    }
-
-    public TabState(ListView<x86ProgramLine> instrList,
-                    X86Parser parser,
+    public TabState(X86Parser parser,
                     Simulation simulator,
                     String fileName) {
-        this.instrList = instrList;
         this.parser = parser;
         this.simulator = simulator;
         this.fileName = fileName;
@@ -45,8 +34,8 @@ public class TabState {
         return this.simulator;
     }
 
-    public ListView<x86ProgramLine> getInstrList() {
-        return this.instrList;
+    public ObservableList<x86ProgramLine> getInstrList() {
+        return this.simulator.getInstrList();
     }
 
     public X86Parser getParser() {

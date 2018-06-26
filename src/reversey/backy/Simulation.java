@@ -36,11 +36,13 @@ public class Simulation {
         
         regHistory = new ArrayList<>();
         if (!instrList.isEmpty()) {
+            currentLine = this.instrList.get(0);
             regHistory.addAll(instrList.get(0).getUsedRegisters());
         }
     }
     
     public x86ProgramLine getCurrentLine() { return this.currentLine; }
+    public ObservableList<x86ProgramLine> getInstrList() { return this.instrList; }
     
     public List<Register> getRegisters() {
         return stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory);
