@@ -155,21 +155,6 @@ public class FXMLDocumentController implements Initializable {
      */
     private ObservableList<Register> registerTableList;
 
-    /**
-     * Current file name.
-     */
-    private String lastLoadedFileName;
-
-    /**
-     * Counter for "untitled" panes.
-     */
-    private int untitledCount = 0;
-
-    /**
-     * Parser for current tab.
-     */
-    private X86Parser parser;
-
     ListCell<x86ProgramLine> cellBeingEdited;
 
     private Simulation simulator;
@@ -208,13 +193,9 @@ public class FXMLDocumentController implements Initializable {
     // TODO: Comment
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
-        // TODO: initialize simulator field to new Simulation object
-
         // Initialize the simulation state.
-        simulator = new Simulation(instrList.getItems());
+        simulator = new Simulation();
         simStateFromTab = new HashMap<>();
-        parser = new X86Parser();
-        lastLoadedFileName = null;
 
         // Initialize stack table
         startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
@@ -226,6 +207,7 @@ public class FXMLDocumentController implements Initializable {
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
         originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
 
+        // TODO: init this and register table list to empty and let them fill naturally?
         stackTableList = FXCollections.observableArrayList(simulator.getStackEntries());
         SortedList<StackEntry> stackSortedList = stackTableList.sorted(stackComp);
         stackTable.setItems(stackSortedList);
@@ -260,8 +242,7 @@ public class FXMLDocumentController implements Initializable {
         });
 
         listViewTabPane.getTabs().remove(firstTab);
-        createTab("untitled-" + untitledCount, instrList, parser, Optional.empty(), null);
-        untitledCount++;
+        createTab(simulator);
 
         // Set up handlers for simulation control, both via buttons and menu
         // items.
@@ -299,11 +280,7 @@ public class FXMLDocumentController implements Initializable {
         saveAsMenuItem.setOnAction(this::saveFileAs);
 
         newMenuItem.setOnAction((event) -> {
-            createTab("untitled-" + untitledCount++,
-                    new ListView<>(),
-                    new X86Parser(),
-                    Optional.empty(),
-                    null);
+            createTab(new Simulation());
         });
 
         // Add keyboard shortcuts
@@ -341,20 +318,10 @@ public class FXMLDocumentController implements Initializable {
          * simulation to a text file specified by the user if file does not
          * exist, and save changes to existing file.
          */
-        saveMenuItem.setOnAction((event) -> {
-            // TODO: make this a Simulation class method
-            if (lastLoadedFileName != null) {
-                try (FileWriter fW = new FileWriter(new File(lastLoadedFileName))) {
-                    for (int i = 0; i < instrList.getItems().size(); i++) {
-                        fW.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
-                    }
-                    simStateFromTab.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(false);
-                } catch (IOException e) {
-                    System.out.println("File cannot be saved.");
-                }
-            } else {
-                saveFileAs(event);
-            }
+        // FIXME: this should be disabled until they save as or load from file
+        // and should switch on and off based on which tab is selected
+        saveMenuItem.setOnAction(event -> {
+            simulator.saveProgram();
         });
 
         closeTabMenuItem.setOnAction(this::closeTab);
@@ -501,31 +468,29 @@ public class FXMLDocumentController implements Initializable {
         setStatusFlagLabels();
     }
 
-    private void parseLine(X86Parser perry, Simulation sim, String line, ObservableList<x86ProgramLine> instructions) throws X86ParsingException {
-        x86ProgramLine x = perry.parseLine(line);
-        instrText.setStyle("-fx-control-inner-background: white;");
-        parseErrorText.setText(null);
-        parseErrorText.setGraphic(null);
-
-        sim.addLineToEnd(x);
-        instrText.clear();
-    }
-
     /**
      * Sets the currently selected tab as having unsaved changes.
      */
-    public void setCurrTabAsEdited() {
+    public void indicateCurrentTabIsUnsaved() {
         Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
         String currTabName = currTab.getText();
 
         // Already indicating we have an edited file so don't need to do anything
-        if (currTabName.endsWith("*")) {
-            return;
-        } else {
+        if (!currTabName.endsWith("*")) {
             currTab.setText(currTabName + "*");
         }
-
-        simStateFromTab.get(currTab).setIsEdited(true);
+    }
+    
+    public void indicateParsingError(X86ParsingException e) {
+        // If we had a parsing error, set the background to pink,
+        // select the part of the input that reported the error,
+        // and set the error label's text.
+        instrText.setStyle("-fx-control-inner-background: pink;");
+        instrText.selectRange(e.getStartIndex(), e.getEndIndex());
+        parseErrorText.setText(e.getMessage());
+        ImageView errorPic = new ImageView(
+                new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
+        parseErrorText.setGraphic(errorPic);
     }
 
     /**
@@ -538,7 +503,7 @@ public class FXMLDocumentController implements Initializable {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             String text = instrText.getText();
             try {
-                this.parseLine(parser, simulator, text, instrList.getItems());
+                simulator.appendToProgram(text);
 
                 // If we reach this point, the parsing was successful so get
                 // rid of any error indicators that may have been set up.
@@ -548,18 +513,10 @@ public class FXMLDocumentController implements Initializable {
                 instrText.clear();
                 restartSim(keyEvent);
 
-                setCurrTabAsEdited();
+                indicateCurrentTabIsUnsaved();
 
             } catch (X86ParsingException e) {
-                // If we had a parsing error, set the background to pink,
-                // select the part of the input that reported the error,
-                // and set the error label's text.
-                instrText.setStyle("-fx-control-inner-background: pink;");
-                instrText.selectRange(e.getStartIndex(), e.getEndIndex());
-                parseErrorText.setText(e.getMessage());
-                ImageView errorPic = new ImageView(
-                        new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
-                parseErrorText.setGraphic(errorPic);
+                this.indicateParsingError(e);
             }
         }
     }
@@ -573,64 +530,32 @@ public class FXMLDocumentController implements Initializable {
     private void loadFile(Event event) {
         FileChooser loadFileChoice = new FileChooser();
         loadFileChoice.setTitle("Open File");
-
-        // Filter only allows user to choose a text file
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s");
-        loadFileChoice.getExtensionFilters().add(extFilter);
+        loadFileChoice.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s"));
+        
         File loadFile = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
-
         if (loadFile != null) {
-            lastLoadedFileName = loadFile.getAbsolutePath();
-
-            // make sure we don'descriptionTip already have that file open in another tab
+            // make sure we don't already have that file open in another tab
             for (Map.Entry<Tab, SimState> entry : simStateFromTab.entrySet()) {
-                String tabFileName = entry.getValue().getFileName();
-                if (tabFileName != null && tabFileName.equals(lastLoadedFileName)) {
+                String tabFileName = entry.getValue().getSimulator().getProgramFileName();
+                if (tabFileName != null && tabFileName.equals(loadFile.getName())) {
                     // just open the tab that has this file open
                     listViewTabPane.getSelectionModel().select(entry.getKey());
                     return;
                 }
             }
 
-            ArrayList<String> instrTmp = new ArrayList<>();
-            try (BufferedReader br = new BufferedReader(new FileReader(loadFile))) {
-                String tmp;
-                while ((tmp = br.readLine()) != null) {
-                    instrTmp.add(tmp.trim());
-                }
-            } catch (FileNotFoundException e) {
-                System.out.println("File does not exist: please choose a valid text file.");
-            } catch (IOException e) {
-                System.out.println("Invalid file.");
+            try {
+                Simulation newSim = new Simulation(loadFile);
+                createTab(newSim);
             }
-
-            ObservableList<x86ProgramLine> newInstrs = FXCollections.observableArrayList();
-            X86Parser newPerry = new X86Parser();
-            Simulation newSim = new Simulation(newInstrs);
-            for (String instrLine : instrTmp) {
-                try {
-                    this.parseLine(newPerry, newSim, instrLine, newInstrs);
-                } catch (X86ParsingException e) {
-                    newInstrs.clear();
-                    Alert fileLoadingError = new Alert(AlertType.ERROR);
-                    fileLoadingError.setTitle("File Loading Error");
-                    fileLoadingError.setHeaderText("Error Loading File");
-                    fileLoadingError.setContentText("Unable to parse the following line:"
-                            + "\n\n" + instrLine
-                            + "\n\nReason: " + e.getMessage());
-                    fileLoadingError.showAndWait();
-                    return;
-                }
+            catch (X86ParsingException e) {
+                // Info about this is already given to them so just ignore it here.
             }
-            
-            //ListView<x86ProgramLine> newInstrList = new ListView<>(newInstrs);
-
-            createTab(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1),
-                    new ListView<>(newInstrs),
-                    newPerry,
-                    Optional.of(newSim),
-                    lastLoadedFileName);
-            //instrList = newInstrList;
+            catch (Exception e) {
+                // TODO: make this visual
+                System.out.println(e);
+            }
         }
     }
 
@@ -641,26 +566,13 @@ public class FXMLDocumentController implements Initializable {
      */
     private void saveFileAs(Event event) {
         FileChooser saveFileChoice = new FileChooser();
-
-        // Filter only allows user to choose text files
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s");
-        saveFileChoice.getExtensionFilters().add(extFilter);
+        saveFileChoice.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s"));
+        
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
-
         if (file != null) {
-            lastLoadedFileName = file.getAbsolutePath();
-            listViewTabPane.getSelectionModel().getSelectedItem().setText(lastLoadedFileName.substring(lastLoadedFileName.lastIndexOf("/") + 1));
-            try (FileWriter fw = new FileWriter(file)) {
-                // TODO: make this a Simulation class method
-                for (int i = 0; i < instrList.getItems().size(); i++) {
-                    fw.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
-                }
-                SimState currTabState = simStateFromTab.get(listViewTabPane.getSelectionModel().getSelectedItem());
-                currTabState.setIsEdited(false);
-                currTabState.setFileName(lastLoadedFileName);
-            } catch (IOException ex) {
-                System.out.println("Unable to save to file.");
-            }
+            listViewTabPane.getSelectionModel().getSelectedItem().setText(file.getName());
+            simulator.saveProgramAs(file);
         }
     }
 
@@ -692,15 +604,17 @@ public class FXMLDocumentController implements Initializable {
     /**
      * Creates new tab and adds addNewTab to the end of the current list of tabs
      */
-    private void createTab(String tabName, ListView<x86ProgramLine> tabInstrList,
-                            X86Parser tabParser, Optional<Simulation> tabSimulator,
-                            String tabFileName) {
-        Tab t = new Tab(tabName);
-        Simulation sim = tabSimulator.orElse(new Simulation(tabInstrList.getItems()));
-        simStateFromTab.put(t, new SimState(tabInstrList, tabParser, sim, tabFileName));
+    //private void createTab(String tabName, ListView<x86ProgramLine> tabInstrList,
+      //                      X86Parser tabParser, Optional<Simulation> tabSimulator,
+        //                    String tabFileName) {
+    private void createTab(Simulation sim) {
+        Tab t = new Tab(sim.getProgramFileName());
+        ListView<x86ProgramLine> programView = new ListView<>(sim.getProgramLines());
+        programView.setCellFactory(this::instructionListCellFactory);
+        t.setContent(programView);
+
+        simStateFromTab.put(t, new SimState(programView, sim));
         listViewTabPane.getTabs().add(t);
-        tabInstrList.setCellFactory(this::instructionListCellFactory);
-        t.setContent(tabInstrList);
 
         t.setOnSelectionChanged((event) -> {
             if (t.isSelected()) {
@@ -715,8 +629,9 @@ public class FXMLDocumentController implements Initializable {
                 cellBeingEdited = null;
             }
         });
+        
         t.setOnCloseRequest((event) -> {
-            if (simStateFromTab.get(t).getIsEdited()) {
+            if (simStateFromTab.get(t).getSimulator().isProgramUnsaved()) {
                 Alert closingConfirmation = new Alert(AlertType.CONFIRMATION);
                 closingConfirmation.setTitle("Closing Tab Confirmation");
                 closingConfirmation.setHeaderText("Unsaved changes");
@@ -726,16 +641,14 @@ public class FXMLDocumentController implements Initializable {
                         .ifPresent(response -> event.consume());
             }
         });
+        
         t.setOnClosed((event) -> {
             if (listViewTabPane.getTabs().isEmpty()) {
-                createTab("untitled-" + untitledCount++,
-                        new ListView<>(),
-                        new X86Parser(),
-                        Optional.empty(),
-                        null);
+                createTab(new Simulation());
             }
             simStateFromTab.remove(t);
         });
+        
         listViewTabPane.getSelectionModel().select(t);
         setAsActiveTab(t);
     }
@@ -761,10 +674,8 @@ public class FXMLDocumentController implements Initializable {
      * @param t The tab to make active.
      */
     private void setAsActiveTab(Tab t) {
-        instrList = simStateFromTab.get(t).getInstrList();
+        instrList = simStateFromTab.get(t).getProgramView();
         simulator = simStateFromTab.get(t).getSimulator();
-        parser = simStateFromTab.get(t).getParser();
-        lastLoadedFileName = simStateFromTab.get(t).getFileName();
         updateStateDisplays();
         checkEnding();
     }
@@ -794,9 +705,6 @@ public class FXMLDocumentController implements Initializable {
             }
         };
 
-        //cell.setOnMouseClicked(event -> {
-        //   cell.setStyle("-fx-background-color: pink;");
-        //});
         // Tooltip will show up just to the right of the mouse when we enter
         // this cell and disappear as soon as we leave the cell.
         final Tooltip descriptionTip = new Tooltip();
@@ -820,21 +728,8 @@ public class FXMLDocumentController implements Initializable {
         MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
 
         deleteItem.setOnAction(event -> {
-            if (cell.getItem() instanceof x86Label) {
-                x86Label l = (x86Label) cell.getItem();
-                parser.removeLabel(l.getName());
-            }
-
-            lv.getItems().remove(cell.getItem());
-            int i = 0;
-            for (x86ProgramLine line : lv.getItems()) {
-                line.setLineNum(i);
-                i++;
-            }
-            parser.setCurrLineNum(i);
-
+            simulator.removeFromProgram(cell.getItem());
             this.restartSim(null);
-
         });
 
         editItem.setOnAction(event -> {
@@ -855,54 +750,26 @@ public class FXMLDocumentController implements Initializable {
             instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
                 if (keyEvent.getCode() == KeyCode.ENTER) {
                     String text = instrText.getText();
-                    if (cell.getItem() instanceof x86Label) {
-                        x86Label l = (x86Label) cell.getItem();
-                        parser.removeLabel(l.getName());
-                    }
+
                     try {
-                        x86ProgramLine x = parser.parseLine(text);
+                        simulator.replaceInProgram(cell.getItem(), text);
+                        indicateCurrentTabIsUnsaved();
+
                         instrText.setStyle("-fx-control-inner-background: white;");
                         parseErrorText.setText(null);
                         parseErrorText.setGraphic(null);
                         entryStatusLabel.setText(null);
+                        instrText.clear();
+                        
                         cell.setStyle(""); // previously background was set to blue
-                        setCurrTabAsEdited();
-
-                        // Find where the existing instruction was and replace
-                        // it with the new instruction.
-                        int i = 0;
-                        for (x86ProgramLine line : lv.getItems()) {
-                            if (line == cell.getItem()) {
-                                parser.setCurrLineNum(x.getLineNum());
-                                x.setLineNum(i);
-                                // TODO: think about whether instrList should be
-                                // changed to lv for the next two instructions.
-                                // TODO: add Simulation methods for removing and
-                                // adding at specific index, then make the following
-                                // two lines use those methods.
-                                instrList.getItems().remove(cell.getItem());
-                                instrList.getItems().add(i, x);
-                                break;
-                            }
-                            i++;
-                        }
                         cellBeingEdited = null; // oh whale
 
-                        instrText.clear();
-                        restartSim(null);
+                        this.restartSim(null);
                         // Out of editing mode so go back to default behavior
                         // for entering an instruction.
                         instrText.setOnKeyPressed(this::parseAndAddInstruction);
                     } catch (X86ParsingException e) {
-                        // If we had a parsing error, set the background to pink,
-                        // select the part of the input that reported the error,
-                        // and set the error label's text.
-                        instrText.setStyle("-fx-control-inner-background: pink;");
-                        instrText.selectRange(e.getStartIndex(), e.getEndIndex());
-                        parseErrorText.setText(e.getMessage());
-                        ImageView errorPic = new ImageView(
-                                new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
-                        parseErrorText.setGraphic(errorPic);
+                        this.indicateParsingError(e);
                     }
                 }
             });

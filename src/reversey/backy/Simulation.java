@@ -3,6 +3,9 @@
  */
 package reversey.backy;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.collections.ObservableList;
@@ -12,37 +15,54 @@ import javafx.scene.control.Alert;
  *
  * @author sat
  */
-public class Simulation {
-    ObservableList<x86ProgramLine> instrList;
-    
+public class Simulation {    
     /**
      * The history of execution states in our simulation.
      */
-    List<MachineState> stateHistory;
+    private List<MachineState> stateHistory;
     
     /**
      * History of registers used by the simulation. This list may contain
      * duplicates as one is added for each register used by an instruction when
      * it is executed.
      */
-    List<String> regHistory;
+    private List<String> regHistory;
     
-    x86ProgramLine currentLine;
+    private x86ProgramLine currentLine;
     
-    public Simulation(ObservableList<x86ProgramLine> instrList) {
-        this.instrList = instrList;
+    private x86Program program;
+    
+    public Simulation() {
+        this.program = new x86Program();
+        this.stateHistory = new ArrayList<>();
+        this.stateHistory.add(new MachineState());
+        
+        this.regHistory = new ArrayList<>();
+    }
+    
+    public Simulation(File assemblyFile) throws FileNotFoundException,
+                                                IOException,
+                                                X86ParsingException {
+        this.program = new x86Program(assemblyFile);
         stateHistory = new ArrayList<>();
         stateHistory.add(new MachineState());
         
         regHistory = new ArrayList<>();
-        if (!instrList.isEmpty()) {
-            currentLine = this.instrList.get(0);
-            regHistory.addAll(instrList.get(0).getUsedRegisters());
+        if (!this.program.isEmpty()) {
+            currentLine = this.program.getLine(0);
+            regHistory.addAll(this.program.getLine(0).getUsedRegisters());
         }
     }
     
+    public String getProgramFileName() { return this.program.getFileName(); }
+    
+    public boolean isProgramUnsaved() { return this.program.isUnsaved(); }
+    
     public x86ProgramLine getCurrentLine() { return this.currentLine; }
-    public ObservableList<x86ProgramLine> getInstrList() { return this.instrList; }
+    
+    public ObservableList<x86ProgramLine> getProgramLines() {
+        return this.program.getProgramLines();
+    }
     
     public List<Register> getRegisters() {
         return stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory);
@@ -77,8 +97,8 @@ public class Simulation {
 
         this.regHistory.clear();
 
-        if (!instrList.isEmpty()) {
-            currentLine = instrList.get(0);
+        if (!this.program.isEmpty()) {
+            currentLine = this.program.getLine(0);
             regHistory.addAll(currentLine.getUsedRegisters());
         }
     }
@@ -90,7 +110,7 @@ public class Simulation {
      */
     public boolean isFinished(){
         return stateHistory.get(stateHistory.size() - 1).getRipRegister() 
-                >= instrList.size();
+                >= this.program.getNumLines();
     }
     
     /**
@@ -133,11 +153,10 @@ public class Simulation {
                 currentLine = null;
             }
             else {
-                currentLine = instrList.get(stateHistory.get(stateHistory.size() - 1).getRipRegister());
+                currentLine = this.program.getLine(stateHistory.get(stateHistory.size() - 1).getRipRegister());
                 regHistory.addAll(currentLine.getUsedRegisters());
             }
         } catch (Exception e) {
-            e.printStackTrace();
             // TODO: this should catch a custom simulation exception type
             Alert evalError = new Alert(Alert.AlertType.ERROR);
             evalError.setTitle("Simulation Error");
@@ -158,20 +177,37 @@ public class Simulation {
         if (stateHistory.size() == 1) return;
         
         stateHistory.remove(stateHistory.size() - 1);
-        if (!instrList.isEmpty() && currentLine != null) {
+        if (!this.program.isEmpty() && currentLine != null) {
             regHistory.removeAll(currentLine.getUsedRegisters());
         }
-        currentLine = instrList.get(stateHistory.get(stateHistory.size() - 1).getRipRegister());
+        currentLine = this.program.getLine(stateHistory.get(stateHistory.size() - 1).getRipRegister());
     }
     
-    public void addLineToEnd(x86ProgramLine newLine) {
-        instrList.add(newLine);
+    public void appendToProgram(String lineText) throws X86ParsingException {
+        x86ProgramLine newLine = this.program.parseThenAddLine(lineText);
 
         // If this is the first instruction entered, "select" it and
         // make sure it gets added to our register history list.
-        if (instrList.size() == 1) {
+        if (this.program.getNumLines() == 1) {
             regHistory.addAll(newLine.getUsedRegisters());
             currentLine = newLine;
         }
+    }
+    
+    public void removeFromProgram(x86ProgramLine line) {
+        this.program.removeLine(line);
+    }
+    
+    public void replaceInProgram(x86ProgramLine existingLine, String newLine) throws X86ParsingException {
+        this.program.replaceLine(existingLine, newLine);
+    }
+    
+    public boolean saveProgram() {
+        return this.program.writeToFile();
+    }
+    
+    public boolean saveProgramAs(File f) {
+        this.program.setFile(f);
+        return this.program.writeToFile();
     }
 }
