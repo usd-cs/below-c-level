@@ -88,7 +88,7 @@ public class FXMLDocumentController implements Initializable {
     /**
      * Map of tabs to their state.
      */
-    private HashMap<Tab, TabState> tabMap;
+    private HashMap<Tab, SimState> simStateFromTab;
 
     // UI elements for adding new instructions
     @FXML
@@ -212,7 +212,7 @@ public class FXMLDocumentController implements Initializable {
 
         // Initialize the simulation state.
         simulator = new Simulation(instrList.getItems());
-        tabMap = new HashMap<>();
+        simStateFromTab = new HashMap<>();
         parser = new X86Parser();
         lastLoadedFileName = null;
 
@@ -348,7 +348,7 @@ public class FXMLDocumentController implements Initializable {
                     for (int i = 0; i < instrList.getItems().size(); i++) {
                         fW.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                     }
-                    tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(false);
+                    simStateFromTab.get(listViewTabPane.getSelectionModel().getSelectedItem()).setIsEdited(false);
                 } catch (IOException e) {
                     System.out.println("File cannot be saved.");
                 }
@@ -525,7 +525,7 @@ public class FXMLDocumentController implements Initializable {
             currTab.setText(currTabName + "*");
         }
 
-        tabMap.get(currTab).setIsEdited(true);
+        simStateFromTab.get(currTab).setIsEdited(true);
     }
 
     /**
@@ -583,7 +583,7 @@ public class FXMLDocumentController implements Initializable {
             lastLoadedFileName = loadFile.getAbsolutePath();
 
             // make sure we don'descriptionTip already have that file open in another tab
-            for (Map.Entry<Tab, TabState> entry : tabMap.entrySet()) {
+            for (Map.Entry<Tab, SimState> entry : simStateFromTab.entrySet()) {
                 String tabFileName = entry.getValue().getFileName();
                 if (tabFileName != null && tabFileName.equals(lastLoadedFileName)) {
                     // just open the tab that has this file open
@@ -655,7 +655,7 @@ public class FXMLDocumentController implements Initializable {
                 for (int i = 0; i < instrList.getItems().size(); i++) {
                     fw.write(instrList.getItems().get(i).toString().substring(instrList.getItems().get(i).toString().indexOf(":") + 2) + "\n");
                 }
-                TabState currTabState = tabMap.get(listViewTabPane.getSelectionModel().getSelectedItem());
+                SimState currTabState = simStateFromTab.get(listViewTabPane.getSelectionModel().getSelectedItem());
                 currTabState.setIsEdited(false);
                 currTabState.setFileName(lastLoadedFileName);
             } catch (IOException ex) {
@@ -697,7 +697,7 @@ public class FXMLDocumentController implements Initializable {
                             String tabFileName) {
         Tab t = new Tab(tabName);
         Simulation sim = tabSimulator.orElse(new Simulation(tabInstrList.getItems()));
-        tabMap.put(t, new TabState(tabInstrList, tabParser, sim, tabFileName));
+        simStateFromTab.put(t, new SimState(tabInstrList, tabParser, sim, tabFileName));
         listViewTabPane.getTabs().add(t);
         tabInstrList.setCellFactory(this::instructionListCellFactory);
         t.setContent(tabInstrList);
@@ -716,7 +716,7 @@ public class FXMLDocumentController implements Initializable {
             }
         });
         t.setOnCloseRequest((event) -> {
-            if (tabMap.get(t).getIsEdited()) {
+            if (simStateFromTab.get(t).getIsEdited()) {
                 Alert closingConfirmation = new Alert(AlertType.CONFIRMATION);
                 closingConfirmation.setTitle("Closing Tab Confirmation");
                 closingConfirmation.setHeaderText("Unsaved changes");
@@ -734,7 +734,7 @@ public class FXMLDocumentController implements Initializable {
                         Optional.empty(),
                         null);
             }
-            tabMap.remove(t);
+            simStateFromTab.remove(t);
         });
         listViewTabPane.getSelectionModel().select(t);
         setAsActiveTab(t);
@@ -761,10 +761,10 @@ public class FXMLDocumentController implements Initializable {
      * @param t The tab to make active.
      */
     private void setAsActiveTab(Tab t) {
-        instrList = tabMap.get(t).getInstrList();
-        simulator = tabMap.get(t).getSimulator();
-        parser = tabMap.get(t).getParser();
-        lastLoadedFileName = tabMap.get(t).getFileName();
+        instrList = simStateFromTab.get(t).getInstrList();
+        simulator = simStateFromTab.get(t).getSimulator();
+        parser = simStateFromTab.get(t).getParser();
+        lastLoadedFileName = simStateFromTab.get(t).getFileName();
         updateStateDisplays();
         checkEnding();
     }
