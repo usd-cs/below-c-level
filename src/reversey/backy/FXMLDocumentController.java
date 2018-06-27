@@ -495,9 +495,7 @@ public class FXMLDocumentController implements Initializable {
      * on the current state.
      */
     private void updateStateDisplays() {
-        System.out.println("selecting current line: " + simulator.getCurrentLine());
         instrList.getSelectionModel().select(simulator.getCurrentLine());
-        System.out.println("selected index is: " + instrList.getSelectionModel().getSelectedIndex());
         registerTableList.setAll(simulator.getRegisters());
         stackTableList.setAll(simulator.getStackEntries());
         setStatusFlagLabels();
@@ -510,18 +508,6 @@ public class FXMLDocumentController implements Initializable {
         parseErrorText.setGraphic(null);
 
         sim.addLineToEnd(x);
-
-        // If this is the first instruction entered, "select" it and appropriately
-        //  update the register table
-        /*
-        if (instructions.getItems().size() == 1) {
-            instructions.getSelectionModel().select(0);
-
-            registerTableList = FXCollections.observableArrayList(sim.getRegisters());
-            SortedList<Register> regSortedList1 = registerTableList.sorted(regComp);
-            promRegTable.setItems(regSortedList1);
-        }
-        */
         instrText.clear();
     }
 
@@ -711,7 +697,7 @@ public class FXMLDocumentController implements Initializable {
                             String tabFileName) {
         Tab t = new Tab(tabName);
         Simulation sim = tabSimulator.orElse(new Simulation(tabInstrList.getItems()));
-        tabMap.put(t, new TabState(tabParser, sim, tabFileName));
+        tabMap.put(t, new TabState(tabInstrList, tabParser, sim, tabFileName));
         listViewTabPane.getTabs().add(t);
         tabInstrList.setCellFactory(this::instructionListCellFactory);
         t.setContent(tabInstrList);
@@ -775,7 +761,7 @@ public class FXMLDocumentController implements Initializable {
      * @param t The tab to make active.
      */
     private void setAsActiveTab(Tab t) {
-        instrList.setItems(tabMap.get(t).getInstrList());
+        instrList = tabMap.get(t).getInstrList();
         simulator = tabMap.get(t).getSimulator();
         parser = tabMap.get(t).getParser();
         lastLoadedFileName = tabMap.get(t).getFileName();

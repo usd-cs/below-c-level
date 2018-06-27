@@ -16,14 +16,17 @@ import javafx.scene.control.ListView;
  * @author Caitlin
  */
 public class TabState {
+    private final ListView<x86ProgramLine> instrList;
     private final X86Parser parser;
     private final Simulation simulator;
     private String fileName;
     private boolean isEdited;
 
-    public TabState(X86Parser parser,
+    public TabState(ListView<x86ProgramLine> instrList,
+                    X86Parser parser,
                     Simulation simulator,
                     String fileName) {
+        this.instrList = instrList;
         this.parser = parser;
         this.simulator = simulator;
         this.fileName = fileName;
@@ -34,8 +37,8 @@ public class TabState {
         return this.simulator;
     }
 
-    public ObservableList<x86ProgramLine> getInstrList() {
-        return this.simulator.getInstrList();
+    public ListView<x86ProgramLine> getInstrList() {
+        return this.instrList;
     }
 
     public X86Parser getParser() {
