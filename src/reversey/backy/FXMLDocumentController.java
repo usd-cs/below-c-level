@@ -391,8 +391,7 @@ public class FXMLDocumentController implements Initializable {
      */
     private void stepForward(Event event) {
         simulator.stepForward();
-        updateStateDisplays();
-        checkEnding();
+        updateSimulatorUIElements();
     }
 
     /**
@@ -415,8 +414,7 @@ public class FXMLDocumentController implements Initializable {
             }
         }
 
-        updateStateDisplays();
-        checkEnding();
+        updateSimulatorUIElements();
     }
 
     /**
@@ -426,8 +424,7 @@ public class FXMLDocumentController implements Initializable {
      */
     private void stepBackward(Event event) {
         simulator.stepBackward();
-        updateStateDisplays();
-        checkEnding();
+        updateSimulatorUIElements();
     }
 
     /**
@@ -437,35 +434,33 @@ public class FXMLDocumentController implements Initializable {
      */
     private void restartSim(Event event) {
         simulator.restart();
-
-        updateStateDisplays();
-        checkEnding();
+        updateSimulatorUIElements();
     }
 
     /**
      * Checks if end of program has been reached and if so, disable nextInstr
      * and skipToEnd buttons.
      */
-    private void checkEnding() {
+    private void updateSimulationControls() {
         if (!simulator.isFinished()) {
             nextInstr.setOnAction(this::stepForward);
             skipToEnd.setOnAction(this::runForward);
         } else {
             nextInstr.setOnAction(null);
             skipToEnd.setOnAction(null);
-            instrList.getSelectionModel().clearSelection();
         }
     }
 
     /**
-     * Updates all the graphical elements that display state information based
-     * on the current state.
+     * Updates all the graphical elements of the simulator based on the currently
+     * active simulation state.
      */
-    private void updateStateDisplays() {
+    private void updateSimulatorUIElements() {
         instrList.getSelectionModel().select(simulator.getCurrentLine());
         registerTableList.setAll(simulator.getRegisters());
         stackTableList.setAll(simulator.getStackEntries());
-        setStatusFlagLabels();
+        updateStatusFlags();
+        updateSimulationControls();
     }
 
     /**
@@ -520,6 +515,16 @@ public class FXMLDocumentController implements Initializable {
             }
         }
     }
+    
+    private Optional<Tab> getTabIfOpen(String fileName) {
+        for (Map.Entry<Tab, SimState> entry : simStateFromTab.entrySet()) {
+            String tabFileName = entry.getValue().getSimulator().getProgramFileName();
+            if (tabFileName != null && tabFileName.equals(fileName)) {
+                return Optional.of(entry.getKey());
+            }
+        }
+        return Optional.empty();
+    }
 
     /**
      * This will reset the simulation, returning to the very first instruction
@@ -533,28 +538,22 @@ public class FXMLDocumentController implements Initializable {
         loadFileChoice.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s"));
         
-        File loadFile = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
-        if (loadFile != null) {
-            // make sure we don't already have that file open in another tab
-            for (Map.Entry<Tab, SimState> entry : simStateFromTab.entrySet()) {
-                String tabFileName = entry.getValue().getSimulator().getProgramFileName();
-                if (tabFileName != null && tabFileName.equals(loadFile.getName())) {
-                    // just open the tab that has this file open
-                    listViewTabPane.getSelectionModel().select(entry.getKey());
-                    return;
+        File fileToLoad = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
+        if (fileToLoad != null) {
+            Optional<Tab> openTab = this.getTabIfOpen(fileToLoad.getName());
+            if (openTab.isPresent()) {
+                listViewTabPane.getSelectionModel().select(openTab.get());
+            }
+            else {
+                try {
+                    Simulation newSim = new Simulation(fileToLoad);
+                    createTab(newSim);
+                } catch (X86ParsingException e) {
+                    // Info about this is already given to them so just ignore it here.
+                } catch (Exception e) {
+                    // TODO: make this visual
+                    System.out.println(e);
                 }
-            }
-
-            try {
-                Simulation newSim = new Simulation(loadFile);
-                createTab(newSim);
-            }
-            catch (X86ParsingException e) {
-                // Info about this is already given to them so just ignore it here.
-            }
-            catch (Exception e) {
-                // TODO: make this visual
-                System.out.println(e);
             }
         }
     }
@@ -578,7 +577,7 @@ public class FXMLDocumentController implements Initializable {
 
     // TODO: method comment
     private void setIconsFitHeightAndWidth(ImageView i, ImageView j, ImageView k,
-            ImageView l, ImageView m, int size) {
+                                            ImageView l, ImageView m, int size) {
         i.setFitHeight(size);
         i.setFitWidth(size);
         j.setFitHeight(size);
@@ -594,7 +593,7 @@ public class FXMLDocumentController implements Initializable {
     /**
      * Sets the "Status Flags" display based on the current simulation state.
      */
-    private void setStatusFlagLabels() {
+    private void updateStatusFlags() {
         sfLabel.setText("SF: " + (simulator.hasSignFlagSet() ? "1" : "0"));
         zfLabel.setText("ZF: " + (simulator.hasZeroFlagSet() ? "1" : "0"));
         ofLabel.setText("OF: " + (simulator.hasOverflowFlagSet() ? "1" : "0"));
@@ -604,9 +603,6 @@ public class FXMLDocumentController implements Initializable {
     /**
      * Creates new tab and adds addNewTab to the end of the current list of tabs
      */
-    //private void createTab(String tabName, ListView<x86ProgramLine> tabInstrList,
-      //                      X86Parser tabParser, Optional<Simulation> tabSimulator,
-        //                    String tabFileName) {
     private void createTab(Simulation sim) {
         Tab t = new Tab(sim.getProgramFileName());
         ListView<x86ProgramLine> programView = new ListView<>(sim.getProgramLines());
@@ -676,8 +672,7 @@ public class FXMLDocumentController implements Initializable {
     private void setAsActiveTab(Tab t) {
         instrList = simStateFromTab.get(t).getProgramView();
         simulator = simStateFromTab.get(t).getSimulator();
-        updateStateDisplays();
-        checkEnding();
+        updateSimulatorUIElements();
     }
 
     /**
