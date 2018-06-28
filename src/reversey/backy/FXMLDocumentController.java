@@ -146,7 +146,7 @@ public class FXMLDocumentController implements Initializable {
      */
     private ObservableList<Register> registerTableList;
 
-    ListCell<x86ProgramLine> cellBeingEdited;
+    private ListCell<x86ProgramLine> cellBeingEdited;
 
     private Simulation simulator;
 
