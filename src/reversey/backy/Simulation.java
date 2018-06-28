@@ -88,6 +88,10 @@ public class Simulation {
         return stateHistory.get(this.stateHistory.size() - 1).getCarryFlag();
     }
     
+    public boolean hasProgramFile() {
+        return this.program.hasFile();
+    }
+    
     /**
      * Restarts simulation back to its starting state.
      */
