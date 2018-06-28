@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.function.Predicate;
 import java.util.Arrays;
 import java.math.BigInteger;
-import java.util.Optional;
 
 /**
  * An abstract class representing an x86-64 instruction.

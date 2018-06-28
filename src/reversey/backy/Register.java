@@ -1,7 +1,6 @@
 package reversey.backy;
 
 import java.util.Comparator;
-import java.util.regex.Pattern;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 
