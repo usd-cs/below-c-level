@@ -13,7 +13,6 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
 import javafx.event.Event;
 import javafx.geometry.Point2D;
 import javafx.scene.Scene;
@@ -407,8 +406,8 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
-     * Checks if end of program has been reached and if so, disable nextInstr
- and runAllButton buttons.
+     * Checks if end of program has been reached and if so, disable stepForward
+     * and runAll buttons.
      */
     private void updateSimulationControls() {
         if (!activeSimulation.isFinished()) {
@@ -433,7 +432,7 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
-     * Sets the currently selected tab as having unsaved changes.
+     * Visually indicates to the user that the current tab is unsaved.
      */
     public void indicateCurrentTabIsUnsaved() {
         Tab currTab = programTabs.getSelectionModel().getSelectedItem();
@@ -445,6 +444,11 @@ public class FXMLDocumentController implements Initializable {
         }
     }
     
+    /**
+     * Update UI to indicate that a parsing error was encountered.
+     * 
+     * @param e The parsing error that was encountered.
+     */
     public void indicateParsingError(X86ParsingException e) {
         // If we had a parsing error, set the background to pink,
         // select the part of the input that reported the error,
@@ -485,6 +489,12 @@ public class FXMLDocumentController implements Initializable {
         }
     }
     
+    /**
+     * Optionally returns the open tab associated with the given filename.
+     * 
+     * @param fileName Name of the file to look for in open tabs.
+     * @return Tab associated with that file, or an empty optional if one doesn't exist.
+     */
     private Optional<Tab> getTabIfOpen(String fileName) {
         for (Map.Entry<Tab, SimState> entry : simStateFromTab.entrySet()) {
             String tabFileName = entry.getValue().getSimulator().getProgramFileName();
@@ -544,7 +554,6 @@ public class FXMLDocumentController implements Initializable {
         }
     }
 
-    // TODO: method comment
     private void setIconsFitHeightAndWidth(ImageView i, ImageView j, ImageView k,
                                             ImageView l, ImageView m, int size) {
         i.setFitHeight(size);
