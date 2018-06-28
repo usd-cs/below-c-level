@@ -72,7 +72,7 @@ public class FXMLDocumentController implements Initializable {
 
     // Fields for TabPane
     @FXML
-    private TabPane listViewTabPane;
+    private TabPane programTabs;
     @FXML
     private Tab firstTab;
 
@@ -80,56 +80,67 @@ public class FXMLDocumentController implements Initializable {
      * Map of tabs to their state.
      */
     private HashMap<Tab, SimState> simStateFromTab;
+    
+    /**
+     * Entry in program that is currently being edited.
+     * This is null if none are currently being edited.
+     */
+    private ListCell<x86ProgramLine> cellBeingEdited;
 
     // UI elements for adding new instructions
     @FXML
-    private TextField instrText;
+    private TextField newLineEntry;
     @FXML
     private Label entryStatusLabel;
     @FXML
     private Label parseErrorText;
 
     @FXML
-    private ListView<x86ProgramLine> instrList;
+    private ListView<x86ProgramLine> programView;
 
     // Simulation Control Buttons
     @FXML
-    private Button nextInstr;
+    private Button stepForwardButton;
     @FXML
-    private Button skipToEnd;
+    private Button runAllButton;
     @FXML
-    private Button prevInstr;
+    private Button stepBackwardButton;
     @FXML
-    private Button skipToStart;
+    private Button restartButton;
     @FXML
-    private Button currInstr;
+    private Button jumpToCurrentButton;
 
     // Fields for stack/memory table
     @FXML
     private TableView<StackEntry> stackTable;
     @FXML
-    private TableColumn<StackEntry, String> startAddressCol;
+    private TableColumn<StackEntry, String> startAddressColumn;
     @FXML
-    private TableColumn<StackEntry, String> endAddressCol;
+    private TableColumn<StackEntry, String> endAddressColumn;
     @FXML
-    private TableColumn<StackEntry, String> valCol;
+    private TableColumn<StackEntry, String> valueColumn;
     @FXML
-    private TableColumn<StackEntry, Integer> originCol;
+    private TableColumn<StackEntry, Integer> originColumn;
 
     /**
      * List of stack entries in our current state.
      */
-    ObservableList<StackEntry> stackTableList;
+    ObservableList<StackEntry> stackTableEntries;
 
-    // Fields for the register table
+    // Register Table UI Elements
     @FXML
-    private TableView<Register> promRegTable;
+    private TableView<Register> registerTable;
     @FXML
-    private TableColumn<Register, String> registerName;
+    private TableColumn<Register, String> registerNameColumn;
     @FXML
-    private TableColumn<Register, String> registerVal;
+    private TableColumn<Register, String> registerValueColumn;
     @FXML
-    private TableColumn<Register, Integer> registerOrigin;
+    private TableColumn<Register, Integer> registerOriginColumn;
+    
+    /**
+     * List of registers values in our current state.
+     */
+    private ObservableList<Register> registerTableEntries;
 
     // Fields for status flag labels
     @FXML
@@ -142,13 +153,10 @@ public class FXMLDocumentController implements Initializable {
     private Label cfLabel;
 
     /**
-     * List of registers values in our current state.
+     * The simulation that is active (i.e. currently open).
+     * This is changed when the user selects a different tab.
      */
-    private ObservableList<Register> registerTableList;
-
-    private ListCell<x86ProgramLine> cellBeingEdited;
-
-    private Simulation simulator;
+    private Simulation activeSimulation;
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
@@ -161,13 +169,13 @@ public class FXMLDocumentController implements Initializable {
         initializeButtonGraphics();
 
         // initialize "instruction entry" text box
-        instrText.setOnKeyPressed(this::parseAndAddInstruction);
+        newLineEntry.setOnKeyPressed(this::parseAndAddInstruction);
 
         // Initialize the simulation state and create our first (blank) tab.
         simStateFromTab = new HashMap<>();
-        simulator = new Simulation();
-        listViewTabPane.getTabs().remove(firstTab);
-        createTab(simulator);
+        activeSimulation = new Simulation();
+        programTabs.getTabs().remove(firstTab);
+        createTab(activeSimulation);
 
         Platform.runLater(() -> {});
     }
@@ -183,11 +191,11 @@ public class FXMLDocumentController implements Initializable {
         this.setIconsFitHeightAndWidth(skipToStartImgVw, prevInstrImgVw, currInstrImgVw,
                 nextInstrImgVw, skipToEndImgVw, 35);
 
-        skipToStart.setGraphic(skipToStartImgVw);
-        prevInstr.setGraphic(prevInstrImgVw);
-        currInstr.setGraphic(currInstrImgVw);
-        nextInstr.setGraphic(nextInstrImgVw);
-        skipToEnd.setGraphic(skipToEndImgVw);
+        restartButton.setGraphic(skipToStartImgVw);
+        stepBackwardButton.setGraphic(prevInstrImgVw);
+        jumpToCurrentButton.setGraphic(currInstrImgVw);
+        stepForwardButton.setGraphic(nextInstrImgVw);
+        runAllButton.setGraphic(skipToEndImgVw);
     }
 
     private void initializeFileMenuItems() {
@@ -202,7 +210,7 @@ public class FXMLDocumentController implements Initializable {
         // FIXME: this should be disabled until they save as or load from file
         // and should switch on and off based on which tab is selected
         saveMenuItem.setOnAction(event -> {
-            simulator.saveProgram();
+            activeSimulation.saveProgram();
         });
         
         closeTabMenuItem.setOnAction(this::closeTab);
@@ -278,39 +286,39 @@ public class FXMLDocumentController implements Initializable {
     }
 
     private void initializeSimulationControls() {
-        nextInstr.setOnAction(this::stepForward);
+        stepForwardButton.setOnAction(this::stepForward);
         forwardMenuItem.setOnAction(this::stepForward);
         
-        skipToEnd.setOnAction(this::runForward);
+        runAllButton.setOnAction(this::runForward);
         runMenuItem.setOnAction(this::runForward);
         
         /**
          * Event handler for "scroll back to current instruction" button.
          */
-        currInstr.setOnAction(event -> {
-            ObservableList<Integer> selectedIndices = instrList.getSelectionModel().getSelectedIndices();
+        jumpToCurrentButton.setOnAction(event -> {
+            ObservableList<Integer> selectedIndices = programView.getSelectionModel().getSelectedIndices();
             if (!selectedIndices.isEmpty()) {
-                instrList.scrollTo(selectedIndices.get(0));
+                programView.scrollTo(selectedIndices.get(0));
             }
         });
         
-        prevInstr.setOnAction(this::stepBackward);
+        stepBackwardButton.setOnAction(this::stepBackward);
         backwardMenuItem.setOnAction(this::stepBackward);
         
-        skipToStart.setOnAction(this::restartSim);
+        restartButton.setOnAction(this::restartSim);
         restartMenuItem.setOnAction(this::restartSim);
     }
 
     private void initializeRegisterTable() {
         // Initialize the register table
-        registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
-        registerVal.setCellValueFactory(new PropertyValueFactory<>("value"));
-        registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
+        registerNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        registerValueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
+        registerOriginColumn.setCellValueFactory(new PropertyValueFactory<>("origin"));
         
-        registerTableList = FXCollections.observableArrayList();
-        promRegTable.setItems(registerTableList.sorted(Register.comparator));
+        registerTableEntries = FXCollections.observableArrayList();
+        registerTable.setItems(registerTableEntries.sorted(Register.comparator));
         
-        promRegTable.setRowFactory(tableView -> {
+        registerTable.setRowFactory(tableView -> {
             final TableRow<Register> row = new TableRow<>();
             
             row.hoverProperty().addListener((observable) -> {
@@ -332,17 +340,17 @@ public class FXMLDocumentController implements Initializable {
     }
 
     private void initializeStackTable() {
-        startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
+        startAddressColumn.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
                 -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
         
-        endAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
+        endAddressColumn.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
                 -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()).toUpperCase()));
         
-        valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
-        originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
+        valueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
+        originColumn.setCellValueFactory(new PropertyValueFactory<>("origin"));
         
-        stackTableList = FXCollections.observableArrayList();
-        stackTable.setItems(stackTableList.sorted(StackEntry.comparator));
+        stackTableEntries = FXCollections.observableArrayList();
+        stackTable.setItems(stackTableEntries.sorted(StackEntry.comparator));
     }
 
     /**
@@ -351,7 +359,7 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void stepForward(Event event) {
-        simulator.stepForward();
+        activeSimulation.stepForward();
         updateSimulatorUIElements();
     }
 
@@ -361,7 +369,7 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void runForward(Event event) {
-        while (!simulator.finish()) {
+        while (!activeSimulation.finish()) {
             Alert longRunningConfirmation = new Alert(AlertType.CONFIRMATION);
             longRunningConfirmation.setTitle("Long Running Computation");
             longRunningConfirmation.setHeaderText("Infinited Loop?");
@@ -384,7 +392,7 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void stepBackward(Event event) {
-        simulator.stepBackward();
+        activeSimulation.stepBackward();
         updateSimulatorUIElements();
     }
 
@@ -394,21 +402,21 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void restartSim(Event event) {
-        simulator.restart();
+        activeSimulation.restart();
         updateSimulatorUIElements();
     }
 
     /**
      * Checks if end of program has been reached and if so, disable nextInstr
-     * and skipToEnd buttons.
+ and runAllButton buttons.
      */
     private void updateSimulationControls() {
-        if (!simulator.isFinished()) {
-            nextInstr.setOnAction(this::stepForward);
-            skipToEnd.setOnAction(this::runForward);
+        if (!activeSimulation.isFinished()) {
+            stepForwardButton.setOnAction(this::stepForward);
+            runAllButton.setOnAction(this::runForward);
         } else {
-            nextInstr.setOnAction(null);
-            skipToEnd.setOnAction(null);
+            stepForwardButton.setOnAction(null);
+            runAllButton.setOnAction(null);
         }
     }
 
@@ -417,9 +425,9 @@ public class FXMLDocumentController implements Initializable {
      * active simulation state.
      */
     private void updateSimulatorUIElements() {
-        instrList.getSelectionModel().select(simulator.getCurrentLine());
-        registerTableList.setAll(simulator.getRegisters());
-        stackTableList.setAll(simulator.getStackEntries());
+        programView.getSelectionModel().select(activeSimulation.getCurrentLine());
+        registerTableEntries.setAll(activeSimulation.getRegisters());
+        stackTableEntries.setAll(activeSimulation.getStackEntries());
         updateStatusFlags();
         updateSimulationControls();
     }
@@ -428,7 +436,7 @@ public class FXMLDocumentController implements Initializable {
      * Sets the currently selected tab as having unsaved changes.
      */
     public void indicateCurrentTabIsUnsaved() {
-        Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
+        Tab currTab = programTabs.getSelectionModel().getSelectedItem();
         String currTabName = currTab.getText();
 
         // Already indicating we have an edited file so don't need to do anything
@@ -441,8 +449,8 @@ public class FXMLDocumentController implements Initializable {
         // If we had a parsing error, set the background to pink,
         // select the part of the input that reported the error,
         // and set the error label's text.
-        instrText.setStyle("-fx-control-inner-background: pink;");
-        instrText.selectRange(e.getStartIndex(), e.getEndIndex());
+        newLineEntry.setStyle("-fx-control-inner-background: pink;");
+        newLineEntry.selectRange(e.getStartIndex(), e.getEndIndex());
         parseErrorText.setText(e.getMessage());
         ImageView errorPic = new ImageView(
                 new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
@@ -457,16 +465,16 @@ public class FXMLDocumentController implements Initializable {
      */
     private void parseAndAddInstruction(KeyEvent keyEvent) {
         if (keyEvent.getCode() == KeyCode.ENTER) {
-            String text = instrText.getText();
+            String text = newLineEntry.getText();
             try {
-                simulator.appendToProgram(text);
+                activeSimulation.appendToProgram(text);
 
                 // If we reach this point, the parsing was successful so get
                 // rid of any error indicators that may have been set up.
-                instrText.setStyle("-fx-control-inner-background: white;");
+                newLineEntry.setStyle("-fx-control-inner-background: white;");
                 parseErrorText.setText(null);
                 parseErrorText.setGraphic(null);
-                instrText.clear();
+                newLineEntry.clear();
                 restartSim(keyEvent);
 
                 indicateCurrentTabIsUnsaved();
@@ -503,7 +511,7 @@ public class FXMLDocumentController implements Initializable {
         if (fileToLoad != null) {
             Optional<Tab> openTab = this.getTabIfOpen(fileToLoad.getName());
             if (openTab.isPresent()) {
-                listViewTabPane.getSelectionModel().select(openTab.get());
+                programTabs.getSelectionModel().select(openTab.get());
             }
             else {
                 try {
@@ -520,7 +528,7 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
-     * Saves current instrList as text file.
+     * Saves current programView as text file.
      *
      * @param event The event that triggered this action.
      */
@@ -531,8 +539,8 @@ public class FXMLDocumentController implements Initializable {
         
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
         if (file != null) {
-            listViewTabPane.getSelectionModel().getSelectedItem().setText(file.getName());
-            simulator.saveProgramAs(file);
+            programTabs.getSelectionModel().getSelectedItem().setText(file.getName());
+            activeSimulation.saveProgramAs(file);
         }
     }
 
@@ -555,10 +563,10 @@ public class FXMLDocumentController implements Initializable {
      * Sets the "Status Flags" display based on the current simulation state.
      */
     private void updateStatusFlags() {
-        sfLabel.setText("SF: " + (simulator.hasSignFlagSet() ? "1" : "0"));
-        zfLabel.setText("ZF: " + (simulator.hasZeroFlagSet() ? "1" : "0"));
-        ofLabel.setText("OF: " + (simulator.hasOverflowFlagSet() ? "1" : "0"));
-        cfLabel.setText("CF: " + (simulator.hasCarryFlagSet() ? "1" : "0"));
+        sfLabel.setText("SF: " + (activeSimulation.hasSignFlagSet() ? "1" : "0"));
+        zfLabel.setText("ZF: " + (activeSimulation.hasZeroFlagSet() ? "1" : "0"));
+        ofLabel.setText("OF: " + (activeSimulation.hasOverflowFlagSet() ? "1" : "0"));
+        cfLabel.setText("CF: " + (activeSimulation.hasCarryFlagSet() ? "1" : "0"));
     }
     
     /**
@@ -571,15 +579,15 @@ public class FXMLDocumentController implements Initializable {
         t.setContent(programView);
 
         simStateFromTab.put(t, new SimState(programView, sim));
-        listViewTabPane.getTabs().add(t);
+        programTabs.getTabs().add(t);
 
         t.setOnSelectionChanged((event) -> {
             if (t.isSelected()) {
                 setAsActiveTab(t);
             }
-            instrText.setOnKeyPressed(this::parseAndAddInstruction);
-            instrText.setStyle("-fx-control-inner-background: white;");
-            instrText.clear();
+            newLineEntry.setOnKeyPressed(this::parseAndAddInstruction);
+            newLineEntry.setStyle("-fx-control-inner-background: white;");
+            newLineEntry.clear();
             entryStatusLabel.setText(null);
             if (cellBeingEdited != null) {
                 cellBeingEdited.setStyle("");
@@ -600,13 +608,13 @@ public class FXMLDocumentController implements Initializable {
         });
         
         t.setOnClosed((event) -> {
-            if (listViewTabPane.getTabs().isEmpty()) {
+            if (programTabs.getTabs().isEmpty()) {
                 createTab(new Simulation());
             }
             simStateFromTab.remove(t);
         });
         
-        listViewTabPane.getSelectionModel().select(t);
+        programTabs.getSelectionModel().select(t);
         setAsActiveTab(t);
     }
 
@@ -616,10 +624,10 @@ public class FXMLDocumentController implements Initializable {
      * @param e The event which caused the tab closing to trigger.
      */
     private void closeTab(Event e) {
-        Tab currTab = listViewTabPane.getSelectionModel().getSelectedItem();
+        Tab currTab = programTabs.getSelectionModel().getSelectedItem();
         currTab.getOnCloseRequest().handle(e);
         if (!e.isConsumed()) {
-            listViewTabPane.getTabs().remove(currTab);
+            programTabs.getTabs().remove(currTab);
             currTab.getOnClosed().handle(e);
         }
     }
@@ -631,8 +639,8 @@ public class FXMLDocumentController implements Initializable {
      * @param t The tab to make active.
      */
     private void setAsActiveTab(Tab t) {
-        instrList = simStateFromTab.get(t).getProgramView();
-        simulator = simStateFromTab.get(t).getSimulator();
+        programView = simStateFromTab.get(t).getProgramView();
+        activeSimulation = simStateFromTab.get(t).getSimulator();
         updateSimulatorUIElements();
     }
 
@@ -684,7 +692,7 @@ public class FXMLDocumentController implements Initializable {
         MenuItem toggleBreakpointItem = new MenuItem("Toggle breakpoint");
 
         deleteItem.setOnAction(event -> {
-            simulator.removeFromProgram(cell.getItem());
+            activeSimulation.removeFromProgram(cell.getItem());
             this.restartSim(null);
         });
 
@@ -695,27 +703,27 @@ public class FXMLDocumentController implements Initializable {
              *    item in the list.
              * 2. Updating label next to box to say that we are editing a line.
              */
-            instrText.setStyle("-fx-control-inner-background: #77c0f4;");
-            instrText.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
+            newLineEntry.setStyle("-fx-control-inner-background: #77c0f4;");
+            newLineEntry.setText(cell.getItem().toString().substring(cell.getItem().toString().indexOf(":") + 1).trim());
             entryStatusLabel.setText("Editing line " + cell.getItem().getLineNum());
             cell.setStyle("-fx-background-color: #77c0f4;");
             cellBeingEdited = cell;
 
             // Change instruction entry box to replace instruction rather
             // than adding a new one at the end.
-            instrText.setOnKeyPressed((KeyEvent keyEvent) -> {
+            newLineEntry.setOnKeyPressed((KeyEvent keyEvent) -> {
                 if (keyEvent.getCode() == KeyCode.ENTER) {
-                    String text = instrText.getText();
+                    String text = newLineEntry.getText();
 
                     try {
-                        simulator.replaceInProgram(cell.getItem(), text);
+                        activeSimulation.replaceInProgram(cell.getItem(), text);
                         indicateCurrentTabIsUnsaved();
 
-                        instrText.setStyle("-fx-control-inner-background: white;");
+                        newLineEntry.setStyle("-fx-control-inner-background: white;");
                         parseErrorText.setText(null);
                         parseErrorText.setGraphic(null);
                         entryStatusLabel.setText(null);
-                        instrText.clear();
+                        newLineEntry.clear();
                         
                         cell.setStyle(""); // previously background was set to blue
                         cellBeingEdited = null; // oh whale
@@ -723,7 +731,7 @@ public class FXMLDocumentController implements Initializable {
                         this.restartSim(null);
                         // Out of editing mode so go back to default behavior
                         // for entering an instruction.
-                        instrText.setOnKeyPressed(this::parseAndAddInstruction);
+                        newLineEntry.setOnKeyPressed(this::parseAndAddInstruction);
                     } catch (X86ParsingException e) {
                         this.indicateParsingError(e);
                     }

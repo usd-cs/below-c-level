@@ -23,7 +23,7 @@
          <children>
             <HBox prefHeight="75.0" prefWidth="353.0">
                <children>
-                  <TextField fx:id="instrText" prefHeight="26.0" prefWidth="239.0" promptText="Enter an x86-64 instruction">
+                  <TextField fx:id="newLineEntry" prefHeight="26.0" prefWidth="239.0" promptText="Enter an x86-64 instruction">
                      <HBox.margin>
                         <Insets right="10.0" />
                      </HBox.margin>
@@ -36,11 +36,11 @@
                   <Insets bottom="5.0" top="5.0" />
                </VBox.margin>
             </Label>
-            <TabPane fx:id="listViewTabPane">
+            <TabPane fx:id="programTabs">
                <tabs>
                   <Tab fx:id="firstTab" text="New File">
                      <content>
-                        <ListView fx:id="instrList" prefHeight="444.0" prefWidth="353.0">
+                        <ListView fx:id="programView" prefHeight="444.0" prefWidth="353.0">
                            <VBox.margin>
                               <Insets bottom="5.0" top="5.0" />
                            </VBox.margin>
@@ -51,15 +51,15 @@
             </TabPane>
             <HBox alignment="CENTER" prefHeight="26.0" prefWidth="353.0">
                <children>
-                  <Button fx:id="skipToStart" mnemonicParsing="false" HBox.hgrow="ALWAYS">
+                  <Button fx:id="restartButton" mnemonicParsing="false" HBox.hgrow="ALWAYS">
                      <HBox.margin>
                         <Insets />
                      </HBox.margin>
                   </Button>
-                  <Button fx:id="prevInstr" mnemonicParsing="false" />
-                  <Button fx:id="currInstr" mnemonicParsing="false" />
-                  <Button fx:id="nextInstr" mnemonicParsing="false" />
-                  <Button fx:id="skipToEnd" mnemonicParsing="false" />
+                  <Button fx:id="stepBackwardButton" mnemonicParsing="false" />
+                  <Button fx:id="jumpToCurrentButton" mnemonicParsing="false" />
+                  <Button fx:id="stepForwardButton" mnemonicParsing="false" />
+                  <Button fx:id="runAllButton" mnemonicParsing="false" />
                </children>
                <padding>
                   <Insets left="22.0" />
@@ -77,9 +77,9 @@
           <Menu fx:id="fileOption" mnemonicParsing="false" text="File">
             <items>
                   <MenuItem fx:id="newMenuItem" mnemonicParsing="false" text="New" />
-                  <MenuItem fx:id="loadMenuItem" mnemonicParsing="false" text="Load" />
-                  <MenuItem fx:id="saveMenuItem" mnemonicParsing="false" text="Save" />
-                  <MenuItem fx:id="saveAsMenuItem" mnemonicParsing="false" text="Save As..." />
+                  <MenuItem fx:id="loadMenuItem" mnemonicParsing="false" text="Open File..." />
+                  <MenuItem fx:id="saveMenuItem" mnemonicParsing="false" text="Save File" />
+                  <MenuItem fx:id="saveAsMenuItem" mnemonicParsing="false" text="Save File As..." />
                   <MenuItem fx:id="closeTabMenuItem" mnemonicParsing="false" text="Close Tab" />
               <MenuItem fx:id="exitMenuItem" mnemonicParsing="false" text="Exit" />
             </items>
@@ -114,20 +114,20 @@
             </Label>
             <TableView fx:id="stackTable" prefHeight="238.0" prefWidth="383.0">
               <columns>
-                <TableColumn fx:id="startAddressCol" minWidth="-Infinity" prefWidth="93.0" style="-fx-alignment: CENTER;" text="Start" />
-                <TableColumn fx:id="endAddressCol" minWidth="-Infinity" prefWidth="96.0" style="-fx-alignment: CENTER;" text="End" />
-                  <TableColumn fx:id="valCol" minWidth="-Infinity" prefWidth="110.0" style="-fx-alignment: CENTER;" text="Value" />
-                  <TableColumn fx:id="originCol" minWidth="-Infinity" prefWidth="58.0" style="-fx-alignment: CENTER;" text="Origin" />
+                <TableColumn fx:id="startAddressColumn" minWidth="-Infinity" prefWidth="93.0" style="-fx-alignment: CENTER;" text="Start" />
+                <TableColumn fx:id="endAddressColumn" minWidth="-Infinity" prefWidth="96.0" style="-fx-alignment: CENTER;" text="End" />
+                  <TableColumn fx:id="valueColumn" minWidth="-Infinity" prefWidth="110.0" style="-fx-alignment: CENTER;" text="Value" />
+                  <TableColumn fx:id="originColumn" minWidth="-Infinity" prefWidth="58.0" style="-fx-alignment: CENTER;" text="Origin" />
               </columns>
                <VBox.margin>
                   <Insets />
                </VBox.margin>
             </TableView>
-            <TableView fx:id="promRegTable" prefHeight="200.0" prefWidth="99.0">
+            <TableView fx:id="registerTable" prefHeight="200.0" prefWidth="99.0">
               <columns>
-                <TableColumn fx:id="registerName" minWidth="-Infinity" prefWidth="83.0" style="-fx-alignment: CENTER;" text="Register" />
-                <TableColumn fx:id="registerVal" minWidth="-Infinity" prefWidth="205.0" style="-fx-alignment: CENTER;" text="Value" />
-                  <TableColumn fx:id="registerOrigin" minWidth="-Infinity" prefWidth="60.0" style="-fx-alignment: CENTER;" text="Origin" />
+                <TableColumn fx:id="registerNameColumn" minWidth="-Infinity" prefWidth="83.0" style="-fx-alignment: CENTER;" text="Register" />
+                <TableColumn fx:id="registerValueColumn" minWidth="-Infinity" prefWidth="205.0" style="-fx-alignment: CENTER;" text="Value" />
+                  <TableColumn fx:id="registerOriginColumn" minWidth="-Infinity" prefWidth="60.0" style="-fx-alignment: CENTER;" text="Origin" />
               </columns>
                <VBox.margin>
                   <Insets top="20.0" />
