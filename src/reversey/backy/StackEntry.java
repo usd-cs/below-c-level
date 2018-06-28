@@ -6,6 +6,7 @@
 package reversey.backy;
 
 import java.math.BigInteger;
+import java.util.Comparator;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -84,4 +85,17 @@ public class StackEntry {
     public void setOrigin(int or){
         origin.set(or);
     }
+    
+    /**
+     * Comparator for stackEntries, based on their start addresses.
+     */
+    public static final Comparator<StackEntry> comparator = (StackEntry s1, StackEntry s2) -> {
+        if (Long.compareUnsigned(s1.getStartAddress(), s2.getStartAddress()) < 0) {
+            return 1;
+        } else if (Long.compareUnsigned(s1.getStartAddress(), s2.getStartAddress()) == 0) {
+            return 0;
+        } else {
+            return -1;
+        }
+    };
 }

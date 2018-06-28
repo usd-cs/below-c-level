@@ -150,37 +150,6 @@ public class FXMLDocumentController implements Initializable {
 
     private Simulation simulator;
 
-    /**
-     * Comparator for registers, based on their relative prominence then their
-     * lexicographical ordering.
-     *
-     * TODO: Move this to Register class
-     */
-    private final Comparator<Register> regComp = (Register r1, Register r2) -> {
-        if (r1.getProminence() > r2.getProminence()) {
-            return -1;
-        } else if (r1.getProminence() == r2.getProminence()) {
-            return r1.getName().compareTo(r2.getName());
-        } else {
-            return 1;
-        }
-    };
-
-    /**
-     * Comparator for stackEntries, based on their start addresses.
-     *
-     * TODO: Move this to StackEntry class
-     */
-    private final Comparator<StackEntry> stackComp = (StackEntry s1, StackEntry s2) -> {
-        if (Long.compareUnsigned(s1.getStartAddress(), s2.getStartAddress()) < 0) {
-            return 1;
-        } else if (Long.compareUnsigned(s1.getStartAddress(), s2.getStartAddress()) == 0) {
-            return 0;
-        } else {
-            return -1;
-        }
-    };
-
     // TODO: Comment
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
@@ -200,7 +169,7 @@ public class FXMLDocumentController implements Initializable {
 
         // TODO: init this and register table list to empty and let them fill naturally?
         stackTableList = FXCollections.observableArrayList(simulator.getStackEntries());
-        SortedList<StackEntry> stackSortedList = stackTableList.sorted(stackComp);
+        SortedList<StackEntry> stackSortedList = stackTableList.sorted(StackEntry.comparator);
         stackTable.setItems(stackSortedList);
 
         // Initialize the register table
@@ -209,7 +178,7 @@ public class FXMLDocumentController implements Initializable {
         registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
 
         registerTableList = FXCollections.observableArrayList(simulator.getRegisters());
-        SortedList<Register> regSortedList = registerTableList.sorted(regComp);
+        SortedList<Register> regSortedList = registerTableList.sorted(Register.comparator);
         promRegTable.setItems(regSortedList);
 
         promRegTable.setRowFactory(tableView -> {

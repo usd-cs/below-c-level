@@ -1,5 +1,6 @@
 package reversey.backy;
 
+import java.util.Comparator;
 import java.util.regex.Pattern;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -136,5 +137,19 @@ public class Register {
                 break; 
         }
     }
+    
+    /**
+     * Comparator for registers, based on their relative prominence then their
+     * lexicographical ordering.
+     */
+    public static final Comparator<Register> comparator = (Register r1, Register r2) -> {
+        if (r1.getProminence() > r2.getProminence()) {
+            return -1;
+        } else if (r1.getProminence() == r2.getProminence()) {
+            return r1.getName().compareTo(r2.getName());
+        } else {
+            return 1;
+        }
+    };
 }
 
