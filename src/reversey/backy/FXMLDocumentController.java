@@ -150,13 +150,8 @@ public class FXMLDocumentController implements Initializable {
 
     private Simulation simulator;
 
-    // TODO: Comment
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
-        // Initialize the simulation state.
-        simulator = new Simulation();
-        simStateFromTab = new HashMap<>();
-
         // Initialize stack table
         startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
                 -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
@@ -167,19 +162,16 @@ public class FXMLDocumentController implements Initializable {
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
         originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
 
-        // TODO: init this and register table list to empty and let them fill naturally?
-        stackTableList = FXCollections.observableArrayList(simulator.getStackEntries());
-        SortedList<StackEntry> stackSortedList = stackTableList.sorted(StackEntry.comparator);
-        stackTable.setItems(stackSortedList);
+        stackTableList = FXCollections.observableArrayList();
+        stackTable.setItems(stackTableList.sorted(StackEntry.comparator));
 
         // Initialize the register table
         registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
         registerVal.setCellValueFactory(new PropertyValueFactory<>("value"));
         registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
 
-        registerTableList = FXCollections.observableArrayList(simulator.getRegisters());
-        SortedList<Register> regSortedList = registerTableList.sorted(Register.comparator);
-        promRegTable.setItems(regSortedList);
+        registerTableList = FXCollections.observableArrayList();
+        promRegTable.setItems(registerTableList.sorted(Register.comparator));
 
         promRegTable.setRowFactory(tableView -> {
             final TableRow<Register> row = new TableRow<>();
@@ -201,6 +193,9 @@ public class FXMLDocumentController implements Initializable {
             return row;
         });
 
+        // Initialize the simulation state and create our first (blank) tab.
+        simStateFromTab = new HashMap<>();
+        simulator = new Simulation();
         listViewTabPane.getTabs().remove(firstTab);
         createTab(simulator);
 
