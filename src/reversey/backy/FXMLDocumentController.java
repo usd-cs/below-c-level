@@ -152,46 +152,16 @@ public class FXMLDocumentController implements Initializable {
 
     @Override
     public void initialize(URL foo, ResourceBundle bar) {
-        // Initialize stack table
-        startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
+        initializeStackTable();
+        initializeRegisterTable();
+        initializeSimulationControls();
+        initializeFileMenuItems();
+        initializeHelpMenuItems();
+        initializeKeyboardShortcuts();
+        initializeButtonGraphics();
 
-        endAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()).toUpperCase()));
-
-        valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
-        originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
-
-        stackTableList = FXCollections.observableArrayList();
-        stackTable.setItems(stackTableList.sorted(StackEntry.comparator));
-
-        // Initialize the register table
-        registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
-        registerVal.setCellValueFactory(new PropertyValueFactory<>("value"));
-        registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
-
-        registerTableList = FXCollections.observableArrayList();
-        promRegTable.setItems(registerTableList.sorted(Register.comparator));
-
-        promRegTable.setRowFactory(tableView -> {
-            final TableRow<Register> row = new TableRow<>();
-
-            row.hoverProperty().addListener((observable) -> {
-                final Register reg = row.getItem();
-
-                if (row.isHover() && reg != null) {
-                    reg.setSubName(reg.getName());
-                    String s = reg.getName() + ": " + reg.getSubValue(8) + "\n"
-                            + reg.getLongRegName() + ": " + reg.getSubValue(4)
-                            + "\n" + reg.getWordRegName() + ": " + reg.getSubValue(2)
-                            + "\n" + reg.getByteLowRegName() + ": " + reg.getSubValue(1);
-                    Tooltip t = new Tooltip(s);
-                    row.setTooltip(t);
-                }
-            });
-
-            return row;
-        });
+        // initialize "instruction entry" text box
+        instrText.setOnKeyPressed(this::parseAndAddInstruction);
 
         // Initialize the simulation state and create our first (blank) tab.
         simStateFromTab = new HashMap<>();
@@ -199,88 +169,46 @@ public class FXMLDocumentController implements Initializable {
         listViewTabPane.getTabs().remove(firstTab);
         createTab(simulator);
 
-        // Set up handlers for simulation control, both via buttons and menu
-        // items.
-        nextInstr.setOnAction(this::stepForward);
-        forwardMenuItem.setOnAction(this::stepForward);
+        Platform.runLater(() -> {});
+    }
 
-        skipToEnd.setOnAction(this::runForward);
-        runMenuItem.setOnAction(this::runForward);
+    private void initializeButtonGraphics() {
+        //TODO: Resizing icons/nodes to pane
+        ImageView skipToStartImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToStart.png")));
+        ImageView prevInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("prevInstr.png")));
+        ImageView currInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("currInstr.png")));
+        ImageView nextInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("nextInstr.png")));
+        ImageView skipToEndImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToEnd.png")));
 
-        /**
-         * Event handler for "scroll back to current instruction" button.
-         */
-        currInstr.setOnAction(event -> {
-            ObservableList<Integer> selectedIndices = instrList.getSelectionModel().getSelectedIndices();
-            if (!selectedIndices.isEmpty()) {
-                instrList.scrollTo(selectedIndices.get(0));
-            }
-        });
+        this.setIconsFitHeightAndWidth(skipToStartImgVw, prevInstrImgVw, currInstrImgVw,
+                nextInstrImgVw, skipToEndImgVw, 35);
 
-        prevInstr.setOnAction(this::stepBackward);
-        backwardMenuItem.setOnAction(this::stepBackward);
+        skipToStart.setGraphic(skipToStartImgVw);
+        prevInstr.setGraphic(prevInstrImgVw);
+        currInstr.setGraphic(currInstrImgVw);
+        nextInstr.setGraphic(nextInstrImgVw);
+        skipToEnd.setGraphic(skipToEndImgVw);
+    }
 
-        skipToStart.setOnAction(this::restartSim);
-        restartMenuItem.setOnAction(this::restartSim);
-
-        /**
-         * Event handler for when user clicks button to insert a new
-         * instruction.
-         */
-        instrText.setOnKeyPressed(this::parseAndAddInstruction);
-
-        // Set up actions for the menubar
+    private void initializeFileMenuItems() {
         exitMenuItem.setOnAction((event) -> System.exit(0));
         loadMenuItem.setOnAction(this::loadFile);
         saveAsMenuItem.setOnAction(this::saveFileAs);
-
+        
         newMenuItem.setOnAction((event) -> {
             createTab(new Simulation());
         });
 
-        // Add keyboard shortcuts
-        newMenuItem.setMnemonicParsing(true);
-        newMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.N,
-                KeyCombination.SHORTCUT_DOWN));
-        loadMenuItem.setMnemonicParsing(true);
-        loadMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.O,
-                KeyCombination.SHORTCUT_DOWN));
-        closeTabMenuItem.setMnemonicParsing(true);
-        closeTabMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.W,
-                KeyCombination.SHORTCUT_DOWN));
-        exitMenuItem.setMnemonicParsing(true);
-        exitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.Q,
-                KeyCombination.SHORTCUT_DOWN));
-        saveMenuItem.setMnemonicParsing(true);
-        saveMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.S,
-                KeyCombination.SHORTCUT_DOWN));
-
-        forwardMenuItem.setMnemonicParsing(true);
-        forwardMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F,
-                KeyCombination.SHORTCUT_DOWN));
-        backwardMenuItem.setMnemonicParsing(true);
-        backwardMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.B,
-                KeyCombination.SHORTCUT_DOWN));
-        restartMenuItem.setMnemonicParsing(true);
-        restartMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.R,
-                KeyCombination.SHORTCUT_DOWN));
-        runMenuItem.setMnemonicParsing(true);
-        runMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.E,
-                KeyCombination.SHORTCUT_DOWN));
-
-        /**
-         * Event handler for "saveMenuItem" menu. This will save the current
-         * simulation to a text file specified by the user if file does not
-         * exist, and save changes to existing file.
-         */
         // FIXME: this should be disabled until they save as or load from file
         // and should switch on and off based on which tab is selected
         saveMenuItem.setOnAction(event -> {
             simulator.saveProgram();
         });
-
+        
         closeTabMenuItem.setOnAction(this::closeTab);
+    }
 
+    private void initializeHelpMenuItems() {
         /**
          * Event handler for "User Guide" menu item. This will create a WebView
          * that displays the user guide on the BCL GitHub wiki.
@@ -316,27 +244,105 @@ public class FXMLDocumentController implements Initializable {
             reportBugStage.setScene(s);
             reportBugStage.show();
         });
+    }
 
-        //TODO: Resizing icons/nodes to pane
-        // Initialize buttons with fancy graphics.
-        ImageView skipToStartImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToStart.png")));
-        ImageView prevInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("prevInstr.png")));
-        ImageView currInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("currInstr.png")));
-        ImageView nextInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("nextInstr.png")));
-        ImageView skipToEndImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToEnd.png")));
+    private void initializeKeyboardShortcuts() {
+        newMenuItem.setMnemonicParsing(true);
+        newMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.N,
+                KeyCombination.SHORTCUT_DOWN));
+        loadMenuItem.setMnemonicParsing(true);
+        loadMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.O,
+                KeyCombination.SHORTCUT_DOWN));
+        closeTabMenuItem.setMnemonicParsing(true);
+        closeTabMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.W,
+                KeyCombination.SHORTCUT_DOWN));
+        exitMenuItem.setMnemonicParsing(true);
+        exitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.Q,
+                KeyCombination.SHORTCUT_DOWN));
+        saveMenuItem.setMnemonicParsing(true);
+        saveMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.S,
+                KeyCombination.SHORTCUT_DOWN));
+        
+        forwardMenuItem.setMnemonicParsing(true);
+        forwardMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F,
+                KeyCombination.SHORTCUT_DOWN));
+        backwardMenuItem.setMnemonicParsing(true);
+        backwardMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.B,
+                KeyCombination.SHORTCUT_DOWN));
+        restartMenuItem.setMnemonicParsing(true);
+        restartMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.R,
+                KeyCombination.SHORTCUT_DOWN));
+        runMenuItem.setMnemonicParsing(true);
+        runMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.E,
+                KeyCombination.SHORTCUT_DOWN));
+    }
 
-        this.setIconsFitHeightAndWidth(skipToStartImgVw, prevInstrImgVw, currInstrImgVw,
-                nextInstrImgVw, skipToEndImgVw, 35);
-
-        skipToStart.setGraphic(skipToStartImgVw);
-        prevInstr.setGraphic(prevInstrImgVw);
-        currInstr.setGraphic(currInstrImgVw);
-        nextInstr.setGraphic(nextInstrImgVw);
-        skipToEnd.setGraphic(skipToEndImgVw);
-
-        Platform.runLater(() -> {
+    private void initializeSimulationControls() {
+        nextInstr.setOnAction(this::stepForward);
+        forwardMenuItem.setOnAction(this::stepForward);
+        
+        skipToEnd.setOnAction(this::runForward);
+        runMenuItem.setOnAction(this::runForward);
+        
+        /**
+         * Event handler for "scroll back to current instruction" button.
+         */
+        currInstr.setOnAction(event -> {
+            ObservableList<Integer> selectedIndices = instrList.getSelectionModel().getSelectedIndices();
+            if (!selectedIndices.isEmpty()) {
+                instrList.scrollTo(selectedIndices.get(0));
+            }
         });
+        
+        prevInstr.setOnAction(this::stepBackward);
+        backwardMenuItem.setOnAction(this::stepBackward);
+        
+        skipToStart.setOnAction(this::restartSim);
+        restartMenuItem.setOnAction(this::restartSim);
+    }
 
+    private void initializeRegisterTable() {
+        // Initialize the register table
+        registerName.setCellValueFactory(new PropertyValueFactory<>("name"));
+        registerVal.setCellValueFactory(new PropertyValueFactory<>("value"));
+        registerOrigin.setCellValueFactory(new PropertyValueFactory<>("origin"));
+        
+        registerTableList = FXCollections.observableArrayList();
+        promRegTable.setItems(registerTableList.sorted(Register.comparator));
+        
+        promRegTable.setRowFactory(tableView -> {
+            final TableRow<Register> row = new TableRow<>();
+            
+            row.hoverProperty().addListener((observable) -> {
+                final Register reg = row.getItem();
+                
+                if (row.isHover() && reg != null) {
+                    reg.setSubName(reg.getName());
+                    String s = reg.getName() + ": " + reg.getSubValue(8) + "\n"
+                            + reg.getLongRegName() + ": " + reg.getSubValue(4)
+                            + "\n" + reg.getWordRegName() + ": " + reg.getSubValue(2)
+                            + "\n" + reg.getByteLowRegName() + ": " + reg.getSubValue(1);
+                    Tooltip t = new Tooltip(s);
+                    row.setTooltip(t);
+                }
+            });
+            
+            return row;
+        });
+    }
+
+    private void initializeStackTable() {
+        startAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
+                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
+        
+        endAddressCol.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
+                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()).toUpperCase()));
+        
+        valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
+        originCol.setCellValueFactory(new PropertyValueFactory<>("origin"));
+        
+        stackTableList = FXCollections.observableArrayList();
+        stackTable.setItems(stackTableList.sorted(StackEntry.comparator));
     }
 
     /**
