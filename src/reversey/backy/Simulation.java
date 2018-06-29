@@ -28,8 +28,16 @@ public class Simulation {
      */
     private List<String> regHistory;
     
+    /**
+     * The line in the program where simulation is currently at.
+     * This will be null when the simulation is complete and when the program is
+     * empty (i.e. contains no lines).
+     */
     private x86ProgramLine currentLine;
     
+    /**
+     * The program being simulated.
+     */
     private x86Program program;
     
     public Simulation() {
