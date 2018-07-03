@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane fx:id="entirePane" minWidth="500.0" prefHeight="486.0" prefWidth="753.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="edu.sandiego.bcl.FXMLDocumentController">
+   <left>
+      <VBox maxWidth="353.0" BorderPane.alignment="CENTER">
+         <children>
+            <HBox prefHeight="75.0" prefWidth="353.0">
+               <children>
+                  <TextField fx:id="newLineEntry" prefHeight="26.0" prefWidth="239.0" promptText="Enter an x86-64 instruction">
+                     <HBox.margin>
+                        <Insets right="10.0" />
+                     </HBox.margin>
+                  </TextField>
+                  <Label fx:id="entryStatusLabel" prefHeight="34.0" prefWidth="98.0" />
+               </children>
+            </HBox>
+            <Label fx:id="parseErrorText" minWidth="20.0" prefHeight="17.0" prefWidth="348.0">
+               <VBox.margin>
+                  <Insets bottom="5.0" top="5.0" />
+               </VBox.margin>
+            </Label>
+            <TabPane fx:id="programTabs">
+               <tabs>
+                  <Tab fx:id="firstTab" text="New File">
+                     <content>
+                        <ListView fx:id="programView" prefHeight="444.0" prefWidth="353.0">
+                           <VBox.margin>
+                              <Insets bottom="5.0" top="5.0" />
+                           </VBox.margin>
+                        </ListView>
+                     </content>
+                  </Tab>
+               </tabs>
+            </TabPane>
+            <HBox alignment="CENTER" prefHeight="26.0" prefWidth="353.0">
+               <children>
+                  <Button fx:id="restartButton" mnemonicParsing="false" HBox.hgrow="ALWAYS">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </Button>
+                  <Button fx:id="stepBackwardButton" mnemonicParsing="false" />
+                  <Button fx:id="jumpToCurrentButton" mnemonicParsing="false" />
+                  <Button fx:id="stepForwardButton" mnemonicParsing="false" />
+                  <Button fx:id="runAllButton" mnemonicParsing="false" />
+               </children>
+               <padding>
+                  <Insets left="22.0" />
+               </padding>
+            </HBox>
+         </children>
+         <BorderPane.margin>
+            <Insets bottom="10.0" left="10.0" top="10.0" />
+         </BorderPane.margin>
+      </VBox>
+   </left>
+   <top>
+      <MenuBar fx:id="menuOptionsBar" BorderPane.alignment="CENTER">
+        <menus>
+          <Menu fx:id="fileOption" mnemonicParsing="false" text="File">
+            <items>
+                  <MenuItem fx:id="newMenuItem" mnemonicParsing="false" text="New" />
+                  <MenuItem fx:id="loadMenuItem" mnemonicParsing="false" text="Open File..." />
+                  <MenuItem fx:id="saveMenuItem" mnemonicParsing="false" text="Save File" />
+                  <MenuItem fx:id="saveAsMenuItem" mnemonicParsing="false" text="Save File As..." />
+                  <MenuItem fx:id="closeTabMenuItem" mnemonicParsing="false" text="Close Tab" />
+              <MenuItem fx:id="exitMenuItem" mnemonicParsing="false" text="Exit" />
+            </items>
+          </Menu>
+            <Menu mnemonicParsing="false" text="Simulation">
+              <items>
+                <MenuItem fx:id="forwardMenuItem" mnemonicParsing="false" text="Step Forward" />
+                  <MenuItem fx:id="backwardMenuItem" mnemonicParsing="false" text="Step Backward" />
+                  <MenuItem fx:id="runMenuItem" mnemonicParsing="false" text="Run to End" />
+                  <MenuItem fx:id="restartMenuItem" mnemonicParsing="false" text="Restart" />
+              </items>
+            </Menu>
+          <Menu fx:id="helpOption" mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem fx:id="helpMenuItem" mnemonicParsing="false" text="User Guide" />
+                  <MenuItem fx:id="reportBugMenuItem" mnemonicParsing="false" text="Report Bug" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+   </top>
+   <center>
+      <VBox prefHeight="624.0" prefWidth="383.0" BorderPane.alignment="CENTER">
+         <children>
+            <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="40.0" prefWidth="388.0" text="Program Stack">
+               <font>
+                  <Font name="System Bold" size="14.0" />
+               </font>
+               <padding>
+                  <Insets bottom="5.0" />
+               </padding>
+            </Label>
+            <TableView fx:id="stackTable" prefHeight="238.0" prefWidth="383.0">
+              <columns>
+                <TableColumn fx:id="startAddressColumn" minWidth="-Infinity" prefWidth="93.0" style="-fx-alignment: CENTER;" text="Start" />
+                <TableColumn fx:id="endAddressColumn" minWidth="-Infinity" prefWidth="96.0" style="-fx-alignment: CENTER;" text="End" />
+                  <TableColumn fx:id="valueColumn" minWidth="-Infinity" prefWidth="110.0" style="-fx-alignment: CENTER;" text="Value" />
+                  <TableColumn fx:id="originColumn" minWidth="-Infinity" prefWidth="58.0" style="-fx-alignment: CENTER;" text="Origin" />
+              </columns>
+               <VBox.margin>
+                  <Insets />
+               </VBox.margin>
+            </TableView>
+            <TableView fx:id="registerTable" prefHeight="200.0" prefWidth="99.0">
+              <columns>
+                <TableColumn fx:id="registerNameColumn" minWidth="-Infinity" prefWidth="83.0" style="-fx-alignment: CENTER;" text="Register" />
+                <TableColumn fx:id="registerValueColumn" minWidth="-Infinity" prefWidth="205.0" style="-fx-alignment: CENTER;" text="Value" />
+                  <TableColumn fx:id="registerOriginColumn" minWidth="-Infinity" prefWidth="60.0" style="-fx-alignment: CENTER;" text="Origin" />
+              </columns>
+               <VBox.margin>
+                  <Insets top="20.0" />
+               </VBox.margin>
+            </TableView>
+            <HBox alignment="CENTER" prefHeight="68.0" prefWidth="370.0">
+               <children>
+                  <Label fx:id="sfLabel" text="SF: 0">
+                     <opaqueInsets>
+                        <Insets />
+                     </opaqueInsets>
+                     <HBox.margin>
+                        <Insets left="5.0" right="5.0" />
+                     </HBox.margin>
+                  </Label>
+                  <Label fx:id="zfLabel" text="ZF: 0">
+                     <padding>
+                        <Insets left="5.0" right="5.0" />
+                     </padding>
+                  </Label>
+                  <Label fx:id="ofLabel" text="OF: 0">
+                     <padding>
+                        <Insets left="5.0" right="5.0" />
+                     </padding>
+                  </Label>
+                  <Label fx:id="cfLabel" text="CF: 0">
+                     <HBox.margin>
+                        <Insets left="5.0" right="5.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+            </HBox>
+         </children>
+         <BorderPane.margin>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </BorderPane.margin>
+      </VBox>
+   </center>
+</BorderPane>
