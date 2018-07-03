@@ -23,7 +23,7 @@ public class BelowCLevel extends Application {
         
         Scene scene = new Scene(root);
         stage.setScene(scene);
-        stage.setTitle("Below C-Level Stack Simulator (v2017.09.1)");
+        stage.setTitle("Below C-Level x86-64 Simulator");
         stage.show();
     }
 
