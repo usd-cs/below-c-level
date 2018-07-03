@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package reversey.backy;
+package edu.sandiego.bcl;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -15,11 +15,11 @@ import javafx.stage.Stage;
  *
  * @author Caitlin
  */
-public class ReverseyBacky extends Application {
+public class BelowCLevel extends Application {
     
     @Override
     public void start(Stage stage) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("FXMLDocument.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("/fxml/FXMLDocument.fxml"));
         
         Scene scene = new Scene(root);
         stage.setScene(scene);

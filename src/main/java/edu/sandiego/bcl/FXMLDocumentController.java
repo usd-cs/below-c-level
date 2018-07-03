@@ -1,4 +1,4 @@
-package reversey.backy;
+package edu.sandiego.bcl;
 
 import java.io.File;
 import javafx.scene.image.Image;
@@ -181,11 +181,11 @@ public class FXMLDocumentController implements Initializable {
 
     private void initializeButtonGraphics() {
         //TODO: Resizing icons/nodes to pane
-        ImageView skipToStartImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToStart.png")));
-        ImageView prevInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("prevInstr.png")));
-        ImageView currInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("currInstr.png")));
-        ImageView nextInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("nextInstr.png")));
-        ImageView skipToEndImgVw = new ImageView(new Image(getClass().getResourceAsStream("skipToEnd.png")));
+        ImageView skipToStartImgVw = new ImageView(new Image(getClass().getResourceAsStream("/images/skipToStart.png")));
+        ImageView prevInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("/images/prevInstr.png")));
+        ImageView currInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("/images/currInstr.png")));
+        ImageView nextInstrImgVw = new ImageView(new Image(getClass().getResourceAsStream("/images/nextInstr.png")));
+        ImageView skipToEndImgVw = new ImageView(new Image(getClass().getResourceAsStream("/images/skipToEnd.png")));
 
         this.setIconsFitHeightAndWidth(skipToStartImgVw, prevInstrImgVw, currInstrImgVw,
                 nextInstrImgVw, skipToEndImgVw, 35);
@@ -457,7 +457,7 @@ public class FXMLDocumentController implements Initializable {
         newLineEntry.selectRange(e.getStartIndex(), e.getEndIndex());
         parseErrorText.setText(e.getMessage());
         ImageView errorPic = new ImageView(
-                new Image(this.getClass().getResourceAsStream("error.png"), 16, 16, true, true));
+                new Image(this.getClass().getResourceAsStream("/images/error.png"), 16, 16, true, true));
         parseErrorText.setGraphic(errorPic);
     }
 
