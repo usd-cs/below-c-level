@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>edu.sandiego</groupId>
-    <artifactId>BCL</artifactId>
+    <artifactId>BelowCLevel</artifactId>
     <version>2018.07-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>BCL</name>
+    <name>BelowCLevel</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
