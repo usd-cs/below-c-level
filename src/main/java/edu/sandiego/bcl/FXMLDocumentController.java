@@ -446,10 +446,14 @@ public class FXMLDocumentController implements Initializable {
         if (activeSimulation.isFinished() && !activeSimulation.getProgramLines().isEmpty()) {
             simStateLabel.setText("Simulation Complete");
             ImageView completePic = new ImageView(
-                    new Image(this.getClass().getResourceAsStream("/images/checkmark.png"), 16, 16, true, true));
+                    new Image(this.getClass().getResourceAsStream("/images/checkmark.png")));
+            completePic.setFitHeight(16);
+            completePic.setFitWidth(16);
+            completePic.setSmooth(true);
+            completePic.setPreserveRatio(true);
             simStateLabel.setGraphic(completePic);
         } else {
-            simStateLabel.setText("");
+            simStateLabel.setText(null);
             simStateLabel.setGraphic(null);
         }
     }
@@ -480,7 +484,11 @@ public class FXMLDocumentController implements Initializable {
         newLineEntry.selectRange(e.getStartIndex(), e.getEndIndex());
         parseErrorText.setText(e.getMessage());
         ImageView errorPic = new ImageView(
-                new Image(this.getClass().getResourceAsStream("/images/error.png"), 16, 16, true, true));
+                new Image(this.getClass().getResourceAsStream("/images/error.png")));
+        errorPic.setFitHeight(16);
+        errorPic.setFitWidth(16);
+        errorPic.setSmooth(true);
+        errorPic.setPreserveRatio(true);
         parseErrorText.setGraphic(errorPic);
     }
 
