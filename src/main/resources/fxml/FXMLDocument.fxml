@@ -54,6 +54,11 @@
                   </Tab>
                </tabs>
             </TabPane>
+            <Label fx:id="simStateLabel" minWidth="20.0" prefHeight="17.0" prefWidth="348.0">
+               <VBox.margin>
+                  <Insets bottom="5.0" top="5.0" />
+               </VBox.margin>
+            </Label>
             <HBox alignment="CENTER" prefHeight="26.0" prefWidth="353.0">
                <children>
                   <Button fx:id="restartButton" mnemonicParsing="false" HBox.hgrow="ALWAYS">

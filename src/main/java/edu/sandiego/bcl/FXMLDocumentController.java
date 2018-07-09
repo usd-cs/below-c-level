@@ -79,10 +79,10 @@ public class FXMLDocumentController implements Initializable {
      * Map of tabs to their state.
      */
     private HashMap<Tab, SimState> simStateFromTab;
-    
+
     /**
-     * Entry in program that is currently being edited.
-     * This is null if none are currently being edited.
+     * Entry in program that is currently being edited. This is null if none are
+     * currently being edited.
      */
     private ListCell<x86ProgramLine> cellBeingEdited;
 
@@ -96,6 +96,10 @@ public class FXMLDocumentController implements Initializable {
 
     @FXML
     private ListView<x86ProgramLine> programView;
+
+    // Simulation State Label
+    @FXML
+    private Label simStateLabel;
 
     // Simulation Control Buttons
     @FXML
@@ -135,7 +139,7 @@ public class FXMLDocumentController implements Initializable {
     private TableColumn<Register, String> registerValueColumn;
     @FXML
     private TableColumn<Register, Integer> registerOriginColumn;
-    
+
     /**
      * List of registers values in our current state.
      */
@@ -152,8 +156,8 @@ public class FXMLDocumentController implements Initializable {
     private Label cfLabel;
 
     /**
-     * The simulation that is active (i.e. currently open).
-     * This is changed when the user selects a different tab.
+     * The simulation that is active (i.e. currently open). This is changed when
+     * the user selects a different tab.
      */
     private Simulation activeSimulation;
 
@@ -176,7 +180,8 @@ public class FXMLDocumentController implements Initializable {
         programTabs.getTabs().remove(firstTab);
         createTab(activeSimulation);
 
-        Platform.runLater(() -> {});
+        Platform.runLater(() -> {
+        });
     }
 
     private void initializeButtonGraphics() {
@@ -201,7 +206,7 @@ public class FXMLDocumentController implements Initializable {
         exitMenuItem.setOnAction((event) -> System.exit(0));
         loadMenuItem.setOnAction(this::loadFile);
         saveAsMenuItem.setOnAction(this::saveFileAs);
-        
+
         newMenuItem.setOnAction((event) -> {
             createTab(new Simulation());
         });
@@ -211,7 +216,7 @@ public class FXMLDocumentController implements Initializable {
         saveMenuItem.setOnAction(event -> {
             activeSimulation.saveProgram();
         });
-        
+
         closeTabMenuItem.setOnAction(this::closeTab);
     }
 
@@ -269,7 +274,7 @@ public class FXMLDocumentController implements Initializable {
         saveMenuItem.setMnemonicParsing(true);
         saveMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.S,
                 KeyCombination.SHORTCUT_DOWN));
-        
+
         forwardMenuItem.setMnemonicParsing(true);
         forwardMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F,
                 KeyCombination.SHORTCUT_DOWN));
@@ -287,20 +292,20 @@ public class FXMLDocumentController implements Initializable {
     private void initializeSimulationControls() {
         stepForwardButton.setOnAction(this::stepForward);
         forwardMenuItem.setOnAction(this::stepForward);
-        
+
         runAllButton.setOnAction(this::runForward);
         runMenuItem.setOnAction(this::runForward);
-        
+
         /**
          * Event handler for "scroll back to current instruction" button.
          */
         jumpToCurrentButton.setOnAction(event -> {
             scrollToSelectedInstruction();
         });
-        
+
         stepBackwardButton.setOnAction(this::stepBackward);
         backwardMenuItem.setOnAction(this::stepBackward);
-        
+
         restartButton.setOnAction(this::restartSim);
         restartMenuItem.setOnAction(this::restartSim);
     }
@@ -309,7 +314,7 @@ public class FXMLDocumentController implements Initializable {
         ObservableList<Integer> selectedIndices = programView.getSelectionModel().getSelectedIndices();
         if (!selectedIndices.isEmpty()) {
             int selectedIndex = selectedIndices.get(0) - 2;
-            if(selectedIndex < 0){
+            if (selectedIndex < 0) {
                 selectedIndex = 0;
             }
             programView.scrollTo(selectedIndex);
@@ -321,17 +326,16 @@ public class FXMLDocumentController implements Initializable {
         registerNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         registerValueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
         registerOriginColumn.setCellValueFactory(new PropertyValueFactory<>("origin"));
-        
+
         registerTableEntries = FXCollections.observableArrayList();
         registerTable.setItems(registerTableEntries.sorted(Register.comparator));
-       
-        
+
         registerTable.setRowFactory(tableView -> {
             final TableRow<Register> row = new TableRow<>();
-            
+
             row.hoverProperty().addListener((observable) -> {
                 final Register reg = row.getItem();
-                
+
                 if (row.isHover() && reg != null) {
                     reg.setSubName(reg.getName());
                     String s = reg.getName() + ": " + reg.getSubValue(8) + "\n"
@@ -342,7 +346,7 @@ public class FXMLDocumentController implements Initializable {
                     row.setTooltip(t);
                 }
             });
-            
+
             return row;
         });
     }
@@ -350,13 +354,13 @@ public class FXMLDocumentController implements Initializable {
     private void initializeStackTable() {
         startAddressColumn.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
                 -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
-        
+
         endAddressColumn.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
                 -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()).toUpperCase()));
-        
+
         valueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
         originColumn.setCellValueFactory(new PropertyValueFactory<>("origin"));
-        
+
         stackTableEntries = FXCollections.observableArrayList();
         stackTable.setItems(stackTableEntries.sorted(StackEntry.comparator));
     }
@@ -429,8 +433,8 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
-     * Updates all the graphical elements of the simulator based on the currently
-     * active simulation state.
+     * Updates all the graphical elements of the simulator based on the
+     * currently active simulation state.
      */
     private void updateSimulatorUIElements() {
         programView.getSelectionModel().select(activeSimulation.getCurrentLine());
@@ -439,6 +443,15 @@ public class FXMLDocumentController implements Initializable {
         updateStatusFlags();
         updateSimulationControls();
         scrollToSelectedInstruction();
+        if (activeSimulation.isFinished() && !activeSimulation.getProgramLines().isEmpty()) {
+            simStateLabel.setText("Simulation Complete");
+            ImageView completePic = new ImageView(
+                    new Image(this.getClass().getResourceAsStream("/images/checkmark.png"), 16, 16, true, true));
+            simStateLabel.setGraphic(completePic);
+        } else {
+            simStateLabel.setText("");
+            simStateLabel.setGraphic(null);
+        }
     }
 
     /**
@@ -453,10 +466,10 @@ public class FXMLDocumentController implements Initializable {
             currTab.setText(currTabName + "*");
         }
     }
-    
+
     /**
      * Update UI to indicate that a parsing error was encountered.
-     * 
+     *
      * @param e The parsing error that was encountered.
      */
     public void indicateParsingError(X86ParsingException e) {
@@ -498,12 +511,13 @@ public class FXMLDocumentController implements Initializable {
             }
         }
     }
-    
+
     /**
      * Optionally returns the open tab associated with the given filename.
-     * 
+     *
      * @param fileName Name of the file to look for in open tabs.
-     * @return Tab associated with that file, or an empty optional if one doesn't exist.
+     * @return Tab associated with that file, or an empty optional if one
+     * doesn't exist.
      */
     private Optional<Tab> getTabIfOpen(String fileName) {
         for (Map.Entry<Tab, SimState> entry : simStateFromTab.entrySet()) {
@@ -526,14 +540,13 @@ public class FXMLDocumentController implements Initializable {
         loadFileChoice.setTitle("Open File");
         loadFileChoice.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s"));
-        
+
         File fileToLoad = loadFileChoice.showOpenDialog(menuOptionsBar.getScene().getWindow());
         if (fileToLoad != null) {
             Optional<Tab> openTab = this.getTabIfOpen(fileToLoad.getName());
             if (openTab.isPresent()) {
                 programTabs.getSelectionModel().select(openTab.get());
-            }
-            else {
+            } else {
                 try {
                     Simulation newSim = new Simulation(fileToLoad);
                     createTab(newSim);
@@ -556,7 +569,7 @@ public class FXMLDocumentController implements Initializable {
         FileChooser saveFileChoice = new FileChooser();
         saveFileChoice.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("x86-64 assembly files (*.s)", "*.s"));
-        
+
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
         if (file != null) {
             programTabs.getSelectionModel().getSelectedItem().setText(file.getName());
@@ -565,7 +578,7 @@ public class FXMLDocumentController implements Initializable {
     }
 
     private void setIconsFitHeightAndWidth(ImageView i, ImageView j, ImageView k,
-                                            ImageView l, ImageView m, int size) {
+            ImageView l, ImageView m, int size) {
         i.setFitHeight(size);
         i.setFitWidth(size);
         j.setFitHeight(size);
@@ -587,7 +600,7 @@ public class FXMLDocumentController implements Initializable {
         ofLabel.setText("OF: " + (activeSimulation.hasOverflowFlagSet() ? "1" : "0"));
         cfLabel.setText("CF: " + (activeSimulation.hasCarryFlagSet() ? "1" : "0"));
     }
-    
+
     /**
      * Creates new tab and adds addNewTab to the end of the current list of tabs
      */
@@ -613,7 +626,7 @@ public class FXMLDocumentController implements Initializable {
                 cellBeingEdited = null;
             }
         });
-        
+
         t.setOnCloseRequest((event) -> {
             if (simStateFromTab.get(t).getSimulator().isProgramUnsaved()) {
                 Alert closingConfirmation = new Alert(AlertType.CONFIRMATION);
@@ -625,14 +638,14 @@ public class FXMLDocumentController implements Initializable {
                         .ifPresent(response -> event.consume());
             }
         });
-        
+
         t.setOnClosed((event) -> {
             if (programTabs.getTabs().isEmpty()) {
                 createTab(new Simulation());
             }
             simStateFromTab.remove(t);
         });
-        
+
         programTabs.getSelectionModel().select(t);
         setAsActiveTab(t);
     }
@@ -743,7 +756,7 @@ public class FXMLDocumentController implements Initializable {
                         parseErrorText.setGraphic(null);
                         entryStatusLabel.setText(null);
                         newLineEntry.clear();
-                        
+
                         cell.setStyle(""); // previously background was set to blue
                         cellBeingEdited = null; // oh whale
 
