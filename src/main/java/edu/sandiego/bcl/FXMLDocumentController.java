@@ -295,10 +295,7 @@ public class FXMLDocumentController implements Initializable {
          * Event handler for "scroll back to current instruction" button.
          */
         jumpToCurrentButton.setOnAction(event -> {
-            ObservableList<Integer> selectedIndices = programView.getSelectionModel().getSelectedIndices();
-            if (!selectedIndices.isEmpty()) {
-                programView.scrollTo(selectedIndices.get(0));
-            }
+            scrollToSelectedInstruction();
         });
         
         stepBackwardButton.setOnAction(this::stepBackward);
@@ -306,6 +303,17 @@ public class FXMLDocumentController implements Initializable {
         
         restartButton.setOnAction(this::restartSim);
         restartMenuItem.setOnAction(this::restartSim);
+    }
+
+    private void scrollToSelectedInstruction() {
+        ObservableList<Integer> selectedIndices = programView.getSelectionModel().getSelectedIndices();
+        if (!selectedIndices.isEmpty()) {
+            int selectedIndex = selectedIndices.get(0) - 2;
+            if(selectedIndex < 0){
+                selectedIndex = 0;
+            }
+            programView.scrollTo(selectedIndex);
+        }
     }
 
     private void initializeRegisterTable() {
@@ -316,6 +324,7 @@ public class FXMLDocumentController implements Initializable {
         
         registerTableEntries = FXCollections.observableArrayList();
         registerTable.setItems(registerTableEntries.sorted(Register.comparator));
+       
         
         registerTable.setRowFactory(tableView -> {
             final TableRow<Register> row = new TableRow<>();
@@ -429,6 +438,7 @@ public class FXMLDocumentController implements Initializable {
         stackTableEntries.setAll(activeSimulation.getStackEntries());
         updateStatusFlags();
         updateSimulationControls();
+        scrollToSelectedInstruction();
     }
 
     /**
