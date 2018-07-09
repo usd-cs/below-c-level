@@ -49,6 +49,11 @@
                   </Tab>
                </tabs>
             </TabPane>
+            <Label fx:id="simStateLabel" minHeight="-Infinity" prefHeight="20.0" prefWidth="348.0">
+               <VBox.margin>
+                  <Insets bottom="5.0" top="5.0" />
+               </VBox.margin>
+            </Label>
             <HBox alignment="CENTER" prefHeight="26.0" prefWidth="353.0">
                <children>
                   <Button fx:id="restartButton" mnemonicParsing="false" HBox.hgrow="ALWAYS">
@@ -123,6 +128,14 @@
                   <Insets />
                </VBox.margin>
             </TableView>
+            <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="19.0" prefWidth="370.0" text="Register Table">
+               <font>
+                  <Font name="System Bold" size="14.0" />
+               </font>
+               <VBox.margin>
+                  <Insets bottom="5.0" top="5.0" />
+               </VBox.margin>
+            </Label>
             <TableView fx:id="registerTable" prefHeight="200.0" prefWidth="99.0">
               <columns>
                 <TableColumn fx:id="registerNameColumn" minWidth="-Infinity" prefWidth="83.0" style="-fx-alignment: CENTER;" text="Register" />
@@ -130,7 +143,7 @@
                   <TableColumn fx:id="registerOriginColumn" minWidth="-Infinity" prefWidth="60.0" style="-fx-alignment: CENTER;" text="Origin" />
               </columns>
                <VBox.margin>
-                  <Insets top="20.0" />
+                  <Insets />
                </VBox.margin>
             </TableView>
             <HBox alignment="CENTER" prefHeight="68.0" prefWidth="370.0">
