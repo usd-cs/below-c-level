@@ -35,6 +35,7 @@ public class x86Program {
         this.parser = new X86Parser();
         this.fileName = "untitled-" + nextUntitledNumber;
         nextUntitledNumber++;
+        this.file = Optional.empty();
         this.isUnsaved = true;
     }
     
