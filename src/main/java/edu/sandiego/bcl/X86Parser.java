@@ -80,20 +80,27 @@ public class X86Parser {
         InstructionType type;
         OpSize size;
         List<OpSize> opSizes = new ArrayList<>();
-
+        
         /* 
          * "sized" instructions are those that have an instruction name (e.g.
          * "add") followed by a single character suffix to indicate the size
          * (e.g. "q").
          */
-        String validSizedInstrNames = "(?<name>add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret|clt)(?<size>b|w|l|q)";
+        String sizedInstructions = "add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar"
+                + "|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret|clt";
+        String validSizedInstrNames = "(?<name>" 
+                + sizedInstructions 
+                + ")(?<size>b|w|l|q)";
         Matcher sizedInstrMatcher = Pattern.compile(validSizedInstrNames).matcher(instrName);
         
         /*
          * "two sizes" instructions are those that have an instruction name followed
          * by two characters that indicate the size of two operands (e.g. "bl")
          */
-        String validTwoSizedInstrNames = "(?<name>movz|movs)(b[wlq]|w[lq])";
+        String twoSizedInstructions = "movz|movs";
+        String validTwoSizedInstrNames = "(?<name>" 
+                + twoSizedInstructions 
+                + ")(?<suffices>b[wlq]|w[lq])";
         Matcher twoSizedInstrMatcher = Pattern.compile(validTwoSizedInstrNames).matcher(instrName);
 
         /*
@@ -103,25 +110,29 @@ public class X86Parser {
          * (e.g. "ge" for "greater than or equal")
          * The "size" of these instructions is implicit (e.g. byte for SET).
          */
-        String validConditionalInstrName = "((?<name>set|j)(?<op>e|ne|s|ns|g|ge|l|le|a|ae|b|be)|jmp)";
+        String conditionalInstructions = "set|j";
+        String validConditionalInstrName = "(jmp|(?<name>" 
+                + conditionalInstructions 
+                + ")(?<op>e|ne|s|ns|g|ge|l|le|a|ae|b|be))";
         Matcher condInstrMatcher = Pattern.compile(validConditionalInstrName).matcher(instrName);
         
         String invalidSuffix = "(?<name>"
-                + "add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar|mov|lea|inc"
-                + "|dec|neg|not|push|pop|cmp|test|call|ret|clt"
-                + "|movz|movs"
-                + "|set|j|jmp"
+                + twoSizedInstructions // this must come before sizedInstructions
+                + "|" + sizedInstructions
+                + "|" + "jmp" // this must come before conditionalInstructions
+                + "|" + conditionalInstructions
                 + ")"
                 + "(?<suffix>\\p{Alpha}+)";
         Matcher invalidSuffixMatcher = Pattern.compile(invalidSuffix).matcher(instrName);
 
+        String quadOnlyInstructions = "lea|push|pop|call|ret|clt";
         if (sizedInstrMatcher.matches()) {
             type = InstructionType.valueOf(sizedInstrMatcher.group("name").toUpperCase());
 
             // some instructions can only be quad sized so check for that first
-            if (sizedInstrMatcher.group("name").matches("(lea|push|pop|call|ret|clt)")
+            if (sizedInstrMatcher.group("name").matches("(" + quadOnlyInstructions + ")")
                     && !sizedInstrMatcher.group("size").equals("q")) {
-                throw new X86ParsingException("instruction must have quad suffix (i.e. q)",
+                throw new X86ParsingException("Invalid suffix. Must be q.",
                         sizedInstrMatcher.start("size"),
                         instrName.length());
             }
@@ -138,8 +149,8 @@ public class X86Parser {
             
         } else if (twoSizedInstrMatcher.matches()) {
             type = InstructionType.valueOf(twoSizedInstrMatcher.group("name").toUpperCase());
-            String suffix1 = twoSizedInstrMatcher.group(2).substring(0,1);
-            String suffix2 = twoSizedInstrMatcher.group(2).substring(1);
+            String suffix1 = twoSizedInstrMatcher.group("suffices").substring(0,1);
+            String suffix2 = twoSizedInstrMatcher.group("suffices").substring(1);
             
             opSizes.add(OpSize.getOpSizeFromAbbrev(suffix1));
             size = OpSize.getOpSizeFromAbbrev(suffix2);
@@ -152,11 +163,39 @@ public class X86Parser {
             type = InstructionType.valueOf(instrName.toUpperCase());
             size = OpSize.BYTE;
         } else if (invalidSuffixMatcher.matches()) {
-            throw new X86ParsingException("Invalid suffix.",
+            String errorMessage = "Invalid suffix.";
+            
+            if (instrName.matches("^(" + quadOnlyInstructions + ").*")) {
+                errorMessage += " Must be q.";
+            }
+            else if (instrName.matches("^(" + sizedInstructions + ")"
+                    + invalidSuffixMatcher.group("suffix"))) {
+                errorMessage += " Need one suffix: b, w, l, or q";
+            }
+            else if (instrName.matches("^(" + twoSizedInstructions + ").*")) {     
+                // Identify scenario when individual suffices are correct but their
+                // ordering is invalid.
+                if (invalidSuffixMatcher.group("suffix").matches("[bwlq][bwlq]")) {
+                    errorMessage += " First suffix size must be < second.";
+                }
+                else {
+                    errorMessage += " Need two suffices: b, w, l, or q";
+                }
+            }
+            else if (instrName.matches("^(" + conditionalInstructions + ").*")) {
+                errorMessage += " Need one suffix: e, ne, s, ns, g, ge, l, le, a, ae, b, or be";
+            }
+            else if (instrName.startsWith("jmp")) {
+                errorMessage = " No suffix allowed here.";
+            }
+            
+            throw new X86ParsingException(errorMessage,
                             invalidSuffixMatcher.start("suffix"),
                             instrName.length());
         } else {
-            throw new X86ParsingException("invalid/unsupported instruction", 0, instrName.length());
+            throw new X86ParsingException("Invalid/unsupported instruction.", 
+                    0, 
+                    instrName.length());
         }
         
         List<OperandRequirements> opReqs = getOperandReqs(type, opSizes);
