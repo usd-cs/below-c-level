@@ -105,6 +105,15 @@ public class X86Parser {
          */
         String validConditionalInstrName = "((?<name>set|j)(?<op>e|ne|s|ns|g|ge|l|le|a|ae|b|be)|jmp)";
         Matcher condInstrMatcher = Pattern.compile(validConditionalInstrName).matcher(instrName);
+        
+        String invalidSuffix = "(?<name>"
+                + "add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar|mov|lea|inc"
+                + "|dec|neg|not|push|pop|cmp|test|call|ret|clt"
+                + "|movz|movs"
+                + "|set|j|jmp"
+                + ")"
+                + "(?<suffix>\\p{Alpha}+)";
+        Matcher invalidSuffixMatcher = Pattern.compile(invalidSuffix).matcher(instrName);
 
         if (sizedInstrMatcher.matches()) {
             type = InstructionType.valueOf(sizedInstrMatcher.group("name").toUpperCase());
@@ -142,6 +151,10 @@ public class X86Parser {
             // arbitrarily chosen.
             type = InstructionType.valueOf(instrName.toUpperCase());
             size = OpSize.BYTE;
+        } else if (invalidSuffixMatcher.matches()) {
+            throw new X86ParsingException("Invalid suffix.",
+                            invalidSuffixMatcher.start("suffix"),
+                            instrName.length());
         } else {
             throw new X86ParsingException("invalid/unsupported instruction", 0, instrName.length());
         }
