@@ -247,7 +247,10 @@ public class X86Parser {
             // size the instruction uses/wants.
             // TODO: move this check to a "validation" method
             if (opSize != opReqs.getSize()) {
-                throw new X86ParsingException("op size mismatch", 
+                String suggestedRegName = 
+                        Register.getSubRegisterName(regName, opReqs.getSize().numBytes());
+                
+                throw new X86ParsingException("Op size mismatch. Did you mean " + suggestedRegName + "?", 
                                                 regMatcher.start("regName"), 
                                                 regMatcher.end("regName"));
             }
