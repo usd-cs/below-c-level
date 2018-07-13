@@ -1,6 +1,7 @@
 package edu.sandiego.bcl;
 
 import java.util.Arrays;
+import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -120,6 +121,24 @@ public class Register {
     
     public String getSubValue(int numBytes){ 
         return "0x" + fullValue.substring((8 - numBytes) * 2);
+    }
+    
+    public void setValueToBase(int base) {
+        // 0 is hex, 1 unsigned dec, 2 signed dec
+        if (base == 0) {
+            String hexString = fullValue;
+            if (fullValue.charAt(0) == '0') {
+                hexString = fullValue.replaceFirst("0+", "0");
+            }
+            hexString = hexString.replaceFirst("FFFF+", "F..F");
+            value.set("0x" + hexString);
+        } else if (base == 1) {
+            BigInteger bI = new BigInteger(fullValue, 16);
+            value.set(bI.toString());
+        } else if (base == 2) {
+            BigInteger bI = new BigInteger(fullValue, 16);
+            value.set(String.valueOf(bI.longValue()));
+        }
     }
     
     /**

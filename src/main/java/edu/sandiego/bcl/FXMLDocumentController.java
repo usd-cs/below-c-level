@@ -13,6 +13,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.geometry.Point2D;
 import javafx.scene.Scene;
@@ -354,6 +355,44 @@ public class FXMLDocumentController implements Initializable {
 
             return row;
         });
+
+        ToggleGroup group = new ToggleGroup();
+        Menu valueFormatMenu = new Menu("Value Format");
+        final RadioMenuItem hexMenuItem = new RadioMenuItem("Hexadecimal");
+        final RadioMenuItem unsignedDecMenuItem = new RadioMenuItem("Unsigned Decimal");
+        final RadioMenuItem signedDecMenuItem = new RadioMenuItem("Signed Decimal");
+        hexMenuItem.setToggleGroup(group);
+        hexMenuItem.setSelected(true);
+        unsignedDecMenuItem.setToggleGroup(group);
+        signedDecMenuItem.setToggleGroup(group);
+        
+        valueFormatMenu.getItems().addAll(hexMenuItem, unsignedDecMenuItem,
+                signedDecMenuItem);
+    
+        hexMenuItem.setOnAction((ActionEvent event) -> {
+            if (hexMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(0);
+                this.updateSimulatorUIElements();
+            }
+        });
+
+        unsignedDecMenuItem.setOnAction((ActionEvent event) -> {
+            if (unsignedDecMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(1);
+                this.updateSimulatorUIElements();
+            }
+        });
+
+        signedDecMenuItem.setOnAction((ActionEvent event) -> {
+            if (signedDecMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(2);
+                this.updateSimulatorUIElements();
+            }
+        });
+        
+        ContextMenu menu = new ContextMenu();
+        menu.getItems().add(valueFormatMenu);
+        registerTable.setContextMenu(menu);
     }
 
     private void initializeStackTable() {

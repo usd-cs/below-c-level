@@ -40,12 +40,17 @@ public class Simulation {
      */
     private x86Program program;
     
+    /**
+     * The radix in which the register value will be displayed.
+     */
+    private int registerBase;
+    
     public Simulation() {
         this.program = new x86Program();
         this.stateHistory = new ArrayList<>();
         this.stateHistory.add(new MachineState());
-        
         this.regHistory = new ArrayList<>();
+        this.registerBase = 0;
     }
     
     public Simulation(File assemblyFile) throws FileNotFoundException,
@@ -73,7 +78,11 @@ public class Simulation {
     }
     
     public List<Register> getRegisters() {
-        return stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory);
+        List<Register> regList = stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory);
+        for(Register r : regList){
+            r.setValueToBase(this.registerBase);
+        }
+        return regList;
     }
     
     public List<StackEntry> getStackEntries() {
@@ -221,5 +230,9 @@ public class Simulation {
     public boolean saveProgramAs(File f) {
         this.program.setFile(f);
         return this.program.writeToFile();
+    }
+    
+    public void setRegisterBase(int base){
+        registerBase = base;
     }
 }
