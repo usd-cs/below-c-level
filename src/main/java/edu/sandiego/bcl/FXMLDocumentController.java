@@ -356,18 +356,28 @@ public class FXMLDocumentController implements Initializable {
             return row;
         });
 
-        ToggleGroup group = new ToggleGroup();
-        Menu valueFormatMenu = new Menu("Value Format");
-        final RadioMenuItem hexMenuItem = new RadioMenuItem("Hexadecimal");
-        final RadioMenuItem unsignedDecMenuItem = new RadioMenuItem("Unsigned Decimal");
-        final RadioMenuItem signedDecMenuItem = new RadioMenuItem("Signed Decimal");
-        hexMenuItem.setToggleGroup(group);
-        hexMenuItem.setSelected(true);
-        unsignedDecMenuItem.setToggleGroup(group);
-        signedDecMenuItem.setToggleGroup(group);
+        initializeRegisterTableContextMenu();
+    }
+
+    /**
+     * Creates and initializes a right-click menu for the Register Table.
+     */
+    private void initializeRegisterTableContextMenu() {
+        ToggleGroup valueFormatGroup = new ToggleGroup();
         
-        valueFormatMenu.getItems().addAll(hexMenuItem, unsignedDecMenuItem,
-                signedDecMenuItem);
+        // Radio select group for the format the value column is displayed in
+        final RadioMenuItem hexMenuItem = new RadioMenuItem("Hexadecimal");
+        hexMenuItem.setToggleGroup(valueFormatGroup);
+        hexMenuItem.setSelected(true);
+        final RadioMenuItem unsignedDecMenuItem = new RadioMenuItem("Unsigned Decimal");
+        unsignedDecMenuItem.setToggleGroup(valueFormatGroup);
+        final RadioMenuItem signedDecMenuItem = new RadioMenuItem("Signed Decimal");
+        signedDecMenuItem.setToggleGroup(valueFormatGroup);
+        
+        Menu valueFormatMenu = new Menu("Value Format");
+        valueFormatMenu.getItems().addAll(hexMenuItem,
+                                            unsignedDecMenuItem,
+                                            signedDecMenuItem);
     
         hexMenuItem.setOnAction((ActionEvent event) -> {
             if (hexMenuItem.isSelected()) {
