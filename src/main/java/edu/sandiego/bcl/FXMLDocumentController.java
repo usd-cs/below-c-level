@@ -217,6 +217,9 @@ public class FXMLDocumentController implements Initializable {
             if (!activeSimulation.saveProgram()) {
                 this.saveFileAs(event);
             }
+            else {
+                this.setUnsavedTabIndicator(false);
+            }
         });
 
         closeTabMenuItem.setOnAction(this::closeTab);
@@ -461,15 +464,24 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
-     * Visually indicates to the user that the current tab is unsaved.
+     * Visually indicates to the user whether the current tab is unsaved.
+     * 
+     * @param isUnsaved Whether the tab is unsaved or not.
      */
-    public void indicateCurrentTabIsUnsaved() {
+    public void setUnsavedTabIndicator(boolean isUnsaved) {
         Tab currTab = programTabs.getSelectionModel().getSelectedItem();
         String currTabName = currTab.getText();
-
-        // Already indicating we have an edited file so don't need to do anything
-        if (!currTabName.endsWith("*")) {
-            currTab.setText(currTabName + "*");
+        
+        if (isUnsaved) {
+            // Already indicating we have an edited file so don't need to do anything
+            if (!currTabName.endsWith("*")) {
+                currTab.setText(currTabName + "*");
+            }
+        }
+        else {
+            if (currTabName.endsWith("*")) {
+                currTab.setText(currTabName.substring(0, currTabName.length()-1));
+            }
         }
     }
 
@@ -514,7 +526,7 @@ public class FXMLDocumentController implements Initializable {
                 newLineEntry.clear();
                 restartSim(keyEvent);
 
-                indicateCurrentTabIsUnsaved();
+                setUnsavedTabIndicator(true);
 
             } catch (X86ParsingException e) {
                 this.indicateParsingError(e);
@@ -583,7 +595,9 @@ public class FXMLDocumentController implements Initializable {
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
         if (file != null) {
             programTabs.getSelectionModel().getSelectedItem().setText(file.getName());
-            activeSimulation.saveProgramAs(file);
+            if (activeSimulation.saveProgramAs(file)) {
+                this.setUnsavedTabIndicator(false);
+            }
         }
     }
 
@@ -759,7 +773,7 @@ public class FXMLDocumentController implements Initializable {
 
                     try {
                         activeSimulation.replaceInProgram(cell.getItem(), text);
-                        indicateCurrentTabIsUnsaved();
+                        setUnsavedTabIndicator(true);
 
                         newLineEntry.setStyle("-fx-control-inner-background: white;");
                         parseErrorText.setText(null);
