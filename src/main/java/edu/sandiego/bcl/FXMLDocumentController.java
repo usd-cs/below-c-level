@@ -367,23 +367,23 @@ public class FXMLDocumentController implements Initializable {
                 signedDecMenuItem);
     
         hexMenuItem.setOnAction((ActionEvent event) -> {
-            if(hexMenuItem.isSelected()){
-                // DO SOMETHING
-                System.out.println("Selected Hex");
+            if (hexMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(0);
+                this.updateSimulatorUIElements();
             }
         });
-        
+
         unsignedDecMenuItem.setOnAction((ActionEvent event) -> {
-            if(unsignedDecMenuItem.isSelected()){
-                // DO SOMETHING
-                System.out.println("Selected Unsigned Dec");
+            if (unsignedDecMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(1);
+                this.updateSimulatorUIElements();
             }
         });
-        
+
         signedDecMenuItem.setOnAction((ActionEvent event) -> {
-            if(signedDecMenuItem.isSelected()){
-                // DO SOMETHING
-                System.out.println("Selected Signed Dec");
+            if (signedDecMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(2);
+                this.updateSimulatorUIElements();
             }
         });
         
