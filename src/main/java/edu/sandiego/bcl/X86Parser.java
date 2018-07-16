@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import com.mifmif.common.regex.*;
+import info.debatty.java.stringsimilarity.*;
 
 /**
  * Class for parsing X86-64 programs.
@@ -31,6 +34,13 @@ public class X86Parser {
     
     // ordering is important here: constant must go after mem
     private static final String operandRegEx = "\\s*(?<operand>" + memOpRegEx + "|" + regOpRegEx + "|" + labelOpRegEx + "|" + constOpRegEx + ")\\s*";
+    
+    private static final String ONE_SUFFIX_INSTRUCTIONS_REGEX = 
+            "add|sub|imul"
+                + "|idiv|xor|or|and|shl|sal|shr|sar"
+                + "|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret|clt";
+    private static final String TWO_SUFFIX_INSTRUCTIONS_REGEX = "movz|movs";
+    private static final String CONDITIONAL_INSTRUCTIONS_REGEX = "set|j";
 
     /**
      * The line number that will be given to the next parsed line.
@@ -86,10 +96,8 @@ public class X86Parser {
          * "add") followed by a single character suffix to indicate the size
          * (e.g. "q").
          */
-        String sizedInstructions = "add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar"
-                + "|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret|clt";
         String validSizedInstrNames = "(?<name>" 
-                + sizedInstructions 
+                + ONE_SUFFIX_INSTRUCTIONS_REGEX 
                 + ")(?<size>b|w|l|q)";
         Matcher sizedInstrMatcher = Pattern.compile(validSizedInstrNames).matcher(instrName);
         
@@ -97,9 +105,8 @@ public class X86Parser {
          * "two sizes" instructions are those that have an instruction name followed
          * by two characters that indicate the size of two operands (e.g. "bl")
          */
-        String twoSizedInstructions = "movz|movs";
         String validTwoSizedInstrNames = "(?<name>" 
-                + twoSizedInstructions 
+                + TWO_SUFFIX_INSTRUCTIONS_REGEX
                 + ")(?<suffices>b[wlq]|w[lq])";
         Matcher twoSizedInstrMatcher = Pattern.compile(validTwoSizedInstrNames).matcher(instrName);
 
@@ -110,17 +117,16 @@ public class X86Parser {
          * (e.g. "ge" for "greater than or equal")
          * The "size" of these instructions is implicit (e.g. byte for SET).
          */
-        String conditionalInstructions = "set|j";
         String validConditionalInstrName = "(jmp|(?<name>" 
-                + conditionalInstructions 
+                + CONDITIONAL_INSTRUCTIONS_REGEX 
                 + ")(?<op>e|ne|s|ns|g|ge|l|le|a|ae|b|be))";
         Matcher condInstrMatcher = Pattern.compile(validConditionalInstrName).matcher(instrName);
         
         String invalidSuffix = "(?<name>"
-                + twoSizedInstructions // this must come before sizedInstructions
-                + "|" + sizedInstructions
+                + TWO_SUFFIX_INSTRUCTIONS_REGEX // this must come before sizedInstructions
+                + "|" + ONE_SUFFIX_INSTRUCTIONS_REGEX
                 + "|" + "jmp" // this must come before conditionalInstructions
-                + "|" + conditionalInstructions
+                + "|" + CONDITIONAL_INSTRUCTIONS_REGEX
                 + ")"
                 + "(?<suffix>\\p{Alpha}+)";
         Matcher invalidSuffixMatcher = Pattern.compile(invalidSuffix).matcher(instrName);
@@ -168,11 +174,11 @@ public class X86Parser {
             if (instrName.matches("^(" + quadOnlyInstructions + ").*")) {
                 errorMessage += " Must be q.";
             }
-            else if (instrName.matches("^(" + sizedInstructions + ")"
+            else if (instrName.matches("^(" + ONE_SUFFIX_INSTRUCTIONS_REGEX + ")"
                     + invalidSuffixMatcher.group("suffix"))) {
                 errorMessage += " Need one suffix: b, w, l, or q";
             }
-            else if (instrName.matches("^(" + twoSizedInstructions + ").*")) {     
+            else if (instrName.matches("^(" + TWO_SUFFIX_INSTRUCTIONS_REGEX + ").*")) {     
                 // Identify scenario when individual suffices are correct but their
                 // ordering is invalid.
                 if (invalidSuffixMatcher.group("suffix").matches("[bwlq][bwlq]")) {
@@ -182,7 +188,7 @@ public class X86Parser {
                     errorMessage += " Need two suffices: b, w, l, or q";
                 }
             }
-            else if (instrName.matches("^(" + conditionalInstructions + ").*")) {
+            else if (instrName.matches("^(" + CONDITIONAL_INSTRUCTIONS_REGEX + ").*")) {
                 errorMessage += " Need one suffix: e, ne, s, ns, g, ge, l, le, a, ae, b, or be";
             }
             else if (instrName.startsWith("jmp")) {
@@ -193,13 +199,56 @@ public class X86Parser {
                             invalidSuffixMatcher.start("suffix"),
                             instrName.length());
         } else {
-            throw new X86ParsingException("Invalid/unsupported instruction.", 
+            String errorMessage = "Invalid/unsupported instruction.";
+            Optional<String> intendedInstruction = getProbableInstruction(instrName);
+            if (intendedInstruction.isPresent()) {
+                errorMessage = "Invalid instruction. Did you mean " + intendedInstruction.get() + "?";
+            }
+            throw new X86ParsingException(errorMessage, 
                     0, 
                     instrName.length());
         }
         
         List<OperandRequirements> opReqs = getOperandReqs(type, opSizes);
         return new TypeAndOpRequirements(type, size, opReqs);
+    }
+    
+    private static Optional<String> getProbableRegister(String actualRegister) {
+        return getMostSimilarString(allRegNames, actualRegister, 0.8);
+    }
+
+    private static Optional<String> getProbableInstruction(String actualInstruction) {
+        String validInstructions = "(" 
+                + ONE_SUFFIX_INSTRUCTIONS_REGEX
+                + ")(b|w|l|q)";
+        validInstructions += "|(" 
+                + TWO_SUFFIX_INSTRUCTIONS_REGEX
+                + ")(b|w|l|q){2}";
+        validInstructions += "|jmp|(" 
+                + CONDITIONAL_INSTRUCTIONS_REGEX 
+                + ")(e|ne|s|ns|g|ge|l|le|a|ae|b|be)";
+        return getMostSimilarString(validInstructions, actualInstruction, 0.8);
+    }
+
+    private static Optional<String> getMostSimilarString(String validStrings, 
+                                                            String actualString,
+                                                            double minAcceptableSimilarity) {
+        Generex g = new Generex(validStrings);
+        List<String> matchedStrs = g.getAllMatchedStrings();
+        
+        JaroWinkler jw = new JaroWinkler();
+        double maxSimilarity = 0.0;
+        Optional<String> mostSimilarString = Optional.empty();
+        
+        for (String s : matchedStrs) {
+            double similarity = jw.similarity(s, actualString);
+            if (similarity > minAcceptableSimilarity && similarity > maxSimilarity) {
+                mostSimilarString = Optional.of(s);
+                maxSimilarity = similarity;
+            }
+        }
+                
+        return mostSimilarString;
     }
 
     /**
@@ -221,7 +270,12 @@ public class X86Parser {
         } else if (name.matches(bRegNames)) {
             opSize = OpSize.BYTE;
         } else {
-            throw new X86ParsingException("invalid register name", 0, name.length());
+            String errorMessage = "Invalid register name.";
+            Optional<String> intendedRegister = getProbableRegister(name);
+            if (intendedRegister.isPresent()) {
+                errorMessage += " Did you mean " + intendedRegister.get() + "?";
+            }
+            throw new X86ParsingException(errorMessage, 0, name.length());
         }
 
         return opSize;
