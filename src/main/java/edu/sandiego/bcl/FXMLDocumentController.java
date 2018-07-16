@@ -9,6 +9,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -425,7 +427,11 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void stepForward(Event event) {
-        activeSimulation.stepForward();
+        try {
+            activeSimulation.stepForward();
+        } catch (x86RuntimeException ex) {
+            showRuntimeErrorDialogue(ex);
+        }
         updateSimulatorUIElements();
     }
 
@@ -435,23 +441,44 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void runForward(Event event) {
-        while (!activeSimulation.finish()) {
-            Alert longRunningConfirmation = new Alert(AlertType.CONFIRMATION);
-            longRunningConfirmation.setTitle("Long Running Computation");
-            longRunningConfirmation.setHeaderText("Infinited Loop?");
-            longRunningConfirmation.setContentText("Your program has executed many instructions. "
-                    + "It is possible it may be stuck in an infinite loop. "
-                    + "\n\nClick OK to continue simulation, or Cancel to stop.");
-
-            Optional<ButtonType> result = longRunningConfirmation.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.CANCEL) {
-                break;
+        try {
+            while (!activeSimulation.finish()) {
+                Alert longRunningConfirmation = new Alert(AlertType.CONFIRMATION);
+                longRunningConfirmation.setTitle("Long Running Computation");
+                longRunningConfirmation.setHeaderText("Infinite Loop?");
+                longRunningConfirmation.setContentText("Your program has executed many instructions. "
+                        + "It is possible it may be stuck in an infinite loop. "
+                        + "\n\nClick OK to continue simulation, or Cancel to stop.");
+                
+                Optional<ButtonType> result = longRunningConfirmation.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.CANCEL) {
+                    break;
+                }
             }
+        } catch (x86RuntimeException ex) {
+            showRuntimeErrorDialogue(ex);
         }
-
         updateSimulatorUIElements();
     }
 
+    private void showRuntimeErrorDialogue(x86RuntimeException e){
+        simStateLabel.setText("Line " + activeSimulation.getCurrentLine().lineNum + ": " + e.getMessage());
+            ImageView completePic = new ImageView(
+                    new Image(this.getClass().getResourceAsStream("/images/error.png")));
+            completePic.setFitHeight(16);
+            completePic.setFitWidth(16);
+            completePic.setSmooth(true);
+            completePic.setPreserveRatio(true);
+            simStateLabel.setGraphic(completePic);
+        /*
+        Alert evalError = new Alert(Alert.AlertType.ERROR);
+        evalError.setTitle("Simulation Error");
+        evalError.setHeaderText("Error during simulation");
+        evalError.setContentText("The following error occurred while simulating the instruction on line number " + activeSimulation.getCurrentLine().lineNum
+                    + "\n\n" + e.getMessage());
+            evalError.showAndWait();
+        */
+    }
     /**
      * Undoes the previous instruction in our simulation.
      *
@@ -506,7 +533,7 @@ public class FXMLDocumentController implements Initializable {
             completePic.setSmooth(true);
             completePic.setPreserveRatio(true);
             simStateLabel.setGraphic(completePic);
-        } else {
+        } else if (!activeSimulation.getStuckOnError()) {
             simStateLabel.setText(null);
             simStateLabel.setGraphic(null);
         }

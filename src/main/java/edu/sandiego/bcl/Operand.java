@@ -28,7 +28,7 @@ public abstract class Operand {
      * @param state The state of the machine.
      * @return The value of the operand in a machine with the given state.
      */
-    public abstract BigInteger getValue(MachineState state);
+    public abstract BigInteger getValue(MachineState state) throws x86RuntimeException;
 
     /**
      * @param currState The current state of the machine.

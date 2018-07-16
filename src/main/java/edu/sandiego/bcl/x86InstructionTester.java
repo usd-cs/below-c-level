@@ -1,6 +1,8 @@
 package edu.sandiego.bcl;
 
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Simple class to test x86 instruction parsing and evaluation.
@@ -59,7 +61,11 @@ public class x86InstructionTester {
 		System.out.println(state);
 		for (x86ProgramLine inst : instructions) {
 			System.out.println(inst);
-			state = inst.eval(state);
+                    try {
+                        state = inst.eval(state);
+                    } catch (x86RuntimeException ex) {
+                        Logger.getLogger(x86InstructionTester.class.getName()).log(Level.SEVERE, null, ex);
+                    }
 			System.out.println(state);
 		}
 

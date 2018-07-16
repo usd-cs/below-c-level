@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 @FunctionalInterface
 interface UnaryX86Operation {
 
-    MachineState apply(MachineState state, Operand dest);
+    MachineState apply(MachineState state, Operand dest) throws x86RuntimeException;
 }
 
 /**
@@ -122,7 +122,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A state that is a clone of the starting state but updated to
      * account for the execution of this instruction.
      */
-    private MachineState idiv(MachineState state, Operand src) {
+    private MachineState idiv(MachineState state, Operand src) throws x86RuntimeException {
         BigInteger src1 = state.getCombinedRegisterValue(opSize);
         BigInteger src2 = src.getValue(state);
 
@@ -167,7 +167,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest+1)}.
      */
-    private MachineState inc(MachineState state, Operand dest) {
+    private MachineState inc(MachineState state, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).add(BigInteger.ONE);
 
         Map<String, Boolean> flags = new HashMap<>();
@@ -187,7 +187,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest-1)}.
      */
-    private MachineState dec(MachineState state, Operand dest) {
+    private MachineState dec(MachineState state, Operand dest) throws x86RuntimeException {
         BigInteger result = dest.getValue(state).subtract(BigInteger.ONE);
 
         Map<String, Boolean> flags = new HashMap<>();
@@ -207,7 +207,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code -dest}.
      */
-    private MachineState neg(MachineState state, Operand dest) {
+    private MachineState neg(MachineState state, Operand dest) throws x86RuntimeException {
         BigInteger orig = dest.getValue(state);
 
         // The x64 manual states that neg does 0 - operand so we'll do the
@@ -233,7 +233,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code ~dest}.
      */
-    private MachineState not(MachineState state, Operand dest) {
+    private MachineState not(MachineState state, Operand dest) throws x86RuntimeException {
         BigInteger result = dest.getValue(state).not();
         Map<String, Boolean> flags = new HashMap<>();
         return dest.updateState(state, Optional.of(result), flags, true);
@@ -248,7 +248,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * decremented by 8 and memory updated to contain {@code src} at the address
      * {@code %rsp}.
      */
-    private MachineState push(MachineState state, Operand src) {
+    private MachineState push(MachineState state, Operand src) throws x86RuntimeException {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: subtract 8 from rsp
@@ -306,7 +306,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with a rip changed based on the
      * result of the condition.
      */
-    private MachineState jump(MachineState state, Operand dest) {
+    private MachineState jump(MachineState state, Operand dest) throws x86RuntimeException {
         assert this.conditionCheck.isPresent();
         Map<String, Boolean> flags = new HashMap<>();
         if (this.conditionCheck.get().test(state)) {
@@ -325,7 +325,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with a rip set to the address of
      * {@code dest} and the memory updated to contain rip+1 at the top of the stack.
      */
-    private MachineState call(MachineState state, Operand dest) {
+    private MachineState call(MachineState state, Operand dest) throws x86RuntimeException {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: subtract 8 from rsp
@@ -344,7 +344,7 @@ public class x86UnaryInstruction extends x86Instruction {
     }
 
     @Override
-    public MachineState eval(MachineState state) {
+    public MachineState eval(MachineState state) throws x86RuntimeException {
         return operation.apply(state, this.destination);
     }
 

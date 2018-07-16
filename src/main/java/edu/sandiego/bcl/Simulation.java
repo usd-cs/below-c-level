@@ -45,12 +45,18 @@ public class Simulation {
      */
     private int registerBase;
     
+    /**
+     * The evaluation is stopped because of a RunTime Error.
+     */
+    private boolean stuckOnError;
+    
     public Simulation() {
         this.program = new x86Program();
         this.stateHistory = new ArrayList<>();
         this.stateHistory.add(new MachineState());
         this.regHistory = new ArrayList<>();
         this.registerBase = 0;
+        this.stuckOnError = false;
     }
     
     public Simulation(File assemblyFile) throws FileNotFoundException,
@@ -65,6 +71,7 @@ public class Simulation {
             currentLine = this.program.getLine(0);
             regHistory.addAll(this.program.getLine(0).getUsedRegisters());
         }
+        this.stuckOnError = false;
     }
     
     public String getProgramFileName() { return this.program.getFileName(); }
@@ -87,6 +94,10 @@ public class Simulation {
     
     public List<StackEntry> getStackEntries() {
         return stateHistory.get(this.stateHistory.size() - 1).getStackEntries();
+    }
+    
+    public boolean getStuckOnError() {
+        return this.stuckOnError;
     }
     
     public boolean hasSignFlagSet() {
@@ -122,6 +133,8 @@ public class Simulation {
             currentLine = this.program.getLine(0);
             regHistory.addAll(currentLine.getUsedRegisters());
         }
+        
+        this.stuckOnError = false;
     }
     
     /**
@@ -137,7 +150,7 @@ public class Simulation {
     /**
      * Executes the next instruction in our simulation.
      */
-    public void stepForward() {
+    public void stepForward() throws x86RuntimeException {
         evalCurrentInstruction();
     }
     
@@ -146,7 +159,7 @@ public class Simulation {
      * 
      * @return True if simulation completed or we reached a breakpoint. False otherwise.
      */
-    public boolean finish() {
+    public boolean finish() throws x86RuntimeException {
         int numExecuted = 0; // number of instructions we have executed so far
         
         while (!isFinished()
@@ -163,7 +176,7 @@ public class Simulation {
      * Evaluates the current instruction, adding the newly produced state to our
      * history and selecting the next instruction.
      */
-    private void evalCurrentInstruction() {
+    private void evalCurrentInstruction() throws x86RuntimeException {
         try {
             // evaluate the current instruction, adding its new state to our history
             MachineState nextState = currentLine.eval(stateHistory.get(stateHistory.size() - 1));
@@ -176,15 +189,10 @@ public class Simulation {
             else {
                 currentLine = this.program.getLine(stateHistory.get(stateHistory.size() - 1).getRipRegister());
                 regHistory.addAll(currentLine.getUsedRegisters());
-            }
-        } catch (Exception e) {
-            // TODO: this should catch a custom simulation exception type
-            Alert evalError = new Alert(Alert.AlertType.ERROR);
-            evalError.setTitle("Simulation Error");
-            evalError.setHeaderText("Error during simulation");
-            evalError.setContentText("The following error occurred while simulating the current instruction:"
-                    + "\n\n" + e.getMessage());
-            evalError.showAndWait();
+            } 
+        } catch (x86RuntimeException e) {
+            this.stuckOnError = true;
+            throw e;
         }
     }
     
@@ -195,13 +203,18 @@ public class Simulation {
     public void stepBackward() {
         // We'll only have one state in our history when we are at the beginning
         // of simulation. In this case, going backwards shouldn't do anything.
-        if (stateHistory.size() == 1) return;
+        if (stateHistory.size() == 1) {
+            this.stuckOnError = false;
+            return;
+        }
         
         stateHistory.remove(stateHistory.size() - 1);
         if (!this.program.isEmpty() && currentLine != null) {
             regHistory.removeAll(currentLine.getUsedRegisters());
         }
         currentLine = this.program.getLine(stateHistory.get(stateHistory.size() - 1).getRipRegister());
+        
+        this.stuckOnError = false;
     }
     
     public void appendToProgram(String lineText) throws X86ParsingException {

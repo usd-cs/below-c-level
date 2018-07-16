@@ -9,7 +9,7 @@ import java.util.Set;
 @FunctionalInterface
 interface BinaryX86Operation {
 
-    MachineState apply(MachineState state, Operand src, Operand dest);
+    MachineState apply(MachineState state, Operand src, Operand dest) throws x86RuntimeException;
 }
 
 /**
@@ -110,7 +110,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest-src)}.
      */
-    private MachineState add(MachineState state, Operand src, Operand dest) {
+    private MachineState add(MachineState state, Operand src, Operand dest) throws x86RuntimeException {
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.add(src2);
@@ -175,7 +175,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * specified, the destination updated with the value of {@code (dest-src)}.
      */
     private MachineState subtract(MachineState state, Operand src, Operand dest,
-            boolean updateDest) {
+            boolean updateDest) throws x86RuntimeException{
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.subtract(src2);
@@ -203,7 +203,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest-src)}.
      */
-    private MachineState sub(MachineState state, Operand src, Operand dest) {
+    private MachineState sub(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         return subtract(state, src, dest, true);
     }
 
@@ -217,8 +217,8 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and status
      * flags set accordingly.
      */
-    private MachineState cmp(MachineState state, Operand src, Operand dest) {
-        return subtract(state, src, dest, false);
+    private MachineState cmp(MachineState state, Operand src, Operand dest) throws x86RuntimeException {
+        return subtract(state, src, dest, false) ;
     }
 
     /**
@@ -230,7 +230,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest*src)}.
      */
-    private MachineState imul(MachineState state, Operand src, Operand dest) {
+    private MachineState imul(MachineState state, Operand src, Operand dest) throws x86RuntimeException {
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.multiply(src2);
@@ -271,7 +271,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest ^ src)}.
      */
-    private MachineState xor(MachineState state, Operand src, Operand dest) {
+    private MachineState xor(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).xor(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
@@ -286,7 +286,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest | src)}.
      */
-    private MachineState or(MachineState state, Operand src, Operand dest) {
+    private MachineState or(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).or(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
@@ -301,7 +301,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest & src)}.
      */
-    private MachineState and(MachineState state, Operand src, Operand dest) {
+    private MachineState and(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).and(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
@@ -315,7 +315,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @param dest The operand that will be and'ed.
      * @return A clone of {@code state}, but with an incremented rip.
      */
-    private MachineState test(MachineState state, Operand src, Operand dest) {
+    private MachineState test(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).and(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.empty(), flags, true);
@@ -330,7 +330,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest << src)}.
      */
-    private MachineState sal(MachineState state, Operand src, Operand dest) {
+    private MachineState sal(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         // destination size determines the maximum shift amount
         int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
@@ -369,7 +369,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest >> src)}.
      */
-    private MachineState sar(MachineState state, Operand src, Operand dest) {
+    private MachineState sar(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         // destination size determines the maximum shift amount
         int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
@@ -407,7 +407,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest >> src)}.
      */
-    private MachineState shr(MachineState state, Operand src, Operand dest) {
+    private MachineState shr(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         // destination size determines the maximum shift amount
         int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
@@ -471,7 +471,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} assigned the value of {@code src}.
      */
-    private MachineState mov(MachineState state, Operand src, Operand dest) {
+    private MachineState mov(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         return dest.updateState(state, Optional.of(src.getValue(state)), new HashMap<>(), true);
     }
 
@@ -485,7 +485,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} assigned the value of {@code src}.
      */
-    private MachineState movz(MachineState state, Operand src, Operand dest) {
+    private MachineState movz(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger orig = src.getValue(state);
         byte[] extendedOrig = MachineState.getExtendedByteArray(orig,
                 src.getOpSize().numBytes(),
@@ -519,7 +519,7 @@ public class x86BinaryInstruction extends x86Instruction {
     }
 
     @Override
-    public MachineState eval(MachineState state) {
+    public MachineState eval(MachineState state) throws x86RuntimeException {
         return operation.apply(state, this.source, this.destination);
     }
 
