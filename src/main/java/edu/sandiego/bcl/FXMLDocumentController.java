@@ -315,10 +315,12 @@ public class FXMLDocumentController implements Initializable {
         jumpToCurrentButton.setTooltip(new Tooltip("Snap To Current"));
 
         stepBackwardButton.setOnAction(this::stepBackward);
+        stepBackwardButton.setDisable(true);
         stepBackwardButton.setTooltip(new Tooltip("Step Backward"));
         backwardMenuItem.setOnAction(this::stepBackward);
 
         restartButton.setOnAction(this::restartSim);
+        restartButton.setDisable(true);
         restartButton.setTooltip(new Tooltip("Restart"));
         restartMenuItem.setOnAction(this::restartSim);
     }
@@ -505,17 +507,15 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
-     * Checks if end of program has been reached and if so, disable stepForward
-     * and runAll buttons.
+     * Enables and disables simulation controls based on state of simulator.
+     * 
      */
     private void updateSimulationControls() {
-        if (!activeSimulation.isFinished()) {
-            stepForwardButton.setOnAction(this::stepForward);
-            runAllButton.setOnAction(this::runForward);
-        } else {
-            stepForwardButton.setOnAction(null);
-            runAllButton.setOnAction(null);
-        }
+        stepForwardButton.setDisable(activeSimulation.isFinished());
+        runAllButton.setDisable(activeSimulation.isFinished());
+        jumpToCurrentButton.setDisable(activeSimulation.getProgramLines().isEmpty() || activeSimulation.isFinished());
+        stepBackwardButton.setDisable(activeSimulation.isAtBeginning());
+        restartButton.setDisable(activeSimulation.isAtBeginning());
     }
 
     /**

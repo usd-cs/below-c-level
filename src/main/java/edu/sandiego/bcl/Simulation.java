@@ -148,6 +148,15 @@ public class Simulation {
     }
     
     /**
+     * Checks if beginning of program has been reached and if so.
+     * 
+     * @return True if simulation is at the beginning, false otherwise.
+     */
+    public boolean isAtBeginning(){
+        return stateHistory.size() == 1; 
+    }
+    
+    /**
      * Executes the next instruction in our simulation.
      */
     public void stepForward() throws x86RuntimeException {
