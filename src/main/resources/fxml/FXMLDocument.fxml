@@ -17,9 +17,9 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane fx:id="entirePane" minWidth="500.0" prefHeight="486.0" prefWidth="753.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="edu.sandiego.bcl.FXMLDocumentController">
+<BorderPane fx:id="entirePane" minWidth="500.0" prefHeight="540.0" prefWidth="854.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="edu.sandiego.bcl.FXMLDocumentController">
    <left>
-      <VBox maxWidth="353.0" BorderPane.alignment="CENTER">
+      <VBox maxWidth="400.0" BorderPane.alignment="CENTER">
          <children>
             <HBox prefHeight="75.0" prefWidth="353.0">
                <children>
@@ -31,7 +31,7 @@
                   <Label fx:id="entryStatusLabel" prefHeight="34.0" prefWidth="98.0" />
                </children>
             </HBox>
-            <Label fx:id="parseErrorText" minWidth="20.0" prefHeight="17.0" prefWidth="348.0">
+            <Label fx:id="parseErrorText" alignment="TOP_LEFT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="17.0" prefWidth="348.0">
                <VBox.margin>
                   <Insets bottom="5.0" top="5.0" />
                </VBox.margin>
@@ -109,7 +109,7 @@
    <center>
       <VBox prefHeight="624.0" prefWidth="383.0" BorderPane.alignment="CENTER">
          <children>
-            <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="40.0" prefWidth="388.0" text="Program Stack">
+            <Label alignment="CENTER" contentDisplay="CENTER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="23.0" prefWidth="563.0" text="Program Stack">
                <font>
                   <Font name="System Bold" size="14.0" />
                </font>
@@ -122,13 +122,16 @@
                 <TableColumn fx:id="startAddressColumn" minWidth="-Infinity" prefWidth="93.0" style="-fx-alignment: CENTER;" text="Start" />
                 <TableColumn fx:id="endAddressColumn" minWidth="-Infinity" prefWidth="96.0" style="-fx-alignment: CENTER;" text="End" />
                   <TableColumn fx:id="valueColumn" minWidth="-Infinity" prefWidth="110.0" style="-fx-alignment: CENTER;" text="Value" />
-                  <TableColumn fx:id="originColumn" minWidth="-Infinity" prefWidth="58.0" style="-fx-alignment: CENTER;" text="Origin" />
+                  <TableColumn fx:id="originColumn" minWidth="-Infinity" prefWidth="70.0" style="-fx-alignment: CENTER;" text="Line #" />
               </columns>
                <VBox.margin>
                   <Insets />
                </VBox.margin>
+               <columnResizePolicy>
+                  <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+               </columnResizePolicy>
             </TableView>
-            <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="19.0" prefWidth="370.0" text="Register Table">
+            <Label alignment="CENTER" contentDisplay="CENTER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="18.0" prefWidth="524.0" text="Register Table">
                <font>
                   <Font name="System Bold" size="14.0" />
                </font>
@@ -139,12 +142,15 @@
             <TableView fx:id="registerTable" prefHeight="200.0" prefWidth="99.0">
               <columns>
                 <TableColumn fx:id="registerNameColumn" minWidth="-Infinity" prefWidth="83.0" style="-fx-alignment: CENTER;" text="Register" />
-                <TableColumn fx:id="registerValueColumn" minWidth="-Infinity" prefWidth="205.0" style="-fx-alignment: CENTER;" text="Value" />
-                  <TableColumn fx:id="registerOriginColumn" minWidth="-Infinity" prefWidth="60.0" style="-fx-alignment: CENTER;" text="Origin" />
+                <TableColumn fx:id="registerValueColumn" minWidth="-Infinity" prefWidth="323.0" style="-fx-alignment: CENTER;" text="Value" />
+                  <TableColumn fx:id="registerOriginColumn" minWidth="-Infinity" prefWidth="0.0" style="-fx-alignment: CENTER;" text="Line #" />
               </columns>
                <VBox.margin>
                   <Insets />
                </VBox.margin>
+               <columnResizePolicy>
+                  <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+               </columnResizePolicy>
             </TableView>
             <HBox alignment="CENTER" prefHeight="68.0" prefWidth="370.0">
                <children>
