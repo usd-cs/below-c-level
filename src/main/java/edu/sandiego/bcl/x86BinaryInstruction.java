@@ -507,13 +507,6 @@ public class x86BinaryInstruction extends x86Instruction {
      * to by {@code src}).
      */
     private MachineState lea(MachineState state, Operand src, Operand dest) {
-        // TODO: Use polymorophism to avoid this instanceof junk
-        if (!(src instanceof MemoryOperand)) {
-            // FIXME: parse should catch this!
-            System.err.println("ERROR: lea src must be a memory operand");
-            return null;
-        }
-
         MemoryOperand mo = (MemoryOperand) src;
         return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), new HashMap<>(), true);
     }

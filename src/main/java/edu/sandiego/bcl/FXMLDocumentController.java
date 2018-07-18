@@ -214,8 +214,6 @@ public class FXMLDocumentController implements Initializable {
             createTab(new Simulation());
         });
 
-        // FIXME: this should be disabled until they save as or load from file
-        // and should switch on and off based on which tab is selected
         saveMenuItem.setOnAction(event -> {
             if (!activeSimulation.saveProgram()) {
                 this.saveFileAs(event);

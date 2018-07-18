@@ -41,7 +41,6 @@ public class LabelOperand extends Operand {
     @Override
     public BigInteger getValue(MachineState state) throws x86RuntimeException {
         if (label == null) {
-            // FIXME: change this to a special exception type
             throw new x86RuntimeException("Nonexistent label: " + this.name);
         }
         String num = "" + label.getLineNum();

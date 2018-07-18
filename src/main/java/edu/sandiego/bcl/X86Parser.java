@@ -599,12 +599,10 @@ public class X86Parser {
                     // should be something we can write to (i.e. not a constant or a
                     // label)
                     if (operands.get(1) instanceof ConstantOperand) {
-                        // FIXME: start/end index is not right here
                         throw new X86ParsingException("destination cannot be a constant",
                                 instMatcher.start("operands"),
                                 instr.length());
                     }
-                    // TODO: check that the destination isn't a LabelOperand either
                     return new x86BinaryInstruction(instrType,
                             operands.get(0),
                             operands.get(1),
@@ -612,8 +610,6 @@ public class X86Parser {
                             currLineNum++,
                             c);
                 } else if (instrType.numOperands() == 1) {
-                    // TODO: throw exception if destination is a constant (or a
-                    // label for non-jump instructions)
                     x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
                             operands.get(0),
                             instrSize,
@@ -633,7 +629,7 @@ public class X86Parser {
                     }
                     return inst;
                 }
-                return null; // FIXME: throw exception
+                throw new X86ParsingException("I am confusion", instMatcher.start("operands"), instrName.length());
             } else {
                 if (instrType.numOperands() != 0)
                     throw new X86ParsingException(
