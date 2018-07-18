@@ -299,9 +299,11 @@ public class FXMLDocumentController implements Initializable {
 
     private void initializeSimulationControls() {
         stepForwardButton.setOnAction(this::stepForward);
+        stepForwardButton.setTooltip(new Tooltip("Step Forward"));       
         forwardMenuItem.setOnAction(this::stepForward);
-
+        
         runAllButton.setOnAction(this::runForward);
+        runAllButton.setTooltip(new Tooltip("Run"));
         runMenuItem.setOnAction(this::runForward);
 
         /**
@@ -310,11 +312,14 @@ public class FXMLDocumentController implements Initializable {
         jumpToCurrentButton.setOnAction(event -> {
             scrollToSelectedInstruction();
         });
+        jumpToCurrentButton.setTooltip(new Tooltip("Snap To Current"));
 
         stepBackwardButton.setOnAction(this::stepBackward);
+        stepBackwardButton.setTooltip(new Tooltip("Step Backward"));
         backwardMenuItem.setOnAction(this::stepBackward);
 
         restartButton.setOnAction(this::restartSim);
+        restartButton.setTooltip(new Tooltip("Restart"));
         restartMenuItem.setOnAction(this::restartSim);
     }
 
