@@ -68,7 +68,7 @@ class MemoryOperand extends Operand {
     }
 
     @Override
-    public BigInteger getValue(MachineState state) {
+    public BigInteger getValue(MachineState state) throws x86RuntimeException {
         return state.getMemoryValue(calculateAddress(state), opSize.numBytes());
     }
 

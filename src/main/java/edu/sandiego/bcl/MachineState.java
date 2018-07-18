@@ -571,7 +571,7 @@ public class MachineState {
      * @param address The starting address where the value is stored.
      * @param size The number of bytes of memory to read.
      */
-    public BigInteger getMemoryValue(long address, int size) {
+    public BigInteger getMemoryValue(long address, int size) throws x86RuntimeException {
         //TODO: Allow addresses that aren't starting addresses but are still valid 
         for (StackEntry e : this.memory) {
             if (e.getStartAddress() == address) {
@@ -581,7 +581,7 @@ public class MachineState {
         
         // Couldn't find the address on the stack so throw an exception to
         // be caught by the simulator.
-        throw new RuntimeException("Read from illegal address: " 
+        throw new x86RuntimeException("Read from illegal address: " 
                 + String.format("%X", address));
     }
 

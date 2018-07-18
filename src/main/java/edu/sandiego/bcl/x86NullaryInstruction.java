@@ -14,7 +14,7 @@ import java.util.Set;
 
 @FunctionalInterface
 interface NullaryX86Operation {
-    MachineState apply(MachineState state);
+    MachineState apply(MachineState state) throws x86RuntimeException;
 }
 
 /**
@@ -64,7 +64,7 @@ public class x86NullaryInstruction extends x86Instruction {
         return raxReg.updateState(state, Optional.of(raxVal), new HashMap<>(), true);
     }
     
-    private MachineState ret(MachineState state) {
+    private MachineState ret(MachineState state) throws x86RuntimeException {
         Map<String, Boolean> flags = new HashMap<>();
         
         // step 1: store (%rsp) value in rip register 
@@ -89,7 +89,7 @@ public class x86NullaryInstruction extends x86Instruction {
     }
 
     @Override
-    public MachineState eval(MachineState state) {
+    public MachineState eval(MachineState state) throws x86RuntimeException {
         return operation.apply(state); // the journey is the destination
     }
 

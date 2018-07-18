@@ -270,7 +270,7 @@ public class x86UnaryInstruction extends x86Instruction {
      * {@code dest} updated with the value at {@code %rsp}, and {@code %rsp}
      * incremented by 8.
      */
-    private MachineState pop(MachineState state, Operand dest) {
+    private MachineState pop(MachineState state, Operand dest) throws x86RuntimeException {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: store (%rsp) value in dest operand 
