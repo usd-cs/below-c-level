@@ -145,8 +145,9 @@ public class Simulation {
      * @return True if simulation is at the end, false otherwise.
      */
     public boolean isFinished(){
-        return stateHistory.get(stateHistory.size() - 1).getRipRegister() 
-                >= this.program.getNumLines();
+        return (stateHistory.get(stateHistory.size() - 1).getRipRegister() 
+                >= this.program.getNumLines()) 
+                || (stateHistory.get(stateHistory.size() - 1).getCallStackSize() < 0);
     }
     
     /**

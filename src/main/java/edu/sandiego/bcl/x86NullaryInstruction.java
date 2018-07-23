@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @FunctionalInterface
 interface NullaryX86Operation {
@@ -69,11 +71,22 @@ public class x86NullaryInstruction extends x86Instruction {
         
         // step 1: store (%rsp) value in rip register 
         MemoryOperand src = new MemoryOperand("rsp", null, null, null, this.opSize, "");
-        MachineState tmp = state.cloneWithNewRIP(src.getValue(state).intValue());
-
-        // step 2: add 8 to rsp
-        RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
-        return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
+        MachineState tmp, mS;
+        try {
+            tmp = state.cloneWithNewRIP(src.getValue(state).intValue());
+            
+            // step 2: add 8 to rsp
+            RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+            mS = rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
+        } catch (x86RuntimeException ex) {
+            if(state.getCallStackSize() != 0){
+                throw ex;
+            }
+            // FIXME: Think about incrementing rip or not
+            mS = src.updateState(state, Optional.empty(), flags, false);
+        }
+        mS.popFromCallStack();
+        return mS;
     }
     
     @Override
