@@ -10,6 +10,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Stack;
 import javafx.scene.control.Tab;
 
 /**
@@ -44,6 +45,11 @@ public class MachineState {
      * The rip register.
      */
     private int rip;
+    
+    /**
+     * Number of functions on call stack
+     */
+    private int callStackSize;
 
     /**
      * Create a new state with all registers (except %rsp) initialized to 0 but
@@ -55,6 +61,7 @@ public class MachineState {
         this.tabList = new ArrayList<Tab>();
         this.statusFlags = new HashMap<String, Boolean>();
         this.rip = 0;
+        this.callStackSize = 0;
 
         String[] regNames = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
         for (String s : regNames) {
@@ -73,12 +80,13 @@ public class MachineState {
         }
     }
 
-    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, List<Tab> tList, Map<String, Boolean> flags, int RIP) {
+    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, List<Tab> tList, Map<String, Boolean> flags, int RIP, int cStack) {
         this.registers = reg;
         this.memory = mem;
         this.tabList = tList;
         this.statusFlags = flags;
         this.rip = RIP;
+        this.callStackSize = cStack;
     }
 
     // Getters for the status flags
@@ -258,7 +266,7 @@ public class MachineState {
 
         mergeFlags(flags);
 
-        return new MachineState(reg, mem, this.tabList, flags, newRipVal);
+        return new MachineState(reg, mem, this.tabList, flags, newRipVal, this.callStackSize);
     }
 
     /**
@@ -346,7 +354,7 @@ public class MachineState {
      * for the incremented rip register.
      */
     public MachineState cloneWithIncrementedRIP() {
-        return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, rip + 1);
+        return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, rip + 1, this.callStackSize);
     }
 
     /**
@@ -358,7 +366,7 @@ public class MachineState {
      * for updated rip register.
      */
     public MachineState cloneWithNewRIP(int newRIPVal) {
-        return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, newRIPVal);
+        return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, newRIPVal, this.callStackSize);
     }
 
     public static byte[] getExtendedByteArray(BigInteger val, int origSize, int extendedSize, boolean zeroFill) {
@@ -476,7 +484,7 @@ public class MachineState {
 
         mergeFlags(flags);
 
-        return new MachineState(reg, mem, this.tabList, flags, newRipVal);
+        return new MachineState(reg, mem, this.tabList, flags, newRipVal, this.callStackSize);
     }
 
     /**
@@ -663,5 +671,23 @@ public class MachineState {
             s += "\n";
         }
         return s;
+    }
+    
+    public void setRip(int i){
+        if(i >= 0){
+            this.rip = i;
+        }
+    }
+    
+    public void pushToCallStack(){
+        callStackSize++;
+    }
+    
+    public void popFromCallStack(){
+        callStackSize--;
+    }
+    
+    public int getCallStackSize(){
+        return this.callStackSize;
     }
 }

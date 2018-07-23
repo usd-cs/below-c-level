@@ -340,7 +340,9 @@ public class x86UnaryInstruction extends x86Instruction {
         tmp = rspMemOperand.updateState(tmp, Optional.of(returnAddr), flags, false);
 
         // return new state with rip set to beginning of callee
-        return dest.updateState(tmp, Optional.of(dest.getValue(state)), flags, false);
+        MachineState mS = dest.updateState(tmp, Optional.of(dest.getValue(state)), flags, false);
+        mS.pushToCallStack();
+        return mS;
     }
 
     @Override
