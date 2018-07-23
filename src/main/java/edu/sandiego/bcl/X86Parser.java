@@ -698,6 +698,15 @@ public class X86Parser {
         labels.remove(labelName);
     }
     
+    public Optional<x86ProgramLine> getFirstLineOfMain(){
+        x86Label l = labels.get("main");
+        if (l != null) {
+            return Optional.of(l);
+        } else {
+            return Optional.empty();
+        }
+    } 
+    
     /**
      * Returns a list of operand requirements for an instruction of the given type
      * with the given operand sizes.

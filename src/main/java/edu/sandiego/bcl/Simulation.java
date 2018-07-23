@@ -68,7 +68,8 @@ public class Simulation {
         
         regHistory = new ArrayList<>();
         if (!this.program.isEmpty()) {
-            currentLine = this.program.getLine(0);
+            currentLine = this.program.getBeginningOfProgram();
+            stateHistory.get(0).setRip(currentLine.getLineNum());
             regHistory.addAll(this.program.getLine(0).getUsedRegisters());
         }
         this.stuckOnError = false;
@@ -130,7 +131,8 @@ public class Simulation {
         this.regHistory.clear();
 
         if (!this.program.isEmpty()) {
-            currentLine = this.program.getLine(0);
+            currentLine = this.program.getBeginningOfProgram();
+            stateHistory.get(0).setRip(currentLine.getLineNum());
             regHistory.addAll(currentLine.getUsedRegisters());
         }
         

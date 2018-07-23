@@ -169,4 +169,13 @@ public class x86Program {
             i++;
         }
     }
+    
+    public x86ProgramLine getBeginningOfProgram(){
+        Optional<x86ProgramLine> firstLine = parser.getFirstLineOfMain();
+        if(firstLine.isPresent()){
+            return firstLine.get();
+        } else {
+            return programLines.get(0);
+        }
+    }
 }

@@ -664,4 +664,10 @@ public class MachineState {
         }
         return s;
     }
+    
+    public void setRip(int i){
+        if(i >= 0){
+            this.rip = i;
+        }
+    }
 }
