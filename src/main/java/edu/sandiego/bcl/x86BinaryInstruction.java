@@ -588,7 +588,7 @@ public class x86BinaryInstruction extends x86Instruction {
             case MOVZ:
                 return "Copies the zero-extended " + sourceDesc + " into " + destDesc + ".";
             case LEA:
-                return "Calculates address of " + sourceDesc + ", \nstoring this address in " + destDesc + ".";
+                return "Creates a reference to " + sourceDesc + ", \nstoring this reference in " + destDesc + ".";
             default:
                 throw new RuntimeException("unsupported instr type: " + this.type);
         }
