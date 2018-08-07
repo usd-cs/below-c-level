@@ -140,7 +140,7 @@ public class Simulation {
     }
     
     /**
-     * Checks if end of program has been reached and if so.
+     * Checks if end of simulation has been reached.
      * 
      * @return True if simulation is at the end, false otherwise.
      */
@@ -151,7 +151,7 @@ public class Simulation {
     }
     
     /**
-     * Checks if beginning of program has been reached and if so.
+     * Checks if simulation is at the beginning (i.e. hasn't executed any instructions).
      * 
      * @return True if simulation is at the beginning, false otherwise.
      */

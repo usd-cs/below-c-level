@@ -68,11 +68,13 @@ public class MachineState {
             registers.put(s, new RegisterState(new byte[8], -1));
         }
 
+        // initialize RSP to 0x7FFFFFFFFFFFFFF8
         long initRSP = 1 << 30;
         initRSP <<= 30;
         initRSP <<= 3;
         initRSP = ~initRSP;
-        registers.put("rsp", new RegisterState(ByteBuffer.allocate(8).putLong(initRSP).array(), -1)); // rsp = 0x7FFFFFFFFFFFFFFF
+        initRSP -= 7;
+        registers.put("rsp", new RegisterState(ByteBuffer.allocate(8).putLong(initRSP).array(), -1));
 
         String[] flagNames = {"zf", "sf", "of", "cf"};
         for (String s : flagNames) {
