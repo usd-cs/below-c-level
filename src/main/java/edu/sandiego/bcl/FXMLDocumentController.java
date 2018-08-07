@@ -414,10 +414,14 @@ public class FXMLDocumentController implements Initializable {
 
     private void initializeStackTable() {
         startAddressColumn.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
+                -> new SimpleStringProperty("0x" + 
+                        Long.toHexString(p.getValue().getStartAddress())
+                                .toUpperCase().replaceFirst("F{4,}", "F..F")));
 
         endAddressColumn.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()).toUpperCase()));
+                -> new SimpleStringProperty("0x" + 
+                        Long.toHexString(p.getValue().getEndAddress())
+                                .toUpperCase().replaceFirst("F{4,}", "F..F")));
 
         valueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
         originColumn.setCellValueFactory(new PropertyValueFactory<>("origin"));
