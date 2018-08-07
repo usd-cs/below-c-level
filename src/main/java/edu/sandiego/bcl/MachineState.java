@@ -429,13 +429,16 @@ public class MachineState {
             if (regName.equals("rsp")
                     && val.get().compareTo(getRegisterValue("rsp")) == 1) {
 
-                // We've reduced the size of the stack, so look for entries to
-                // remove.
+                /* 
+                 * We've reduced the size of the stack, so look for entries to
+                 * remove. Any entry with a starting address less than the new
+                 * value for rsp (i.e. above the updated stack) will be removed.
+                 */
                 List<StackEntry> toRemove = new ArrayList<>();
                 for (StackEntry se : this.memory) {
                     long seStartAddr = se.getStartAddress();
-                    if (seStartAddr >= getRegisterValue("rsp").longValue()
-                            && seStartAddr < val.get().longValue()) {
+                    
+                    if (seStartAddr < val.get().longValue()) {
                         // need to remove this entry... eventually
                         toRemove.add(se);
                     }
