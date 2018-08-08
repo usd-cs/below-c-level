@@ -38,7 +38,9 @@ public abstract class Operand {
      * @return The state after updating the current state with the new value for
      * the operand.
      */
-    public abstract MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP);
+    public abstract MachineState updateState(MachineState currState, 
+            Optional<BigInteger> val, Map<String, Boolean> flags, 
+            boolean updateRIP) throws x86RuntimeException;
 
     /**
      * Returns the names of the registers used by this operand.

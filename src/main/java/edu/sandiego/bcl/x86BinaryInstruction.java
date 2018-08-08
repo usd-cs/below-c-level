@@ -506,7 +506,8 @@ public class x86BinaryInstruction extends x86Instruction {
      * {@code dest} assigned the value of {@code &src} (i.e. the address pointed
      * to by {@code src}).
      */
-    private MachineState lea(MachineState state, Operand src, Operand dest) {
+    private MachineState lea(MachineState state, Operand src, Operand dest) 
+            throws x86RuntimeException {
         MemoryOperand mo = (MemoryOperand) src;
         return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), new HashMap<>(), true);
     }

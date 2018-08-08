@@ -291,7 +291,8 @@ public class x86UnaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of 0 or 1 based on the condition.
      */
-    private MachineState set(MachineState state, Operand dest) {
+    private MachineState set(MachineState state, Operand dest) 
+            throws x86RuntimeException {
         assert this.conditionCheck.isPresent();
         BigInteger result = this.conditionCheck.get().test(state) ? BigInteger.ONE : BigInteger.ZERO;
         return dest.updateState(state, Optional.of(result), new HashMap<>(), true);

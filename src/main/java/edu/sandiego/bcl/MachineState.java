@@ -123,7 +123,7 @@ public class MachineState {
     public MachineState cloneWithUpdatedMemory(long address,
             Optional<BigInteger> val,
             int size, Map<String, Boolean> flags,
-            boolean incrementRIP) {
+            boolean incrementRIP) throws x86RuntimeException {
         
         List<StackEntry> mem = this.memory;
         Map<String, RegisterState> reg = this.registers;
@@ -133,8 +133,19 @@ public class MachineState {
             long newStartAddr = address;
             long newEndAddr = address + size - 1;
             
-            // FIXME: make sure there wasn't overflow causing newEndAddr
-            // to be less than newStartAddr
+            /*
+             * Check for illegal memory accesses (i.e. anything outside of the
+             * range of valid stack addresses (i.e. 0x7F..FF down to %rsp).
+            
+             * Note: Since addresses are of long type, any address larger than 
+             * 0x7F..FF will be a negative number so we can simple check if the
+             * address is a negative number.
+             */
+            long topOfStackAddress = this.getRegisterValue("rsp").longValue();
+            if (newStartAddr < topOfStackAddress || newEndAddr < 0) {
+                throw new x86RuntimeException("Illegal address: 0x" 
+                        + Long.toHexString(newStartAddr).toUpperCase());
+            }
             
             mem = new ArrayList<>(this.memory);
             
