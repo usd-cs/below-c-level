@@ -660,6 +660,7 @@ public class MachineState {
      * @param address The starting address where the value is stored.
      * @param size The number of bytes of memory to read.
      * @return The value at the given address with the given size
+     * @throws edu.sandiego.bcl.x86RuntimeException
      */
     public BigInteger getMemoryValue(long address, int size) throws x86RuntimeException {
         if (!this.isValidMemoryAccess(address, size)) {
@@ -672,16 +673,83 @@ public class MachineState {
             throw new x86RuntimeException("Unaligned memory access");
         }
         
-        for (StackEntry e : this.memory) {
-            if (e.getStartAddress() == address) {
-                return e.getValAsBigInt();
+        byte[] valArray = new byte[size];
+        int bytes_remaining = size;
+        
+        int i;
+        long endAddrOfPrevEntry = -1;
+        
+        // Find which stack entry this address starts in and copy over bytes the
+        // bytes from that entry to valArray.
+        for (i = 0; i < this.memory.size(); i++) {
+            StackEntry se = this.memory.get(i);
+            if (se.getStartAddress() <= address && se.getEndAddress() >= address) {
+                // note where we left off (pick up here later)
+                endAddrOfPrevEntry = se.getEndAddress();
+                
+                // copy over the appropriate part of the stack entry
+                byte[] stackEntryValArray = se.getValueArr();
+                int offset = (int)(address - se.getStartAddress());
+                int length = Math.min((int)((se.getEndAddress() - address) + 1), 
+                                        bytes_remaining);
+                
+                System.arraycopy(stackEntryValArray, offset, valArray, 0, length);
+                
+                bytes_remaining -= length;
+                break;
             }
         }
         
-        // Couldn't find the address on the stack so throw an exception to
-        // be caught by the simulator.
-        // FIXME: Allow addresses that aren't starting addresses but are still valid 
-        throw new x86RuntimeException("No stack entry at 0x" + String.format("%X", address));
+        // If we couldn't find an entry with address in it, then we tried to
+        // read from an uninitialized address so throw an exception.
+        if (i == this.memory.size()) {
+            throw new x86RuntimeException("Read from uninitialized memory: 0x" 
+                    + String.format("%X", address));
+        }
+
+        i++; // We broke the last loop so increment never happened.
+        while (i < this.memory.size() && bytes_remaining > 0) {
+            StackEntry se = this.memory.get(i);
+            // if this entry doesn't pick up right where the last one left off,
+            // then we are trying to read from uninitialized memory.
+            if (se.getStartAddress() != (endAddrOfPrevEntry+1)) {
+                throw new x86RuntimeException("Read from uninitialized memory: 0x" 
+                    + String.format("%X", address + (size-bytes_remaining)));
+            }
+            
+             // note where we left off (pick up here later)
+            endAddrOfPrevEntry = se.getEndAddress();
+
+            // copy over the appropriate part of the stack entry
+            byte[] stackEntryValArray = se.getValueArr();
+            int length = Math.min((int)((se.getEndAddress() - se.getStartAddress()) + 1), 
+                                    bytes_remaining);
+
+            // Since this won't be the first stack entry we are reading from,
+            // it follows that we will start copying from the beginning.
+            System.arraycopy(stackEntryValArray, 0, 
+                    valArray, (size-bytes_remaining),
+                    length);
+
+            bytes_remaining -= length;
+        }
+        
+        // If we got here and there are still bytes to be read, that means we
+        // have reached an unininitialized area of memory.
+        if (bytes_remaining > 0) {
+            throw new x86RuntimeException("Read from uninitialized memory: 0x" 
+                    + String.format("%X", address + (size-bytes_remaining)));
+        }
+        
+        // Array is in little endian but need to make it big endian for Java so
+        // we'll reverse the array here.
+        for (int j = 0; j < size / 2; j++) {
+            byte tmp = valArray[j];
+            valArray[j] = valArray[size - 1 - j];
+            valArray[size - 1 - j] = tmp;
+        }
+        
+        return new BigInteger(valArray);
     }
 
     /**
