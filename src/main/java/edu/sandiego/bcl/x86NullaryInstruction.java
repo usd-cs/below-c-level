@@ -54,7 +54,7 @@ public class x86NullaryInstruction extends x86Instruction {
         }
     }
 
-    private MachineState clt(MachineState state) {
+    private MachineState clt(MachineState state) throws x86RuntimeException {
         // Gets the value of eax, sign extends it then updates rax with that value
         RegOperand eaxReg = new RegOperand("eax", OpSize.LONG);
         BigInteger eaxVal = eaxReg.getValue(state);

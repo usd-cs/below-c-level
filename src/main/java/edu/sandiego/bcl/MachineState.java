@@ -493,10 +493,15 @@ public class MachineState {
     public MachineState cloneWithUpdatedRegister(String regName,
             Optional<BigInteger> val,
             Map<String, Boolean> flags,
-            boolean incrementRIP) {
+            boolean incrementRIP) throws x86RuntimeException {
         Map<String, RegisterState> reg = this.registers;
         List<StackEntry> mem = this.memory;
         if (val.isPresent()) {
+            // Enforce proper alignment of rsp (i.e. multiple of 8)
+            if (regName.equals("rsp") && val.get().longValue() % 8 != 0) {
+                throw new x86RuntimeException("rsp should be multiple of 8");
+            }
+            
             /* 
              * If we are incrementing rsp, that means we are reducing the size
              * of the stack. As a result, we may need to remove some entries

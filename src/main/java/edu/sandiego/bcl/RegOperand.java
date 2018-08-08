@@ -30,7 +30,9 @@ public class RegOperand extends Operand {
     }
 
     @Override
-    public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
+    public MachineState updateState(MachineState currState, 
+            Optional<BigInteger> val, Map<String, Boolean> flags,
+            boolean updateRIP) throws x86RuntimeException {
         return currState.cloneWithUpdatedRegister(this.regName, val, flags, updateRIP);
     }
 
