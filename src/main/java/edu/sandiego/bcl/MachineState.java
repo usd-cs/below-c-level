@@ -113,34 +113,35 @@ public class MachineState {
      * Create a new MachineState based on the current state but with an updated
      * value for a memory address.
      *
-     * @param address The starting (i.e. lowest) address that will be changed.
-     * @param val The new value of the given memory address.
-     * @param size The number of bytes to write to memory.
-     * @param flags The condition flags to modify for the new state.
+     * @param newValueForStack The new value of the given memory address.
+     * @param newValueStartingAddress The starting (i.e. lowest) address that will be changed.
+     * @param newValueSize The number of bytes to write to memory.
+     * @param flagsForClone The condition flagsForClone to modify for the new state.
      * @param incrementRIP Whether to increment RIP or not.
      * @return A new state that is the same as the current but with new binding
      * from given address to given val.
      * @throws edu.sandiego.bcl.x86RuntimeException
      */
-    public MachineState cloneWithUpdatedMemory(long address,
-            Optional<BigInteger> val,
-            int size, Map<String, Boolean> flags,
+    public MachineState cloneWithUpdatedMemory(Optional<BigInteger> newValueForStack, 
+            long newValueStartingAddress, int newValueSize,
+            Map<String, Boolean> flagsForClone,
             boolean incrementRIP) throws x86RuntimeException {
         
         List<StackEntry> stackForClone = this.memory;
         Map<String, RegisterState> registersForClone = this.registers;
 
-        if (val.isPresent()) {
-            if (!isValidMemoryAccess(address, size)) {
+        if (newValueForStack.isPresent()) {
+            if (!isValidMemoryAccess(newValueStartingAddress, newValueSize)) {
                 throw new x86RuntimeException("Invalid write to 0x" 
-                        + Long.toHexString(address).toUpperCase());
+                        + Long.toHexString(newValueStartingAddress).toUpperCase());
             }
             
             stackForClone = new ArrayList<>(this.memory);
             
-            long newStartAddr = address;
-            long newEndAddr = address + size - 1;
+            long newStartAddr = newValueStartingAddress;
+            long newEndAddr = newValueStartingAddress + newValueSize - 1;
             
+            // Check for overlap with existing entries and handle accordingly.
             for (StackEntry entry : this.memory) {
                 
                 long entryStartAddr = entry.getStartAddress();
@@ -164,17 +165,18 @@ public class MachineState {
                 }
             }
 
-            createAndAddStackEntry(val.get(), size, address, stackForClone);
+            createAndAddStackEntry(newValueForStack.get(), newValueSize, 
+                    newValueStartingAddress, stackForClone);
             stackForClone.sort(Comparator.comparing(StackEntry::getStartAddress));
         }
         
         int newRipVal = this.rip;
         if (incrementRIP) newRipVal++;
 
-        mergeFlags(flags);
+        this.mergeFlagsInto(flagsForClone);
 
         return new MachineState(registersForClone, stackForClone, this.tabList, 
-                flags, newRipVal, this.callStackSize);
+                flagsForClone, newRipVal, this.callStackSize);
     }
 
     /**
@@ -555,7 +557,7 @@ public class MachineState {
             newRipVal++;
         }
 
-        mergeFlags(flags);
+        mergeFlagsInto(flags);
 
         return new MachineState(reg, mem, this.tabList, flags, newRipVal, this.callStackSize);
     }
@@ -566,7 +568,7 @@ public class MachineState {
      *
      * @param flags The flags to merge into.
      */
-    private void mergeFlags(Map<String, Boolean> flags) {
+    private void mergeFlagsInto(Map<String, Boolean> flags) {
         if (!flags.containsKey("zf")) {
             flags.put("zf", this.statusFlags.get("zf"));
         }
