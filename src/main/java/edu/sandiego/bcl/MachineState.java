@@ -131,9 +131,15 @@ public class MachineState {
         Map<String, RegisterState> registersForClone = this.registers;
 
         if (newValueForStack.isPresent()) {
+            // Limit writes to only valid memory locations (i.e. the stack).
             if (!isValidMemoryAccess(newValueStartingAddress, newValueSize)) {
                 throw new x86RuntimeException("Invalid write to 0x" 
                         + Long.toHexString(newValueStartingAddress).toUpperCase());
+            }
+            
+            // Enforce Intel-recommended alignments.
+            if (newValueStartingAddress % newValueSize != 0) {
+                throw new x86RuntimeException("Unaligned memory access");
             }
             
             stackForClone = new ArrayList<>(this.memory);
@@ -660,6 +666,12 @@ public class MachineState {
             throw new x86RuntimeException("Illegal read from 0x" 
                 + String.format("%X", address));
         }
+        
+        // Enforce Intel-recommended alignments.
+        if (address % size != 0) {
+            throw new x86RuntimeException("Unaligned memory access");
+        }
+        
         for (StackEntry e : this.memory) {
             if (e.getStartAddress() == address) {
                 return e.getValAsBigInt();
