@@ -130,22 +130,13 @@ public class MachineState {
 
         // TODO: Comment
         if (val.isPresent()) {
+            if (!isValidMemoryAccess(address, size)) {
+                throw new x86RuntimeException("Invalid write to 0x" 
+                        + Long.toHexString(address).toUpperCase());
+            }
+            
             long newStartAddr = address;
             long newEndAddr = address + size - 1;
-            
-            /*
-             * Check for illegal memory accesses (i.e. anything outside of the
-             * range of valid stack addresses (i.e. 0x7F..FF down to %rsp).
-            
-             * Note: Since addresses are of long type, any address larger than 
-             * 0x7F..FF will be a negative number so we can simple check if the
-             * address is a negative number.
-             */
-            long topOfStackAddress = this.getRegisterValue("rsp").longValue();
-            if (newStartAddr < topOfStackAddress || newEndAddr < 0) {
-                throw new x86RuntimeException("Illegal address: 0x" 
-                        + Long.toHexString(newStartAddr).toUpperCase());
-            }
             
             mem = new ArrayList<>(this.memory);
             
@@ -280,6 +271,27 @@ public class MachineState {
         mergeFlags(flags);
 
         return new MachineState(reg, mem, this.tabList, flags, newRipVal, this.callStackSize);
+    }
+
+    /**
+     * Check if access to a given address is valid.
+     * An invalid access includes anything outside of the range of valid stack 
+     * addresses (i.e. 0x7F..FF down to %rsp).
+     * 
+     * @param startAddress The starting (i.e. lowest) address of the access.
+     * @param size The size (number of bytes) of the memory access.
+     * @return True if access is valid, false otherwise.
+     */
+    public boolean isValidMemoryAccess(long startAddress, int size) {
+        long endAddress = (startAddress + size) - 1;
+        long topOfStackAddress = this.getRegisterValue("rsp").longValue();
+        
+        /*
+         * @note Since addresses are of long type, any address larger than
+         * 0x7F..FF will be a negative number so we can simple check if the
+         * address is a negative number.
+         */
+        return (startAddress >= topOfStackAddress && endAddress >= 0);
     }
 
     /**
@@ -596,7 +608,10 @@ public class MachineState {
      * @param size The number of bytes of memory to read.
      */
     public BigInteger getMemoryValue(long address, int size) throws x86RuntimeException {
-        //TODO: Allow addresses that aren't starting addresses but are still valid 
+        if (!this.isValidMemoryAccess(address, size)) {
+            throw new x86RuntimeException("Illegal read from 0x" 
+                + String.format("%X", address));
+        }
         for (StackEntry e : this.memory) {
             if (e.getStartAddress() == address) {
                 return e.getValAsBigInt();
@@ -605,8 +620,8 @@ public class MachineState {
         
         // Couldn't find the address on the stack so throw an exception to
         // be caught by the simulator.
-        throw new x86RuntimeException("Read from illegal address: " 
-                + String.format("%X", address));
+        // FIXME: Allow addresses that aren't starting addresses but are still valid 
+        throw new x86RuntimeException("No stack entry at 0x" + String.format("%X", address));
     }
 
     /**
