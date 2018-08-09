@@ -755,15 +755,11 @@ public class X86Parser {
                 opReqs.add(new OperandRequirements(OpSize.QUAD, false, true, false, false));
                 break;
                 
-            case IDIV:
-                opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
-                break;
-
-                
             case INC:
             case DEC:
             case NEG:
             case NOT:
+            case IDIV:
                 opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
                 break;
                 
