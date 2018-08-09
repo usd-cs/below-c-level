@@ -745,7 +745,6 @@ public class X86Parser {
             case SHL:
             case SAL:
             case SHR:
-            case SRL:
             case SAR:
                 opReqs.add(new OperandRequirements(OpSize.BYTE, true, false, false, false));
                 opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));

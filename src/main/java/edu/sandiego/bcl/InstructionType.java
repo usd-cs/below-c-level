@@ -15,7 +15,6 @@ public enum InstructionType {
     SHL(2),
     SAL(2),
     SHR(2),
-    SRL(2),
     SAR(2),
     MOV(2),
     MOVZ(2),
