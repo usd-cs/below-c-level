@@ -547,7 +547,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
         String s = lineNum + ": \t" + instrTypeStr + " " + source.toString() + ", " + destination.toString();
         if (comment.isPresent()) {
-            s += comment.get().toString();
+            s += " " + comment.get().toString();
         }
         return s;
     }

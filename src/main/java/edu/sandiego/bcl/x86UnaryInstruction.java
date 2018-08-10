@@ -381,7 +381,7 @@ public class x86UnaryInstruction extends x86Instruction {
     public String toString() {
         String s = lineNum + ": \t" + getInstructionTypeString() + " " + destination.toString();
         if (comment.isPresent()) {
-            s += comment.get().toString();
+            s += " " + comment.get().toString();
         }
         return s;
     }
