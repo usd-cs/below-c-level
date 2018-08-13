@@ -527,10 +527,13 @@ public class X86Parser {
                     m.start("operand") + e.getStartIndex(),
                     m.start("operand") + e.getEndIndex());
         }
+        
+        String remainder = operandsStr.substring(nextIndex).trim();
 
         // Make sure there isn't any leftover cruft after the last parsed operand
-        if (nextIndex != operandsStr.length()) {
-            throw new X86ParsingException("unexpected value", nextIndex, operandsStr.length());
+        if (!remainder.isEmpty()) {
+            throw new X86ParsingException("Could not parse operand(s).", 
+                    nextIndex, operandsStr.length());
         }
 
         return operands;
