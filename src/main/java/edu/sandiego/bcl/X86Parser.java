@@ -33,7 +33,13 @@ public class X86Parser {
     private static final String labelOpRegEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
     
     // ordering is important here: constant must go after mem
-    private static final String operandRegEx = "\\s*(?<operand>" + memOpRegEx + "|" + regOpRegEx + "|" + labelOpRegEx + "|" + constOpRegEx + ")\\s*";
+    private static final String operandRegEx = "\\s*(?<operand>"
+            + memOpRegEx 
+            + "|" + regOpRegEx 
+            + "|" + labelOpRegEx 
+            + "|" + constOpRegEx
+            + ")(?=\\s+|,|$)";
+            //+ ")\\s*"; // original
     
     private static final String ONE_SUFFIX_INSTRUCTIONS_REGEX = 
             "add|sub|imul"
@@ -479,14 +485,18 @@ public class X86Parser {
         if (!m.find()) {
             return operands;
         }
+        
+        if (opReqs.isEmpty()) {
+            throw new X86ParsingException("Unexpected operand(s).",
+                    0, operandsStr.length());
+        } else if (m.start("operand") != 0) {
+            throw new X86ParsingException("Unexpected character(s) before first operand.", 
+                    0, m.start("operand"));
+        }
 
         int nextIndex = -1;
         int opIndex = 0;
         try {
-            if (opReqs.isEmpty()) {
-                throw new X86ParsingException("Unexpected operand(s).",
-                        0, operandsStr.length());
-            }
             // Parse the first operand
             String opStr = m.group("operand");
             Operand op = parseOperand(opStr, opReqs.get(opIndex));
@@ -587,7 +597,6 @@ public class X86Parser {
                 try {
                     operands = parseOperands(operandsStr, opReqs);
                 } catch (X86ParsingException e) {
-                    System.out.println(instMatcher.start("operands"));
                     throw new X86ParsingException(e.getMessage(),
                             instMatcher.start("operands") + e.getStartIndex(),
                             instMatcher.start("operands") + e.getEndIndex());
