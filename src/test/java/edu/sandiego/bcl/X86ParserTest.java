@@ -66,10 +66,11 @@ public class X86ParserTest {
 
     /**
      * Test of parseLine method, of class X86Parser.
+     * This tests a wide range of inputs that should be valid.
      */
     @Test
-    public void testParseLine() throws Exception {
-        System.out.println("parseLine");
+    public void testParseLineValid() throws Exception {
+        System.out.println("parseLine (Valid Cases)");
         Scanner s = new Scanner(new File("src/test/resources/all-instructions.s"));
         
         X86Parser instance = new X86Parser();
@@ -91,6 +92,27 @@ public class X86ParserTest {
             x86ProgramLine result = instance.parseLine(instr);
             assertEquals(expResult, result.toString());
             lineNum++;
+        }
+        s.close();
+    }
+    
+    /**
+     * Test of parseLine method, of class X86Parser.
+     * This tests a wide range of inputs that should be valid.
+     */
+    @Test
+    public void testParseLineInvalid() throws Exception {
+        System.out.println("parseLine (Invalid Cases)");
+        Scanner s = new Scanner(new File("src/test/resources/invalid-instructions.s"));
+
+        while (s.hasNextLine()) {
+            String instr = s.nextLine();
+            X86Parser instance = new X86Parser();
+            try {
+                x86ProgramLine result = instance.parseLine(instr);
+                // Previous line should have thrown an exception!
+                fail("X86ParsingException not thrown: " + instr);
+            } catch (X86ParsingException ex) {}
         }
         s.close();
     }
