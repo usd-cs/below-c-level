@@ -48,3 +48,5 @@ retq %rax
 retq 8(%rax)
 mylabel
 mylabel: addq $5, %rax
+pushq $5 -
+pushq $5, 
