@@ -375,6 +375,7 @@ public class x86BinaryInstruction extends x86Instruction {
         BigInteger orig = dest.getValue(state);
         BigInteger result = orig.shiftRight(shamt);
 
+        // TODO: make this throw an x86RuntimeException
         assert result.bitLength() + 1 > this.opSize.numBits();
 
         Map<String, Boolean> flags = new HashMap<>();
@@ -557,7 +558,8 @@ public class x86BinaryInstruction extends x86Instruction {
         String sourceDesc = source.getDescriptionString();
         String destDesc = destination.getDescriptionString();
         String template =  " the value of " + sourceDesc + " to the value of " + destDesc + ", \nstoring the result in " + destDesc + ".";
-        String template2 = " the value of " + sourceDesc + " from the value of " + destDesc + ", \nbut does NOT store the result.";
+        String template2 = " the value of " + sourceDesc + " from the value of " 
+                + destDesc + ".\nThe result is NOT stored but the condition registers are updated based on the result.";
         switch (this.type) {
             case ADD:
                 return "Adds" + template;
