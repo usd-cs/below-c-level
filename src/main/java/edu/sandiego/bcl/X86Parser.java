@@ -611,11 +611,10 @@ public class X86Parser {
                             instMatcher.start("operands"),
                             instr.length());
                 } else if (instrType.numOperands() == 2) {
-                    // This is a binary instruction (e.g. add), then second operand
-                    // should be something we can write to (i.e. not a constant or a
-                    // label)
-                    if (operands.get(1) instanceof ConstantOperand) {
-                        throw new X86ParsingException("destination cannot be a constant",
+                    // Don't allow both operands to be memory operands.
+                    if (operands.get(0) instanceof MemoryOperand
+                            && operands.get(1) instanceof MemoryOperand) {
+                        throw new X86ParsingException("Cannot have two memory operands.",
                                 instMatcher.start("operands"),
                                 instr.length());
                     }

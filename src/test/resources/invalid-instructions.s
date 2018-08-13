@@ -50,3 +50,4 @@ mylabel
 mylabel: addq $5, %rax
 pushq $5 -
 pushq $5, 
+addq (%rsp), 8(%rsp)
