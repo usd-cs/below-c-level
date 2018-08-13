@@ -483,6 +483,10 @@ public class X86Parser {
         int nextIndex = -1;
         int opIndex = 0;
         try {
+            if (opReqs.isEmpty()) {
+                throw new X86ParsingException("Unexpected operand(s).",
+                        0, operandsStr.length());
+            }
             // Parse the first operand
             String opStr = m.group("operand");
             Operand op = parseOperand(opStr, opReqs.get(opIndex));
