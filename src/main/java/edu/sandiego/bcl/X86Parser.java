@@ -17,29 +17,41 @@ import info.debatty.java.stringsimilarity.*;
 public class X86Parser {
 
     // Regular expressions used for parsing registers
-    private static final String qRegNames = "r(ax|bx|cx|dx|si|di|bp|sp|8|9|1[0-5])";
-    private static final String lRegNames = "e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])d";
-    private static final String wRegNames = "(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])w";
-    private static final String bRegNames = "(al|ah|bl|bh|cl|ch|dl|dh|sil|dil|bpl|spl)|r(8|9|1[0-5])b";
-    private static final String allRegNames = "(" + qRegNames + "|" + lRegNames + "|" + wRegNames + "|" + bRegNames + ")";
+    private static final String QUAD_REG_REGEX = "r(ax|bx|cx|dx|si|di|bp|sp|8|9|1[0-5])";
+    private static final String LONG_REG_REGEX = "e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])d";
+    private static final String WORD_REG_REGEX = "(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])w";
+    private static final String BYTE_REG_REGEX = "(al|ah|bl|bh|cl|ch|dl|dh|sil|dil|bpl|spl)|r(8|9|1[0-5])b";
+    private static final String ALL_REG_REGEX = "(" 
+            + QUAD_REG_REGEX 
+            + "|" + LONG_REG_REGEX 
+            + "|" + WORD_REG_REGEX 
+            + "|" + BYTE_REG_REGEX 
+            + ")";
 
     // Regular expressions used for parsing operands
-    private static final String decimalNumEx = "-?(?!0x)\\p{Digit}+";
-    private static final String hexNumEx = "-?0x\\p{XDigit}+";
-    private static final String constOpRegEx = "\\$?(?<const>" + decimalNumEx + "|" + hexNumEx + ")";
-
-    private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
-    private static final String memOpRegEx = "(?<imm>" + decimalNumEx + "|" + hexNumEx + ")?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
-    private static final String labelOpRegEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
+    private static final String DECIMAL_CONST_REGEX = "-?(?!0x)\\p{Digit}+";
+    private static final String HEX_CONST_REGEX = "-?0x\\p{XDigit}+";
+    
+    private static final String CONST_OPERAND_REGEX = "\\$?(?<const>" + DECIMAL_CONST_REGEX + "|" + HEX_CONST_REGEX + ")";
+    private static final String REGISTER_OPERAND_REGEX = "\\%(?<regName>\\p{Alnum}+)";
+    private static final String MEM_OPERAND_REGEX = 
+            "(?<imm>" + DECIMAL_CONST_REGEX + "|" + HEX_CONST_REGEX + ")?" // optional immediate
+            + "\\s*"
+            + "(?!\\(\\s*\\))" // Don't allow empty parens string, i.e. "()"
+            + "\\(\\s*(%(?<base>\\p{Alnum}+))?" // base register (optional)
+            + "\\s*(,\\s*%(?<index>\\p{Alnum}+)" // index register
+            + "\\s*(,\\s*(?<scale>\\p{Digit}+))" // scaling factor
+            + "?)?" // both index and scaling factor are optional
+            + "\\s*\\)";
+    private static final String LABEL_OPERAND_REGEX = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
     
     // ordering is important here: constant must go after mem
-    private static final String operandRegEx = "\\s*(?<operand>"
-            + memOpRegEx 
-            + "|" + regOpRegEx 
-            + "|" + labelOpRegEx 
-            + "|" + constOpRegEx
+    private static final String OPERAND_REGEX = "\\s*(?<operand>"
+            + MEM_OPERAND_REGEX 
+            + "|" + REGISTER_OPERAND_REGEX 
+            + "|" + LABEL_OPERAND_REGEX 
+            + "|" + CONST_OPERAND_REGEX
             + ")(?=\\s+|,|$)";
-            //+ ")\\s*"; // original
     
     private static final String ONE_SUFFIX_INSTRUCTIONS_REGEX = 
             "add|sub|imul"
@@ -229,7 +241,7 @@ public class X86Parser {
     }
     
     private static Optional<String> getProbableRegister(String actualRegister) {
-        return getMostSimilarString(allRegNames, actualRegister, 0.8);
+        return getMostSimilarString(ALL_REG_REGEX, actualRegister, 0.8);
     }
 
     private static Optional<String> getProbableInstruction(String actualInstruction) {
@@ -276,13 +288,13 @@ public class X86Parser {
      */
     public static OpSize getRegisterSize(String name) throws X86ParsingException {
         OpSize opSize = OpSize.BYTE;
-        if (name.matches(lRegNames)) {
+        if (name.matches(LONG_REG_REGEX)) {
             opSize = OpSize.LONG;
-        } else if (name.matches(qRegNames)) {
+        } else if (name.matches(QUAD_REG_REGEX)) {
             opSize = OpSize.QUAD;
-        } else if (name.matches(wRegNames)) {
+        } else if (name.matches(WORD_REG_REGEX)) {
             opSize = OpSize.WORD;
-        } else if (name.matches(bRegNames)) {
+        } else if (name.matches(BYTE_REG_REGEX)) {
             opSize = OpSize.BYTE;
         } else {
             String errorMessage = "Invalid register name.";
@@ -308,10 +320,10 @@ public class X86Parser {
             throws X86ParsingException {
         Operand op = null;
 
-        Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
-        Matcher regMatcher = Pattern.compile(regOpRegEx).matcher(str);
-        Matcher memMatcher = Pattern.compile(memOpRegEx).matcher(str);
-        Matcher labelMatcher = Pattern.compile(labelOpRegEx).matcher(str);
+        Matcher constMatcher = Pattern.compile(CONST_OPERAND_REGEX).matcher(str);
+        Matcher regMatcher = Pattern.compile(REGISTER_OPERAND_REGEX).matcher(str);
+        Matcher memMatcher = Pattern.compile(MEM_OPERAND_REGEX).matcher(str);
+        Matcher labelMatcher = Pattern.compile(LABEL_OPERAND_REGEX).matcher(str);
 
         if (constMatcher.matches()) {
             // Found a constant operand
@@ -364,7 +376,6 @@ public class X86Parser {
 
             // Make sure the size of this register doesn't conflict with the
             // size the instruction uses/wants.
-            // TODO: move this check to a "validation" method
             if (opReqs.getSize() != OpSize.INFERRED 
                     && opSize != opReqs.getSize()) {
                 String suggestedRegName = 
@@ -456,7 +467,7 @@ public class X86Parser {
         } else if (labelMatcher.matches()) {
             // Found a label operand
             String labelName = labelMatcher.group("label");
-            if (labelName.matches(allRegNames))
+            if (labelName.matches(ALL_REG_REGEX))
                 throw new X86ParsingException("Possibly missing % before register name.",
                                                 labelMatcher.start(), 
                                                 labelMatcher.end());
@@ -489,7 +500,7 @@ public class X86Parser {
             List<OperandRequirements> opReqs) throws X86ParsingException {
         List<Operand> operands = new ArrayList<>();
 
-        Matcher m = Pattern.compile(operandRegEx).matcher(operandsStr);
+        Matcher m = Pattern.compile(OPERAND_REGEX).matcher(operandsStr);
         if (!m.find()) {
             return operands;
         }
@@ -515,7 +526,7 @@ public class X86Parser {
 
             // Update pattern to include the comma separator for the following
             // operands
-            m = Pattern.compile("," + operandRegEx).matcher(operandsStr);
+            m = Pattern.compile("," + OPERAND_REGEX).matcher(operandsStr);
 
             // Keep parsing operands until we don't find any more
             while (m.find(nextIndex)) {
@@ -570,7 +581,7 @@ public class X86Parser {
         }
         
         Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
-        Matcher labelMatcher = Pattern.compile("\\s*" + labelOpRegEx + ":\\s*").matcher(instr);
+        Matcher labelMatcher = Pattern.compile("\\s*" + LABEL_OPERAND_REGEX + ":\\s*").matcher(instr);
         
         // The line should be either a label or an instruction
         if (!instMatcher.matches() && !labelMatcher.matches()) {
@@ -700,7 +711,7 @@ public class X86Parser {
             // This line contains a label
             String labelName = labelMatcher.group("label");
             
-            if (labelName.matches(allRegNames))
+            if (labelName.matches(ALL_REG_REGEX))
                 throw new X86ParsingException("Label name should not be a register name", 
                                                 labelMatcher.start("label"), 
                                                 labelMatcher.end("label"));
