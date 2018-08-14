@@ -15,7 +15,7 @@ public abstract class Operand {
    /**
      * The size of the operand.
      */
-    protected final OpSize opSize;
+    protected OpSize opSize;
     
     public Operand(OpSize size) {
         this.opSize = size;
@@ -64,4 +64,16 @@ public abstract class Operand {
      * @return A string with a description of this operand.
      */
     public abstract String getDescriptionString();
+    
+    /**
+     * Changes inferred size to an explicit size.
+     * This does nothing if this operand is not of inferred size.
+     * 
+     * @param explicitSize The new, explicit size for this operand.
+     * @return True if this operand had an inferred type and we could change it
+     * to the given type, False otherwise.
+     */
+    public boolean makeSizeExplicit(OpSize explicitSize) {
+        return false;
+    }
 }

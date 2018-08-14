@@ -21,6 +21,7 @@ public class RegOperand extends Operand {
 
     public RegOperand(String regName, OpSize opSize) {
         super(opSize);
+        assert opSize != OpSize.INFERRED;
         this.regName = regName;
     }
 

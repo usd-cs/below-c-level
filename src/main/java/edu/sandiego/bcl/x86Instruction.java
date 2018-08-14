@@ -84,7 +84,8 @@ public abstract class x86Instruction extends x86ProgramLine {
     public String getInstructionTypeString() {
         String s = this.type.name().toLowerCase();
         if (!this.type.name().startsWith("SET")
-                && !this.type.name().startsWith("J")) {
+                && !this.type.name().startsWith("J")
+                && !this.type.name().startsWith("CMOV")) {
             s += this.opSize.getAbbreviation();
         }
 

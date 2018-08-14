@@ -9,7 +9,8 @@ public enum OpSize {
     BYTE('b', 1),
     WORD('w', 2),
     LONG('l', 4),
-    QUAD('q', 8);
+    QUAD('q', 8),
+    INFERRED(' ', 0); // Size has to be inferred based on the rest of the instruction
 
     /**
      * The number of bytes used for this op.

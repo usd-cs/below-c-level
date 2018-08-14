@@ -51,3 +51,10 @@ mylabel: addq $5, %rax
 pushq $5 -
 pushq $5, 
 addq (%rsp), 8(%rsp)
+cmoveq %rax, %rbx
+cmove $5, %rax
+cmove %rax, (%rsp)
+cmove %al, %bl
+cmove %eax, %rbx
+cmovel %rax, %rbx
+cmovq %rax, %rbx

@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 @FunctionalInterface
 interface BinaryX86Operation {
@@ -33,6 +34,11 @@ public class x86BinaryInstruction extends x86Instruction {
      * The function performed by this instruction.
      */
     private BinaryX86Operation operation;
+    
+    /**
+     * An optional predicate to be used with conditional instructions.
+     */
+    private Optional<Predicate<MachineState>> conditionCheck = Optional.empty();
 
     /**
      * @param instType The type of operation performed by the instruction.
@@ -95,6 +101,22 @@ public class x86BinaryInstruction extends x86Instruction {
                 break;
             case LEA:
                 this.operation = this::lea;
+                break;
+            case CMOVE:
+            case CMOVNE:
+            case CMOVS:
+            case CMOVNS:
+            case CMOVG:
+            case CMOVGE:
+            case CMOVL:
+            case CMOVLE:
+            case CMOVA:
+            case CMOVAE:
+            case CMOVB:
+            case CMOVBE:
+                String conditionSuffix = instType.name().toLowerCase().substring(4);
+                this.conditionCheck = Optional.of(conditions.get(conditionSuffix));
+                this.operation = this::cmov;
                 break;
             default:
                 throw new RuntimeException("unsupported instr type: " + instType);
@@ -475,6 +497,27 @@ public class x86BinaryInstruction extends x86Instruction {
     private MachineState mov(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         return dest.updateState(state, Optional.of(src.getValue(state)), new HashMap<>(), true);
     }
+    
+    /**
+     * Perform the operation {@code if (cond) dest = src}.
+     *
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to assign to {@code dest}.
+     * @param dest The operand that will be assigned to.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} assigned the value of {@code src}.
+     */
+    private MachineState cmov(MachineState state, Operand src, Operand dest)
+            throws x86RuntimeException{
+        assert this.conditionCheck.isPresent();
+        
+        Optional<BigInteger> newDestValue = Optional.empty();
+        if (this.conditionCheck.get().test(state)) {
+            newDestValue = Optional.of(src.getValue(state));
+        }
+
+        return dest.updateState(state, newDestValue, new HashMap<>(), true);
+    }
 
     /**
      * Perform the operation {@code dest = src}, performing zero extension to
@@ -560,6 +603,8 @@ public class x86BinaryInstruction extends x86Instruction {
         String template =  " the value of " + sourceDesc + " to the value of " + destDesc + ", \nstoring the result in " + destDesc + ".";
         String template2 = " the value of " + sourceDesc + " from the value of " 
                 + destDesc + ".\nThe result is NOT stored but the condition registers are updated based on the result.";
+        String cmovTemplate = "Copies " + sourceDesc + " into " + destDesc + " if the result of the last ";
+        String cmovTemplateEnd = ", \notherwise does nothing.";
         switch (this.type) {
             case ADD:
                 return "Adds" + template;
@@ -592,6 +637,30 @@ public class x86BinaryInstruction extends x86Instruction {
                 return "Copies the zero-extended " + sourceDesc + " into " + destDesc + ".";
             case LEA:
                 return "Creates a reference to " + sourceDesc + ", \nstoring this reference in " + destDesc + ".";
+            case CMOVE:
+                return cmovTemplate + "comparison was equal/zero (i.e. ZF == 1)" + cmovTemplateEnd;
+            case CMOVNE:
+                return cmovTemplate + "comparison was not equal/zero (i.e. ZF == 0)" + cmovTemplateEnd;
+            case CMOVS:
+                return cmovTemplate + "operation was negative (i.e. SF == 1)" + cmovTemplateEnd;
+            case CMOVNS:
+                return cmovTemplate + "operation was non-negative (i.e. SF == 0)" + cmovTemplateEnd;
+            case CMOVG:
+                return cmovTemplate + "signed comparison was greater than (i.e. ~(SF ^ OF) & ~ZF)" + cmovTemplateEnd;
+            case CMOVGE:
+                return cmovTemplate + "signed comparison was greater than or equal (i.e. ~(SF ^ OF))" + cmovTemplateEnd;
+            case CMOVL:
+                return cmovTemplate + "signed comparison was less than (i.e. SF ^ OF)" + cmovTemplateEnd;
+            case CMOVLE:
+                return cmovTemplate + "signed comparison was less than or equal (i.e. (SF ^ OF) | ZF)" + cmovTemplateEnd;
+            case CMOVA:
+                return cmovTemplate + "unsigned comparison was greater than (i.e. ~CF & ~ZF)" + cmovTemplateEnd;
+            case CMOVAE:
+                return cmovTemplate + "unsigned comparison was greater than or equal (i.e. CF == 0)" + cmovTemplateEnd;
+            case CMOVB:
+                return cmovTemplate + "unsigned comparison was less than (i.e. CF == 1)" + cmovTemplateEnd;
+            case CMOVBE:
+                return cmovTemplate + "unsigned comparison was less than or equal (i.e. CF | ZF)" + cmovTemplateEnd;
             default:
                 throw new RuntimeException("unsupported instr type: " + this.type);
         }

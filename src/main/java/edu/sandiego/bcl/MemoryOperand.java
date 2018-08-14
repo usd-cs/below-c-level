@@ -125,4 +125,15 @@ class MemoryOperand extends Operand {
         s += ")";
         return s;
     }
+
+    @Override
+    public boolean makeSizeExplicit(OpSize explicitSize) {
+        if (this.opSize == OpSize.INFERRED) {
+            this.opSize = explicitSize;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 }
