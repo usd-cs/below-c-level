@@ -32,15 +32,20 @@ public class X86Parser {
     private static final String DECIMAL_CONST_REGEX = "-?(?!0x)\\p{Digit}+";
     private static final String HEX_CONST_REGEX = "-?0x\\p{XDigit}+";
     
-    private static final String CONST_OPERAND_REGEX = "\\$?(?<const>" + DECIMAL_CONST_REGEX + "|" + HEX_CONST_REGEX + ")";
+    private static final String CONST_OPERAND_REGEX = "\\$?(?<const>" 
+            + DECIMAL_CONST_REGEX 
+            + "|" + HEX_CONST_REGEX 
+            + ")";
     private static final String REGISTER_OPERAND_REGEX = "\\%(?<regName>\\p{Alnum}+)";
     private static final String MEM_OPERAND_REGEX = 
-            "(?<imm>" + DECIMAL_CONST_REGEX + "|" + HEX_CONST_REGEX + ")?" // optional immediate
+            "(?<imm>\\$?" // "$" is "allowed" here for better error reporting.
+            + DECIMAL_CONST_REGEX + "|" + HEX_CONST_REGEX 
+            + ")?" // immediate is optional
             + "\\s*"
             + "(?!\\(\\s*\\))" // Don't allow empty parens string, i.e. "()"
             + "\\(\\s*(%(?<base>\\p{Alnum}+))?" // base register (optional)
             + "\\s*(,\\s*%(?<index>\\p{Alnum}+)" // index register
-            + "\\s*(,\\s*(?<scale>\\p{Digit}+))" // scaling factor
+            + "\\s*(,\\s*(?<scale>\\$?\\p{Digit}+))" // scaling factor (again, "$" allowed only for better error checking)
             + "?)?" // both index and scaling factor are optional
             + "\\s*\\)";
     private static final String LABEL_OPERAND_REGEX = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
@@ -402,6 +407,11 @@ public class X86Parser {
             Integer offset = null;
             String offsetStr = memMatcher.group("imm");
             if (offsetStr != null) {
+                if (offsetStr.startsWith("$")) {
+                    throw new X86ParsingException("Immediate should not start with \"$\".",
+                            memMatcher.start("imm"),
+                            memMatcher.end("imm"));
+                }
                 int base = 10;
                 if (offsetStr.contains("0x")) {
                     base = 16;
@@ -455,6 +465,11 @@ public class X86Parser {
             Integer scale = null;
             String scaleStr = memMatcher.group("scale");
             if (scaleStr != null) {
+                if (scaleStr.startsWith("$")) {
+                    throw new X86ParsingException("Scale factor should not start with \"$\".",
+                            memMatcher.start("scale"),
+                            memMatcher.end("scale"));
+                }
                 scale = Integer.parseInt(scaleStr);
                 if (scale != 1 && scale != 2 && scale != 4 && scale != 8) {
                     throw new X86ParsingException("Invalid scaling factor. Expecting 1, 2, 4, or 8",
