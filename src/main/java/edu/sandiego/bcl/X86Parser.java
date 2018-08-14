@@ -109,7 +109,7 @@ public class X86Parser {
      * @throws X86ParsingException If it is not a valid instruction or if the
      * size suffix is invalid.
      */
-    private TypeAndOpRequirements parseTypeAndSize(String instrName) throws X86ParsingException {
+    private Optional<TypeAndOpRequirements> parseTypeAndSize(String instrName) throws X86ParsingException {
         InstructionType type;
         OpSize size;
         List<OpSize> opSizes = new ArrayList<>();
@@ -231,18 +231,21 @@ public class X86Parser {
                             invalidSuffixMatcher.start("suffix"),
                             instrName.length());
         } else {
-            String errorMessage = "Invalid/unsupported instruction.";
             Optional<String> intendedInstruction = getProbableInstruction(instrName);
             if (intendedInstruction.isPresent()) {
-                errorMessage = "Invalid instruction. Did you mean " + intendedInstruction.get() + "?";
+                throw new X86ParsingException(
+                        "Invalid instruction. Did you mean " + intendedInstruction.get() + "?",
+                        0,
+                        instrName.length());
             }
-            throw new X86ParsingException(errorMessage, 
-                    0, 
-                    instrName.length());
+            else {
+                return Optional.empty();
+            }
+            
         }
         
         List<OperandRequirements> opReqs = getOperandReqs(type, opSizes);
-        return new TypeAndOpRequirements(type, size, opReqs);
+        return Optional.of(new TypeAndOpRequirements(type, size, opReqs));
     }
     
     private static Optional<String> getProbableRegister(String actualRegister) {
@@ -600,7 +603,7 @@ public class X86Parser {
         
         // The line should be either a label or an instruction
         if (!instMatcher.matches() && !labelMatcher.matches()) {
-            throw new X86ParsingException("nonsense input", 0, instr.length());
+            throw new X86ParsingException("Could not parse line: invalid syntax.", 0, instr.length());
         }
 
         if (instMatcher.matches()) {
@@ -611,7 +614,7 @@ public class X86Parser {
             // instruction.
             String instrName = instMatcher.group("inst");
 
-            TypeAndOpRequirements instDetails = null;
+            Optional<TypeAndOpRequirements> instDetails = Optional.empty();
             try {
                 instDetails = parseTypeAndSize(instrName);
             } catch (X86ParsingException e) {
@@ -620,14 +623,27 @@ public class X86Parser {
                         instMatcher.start("inst") + e.getEndIndex());
             }
 
-            InstructionType instrType = instDetails.type;
-            OpSize instrSize = instDetails.instrSize;
-            List<OperandRequirements> opReqs = instDetails.operandReqs;
+            String operandsStr = instMatcher.group("operands");
+            
+            // Check to see if the user might have meant a label here but forgot
+            // to add the ":" after it.
+            if (!instDetails.isPresent()) {
+                String errorMessage = "Invalid instruction.";
+                if (operandsStr == null) {
+                    errorMessage += " Did you forget a \":\" after a label?";
+                }
+                throw new X86ParsingException(errorMessage,
+                            instMatcher.start("inst"),
+                            instMatcher.end("inst"));
+            }
+            
+            InstructionType instrType = instDetails.get().type;
+            OpSize instrSize = instDetails.get().instrSize;
+            List<OperandRequirements> opReqs = instDetails.get().operandReqs;
 
             // Step 2: Parse the operands (putting them into a list) then use
             // those operands plus the instruction type to create a new
             // X86Instruction.
-            String operandsStr = instMatcher.group("operands");
             if (operandsStr != null) {
 
                 List<Operand> operands = null;
