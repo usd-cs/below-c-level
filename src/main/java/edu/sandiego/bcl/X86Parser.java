@@ -166,14 +166,7 @@ public class X86Parser {
                         instrName.length());
             }
             
-            try {
-                size = OpSize.getOpSizeFromAbbrev(sizedInstrMatcher.group("size"));
-            } catch (X86ParsingException e) {
-                throw new X86ParsingException("unexpected size suffix",
-                            sizedInstrMatcher.start("size"),
-                            instrName.length());
-            }
-            
+            size = OpSize.getOpSizeFromAbbrev(sizedInstrMatcher.group("size"));
             opSizes.add(size);
             
         } else if (twoSizedInstrMatcher.matches()) {
