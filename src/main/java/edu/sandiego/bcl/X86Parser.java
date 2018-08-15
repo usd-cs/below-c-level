@@ -584,7 +584,7 @@ public class X86Parser {
      * @throws X86ParsingException There was a problem parsing the line.
      */
     public x86ProgramLine parseLine(String instr) throws X86ParsingException {
-        Matcher commentMatcher = Pattern.compile("(?<other>.*)(?<comment>#.*)").matcher(instr);
+        Matcher commentMatcher = Pattern.compile("(?<other>[^#]*)(?<comment>#.*)").matcher(instr);
         
         x86Comment c = null;
         if (commentMatcher.matches()){
