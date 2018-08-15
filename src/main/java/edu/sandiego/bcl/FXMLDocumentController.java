@@ -9,10 +9,13 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.geometry.Point2D;
 import javafx.scene.Scene;
@@ -211,10 +214,13 @@ public class FXMLDocumentController implements Initializable {
             createTab(new Simulation());
         });
 
-        // FIXME: this should be disabled until they save as or load from file
-        // and should switch on and off based on which tab is selected
         saveMenuItem.setOnAction(event -> {
-            activeSimulation.saveProgram();
+            if (!activeSimulation.saveProgram()) {
+                this.saveFileAs(event);
+            }
+            else {
+                this.setUnsavedTabIndicator(false);
+            }
         });
 
         closeTabMenuItem.setOnAction(this::closeTab);
@@ -291,9 +297,11 @@ public class FXMLDocumentController implements Initializable {
 
     private void initializeSimulationControls() {
         stepForwardButton.setOnAction(this::stepForward);
+        stepForwardButton.setTooltip(new Tooltip("Step Forward"));       
         forwardMenuItem.setOnAction(this::stepForward);
-
+        
         runAllButton.setOnAction(this::runForward);
+        runAllButton.setTooltip(new Tooltip("Run"));
         runMenuItem.setOnAction(this::runForward);
 
         /**
@@ -302,11 +310,16 @@ public class FXMLDocumentController implements Initializable {
         jumpToCurrentButton.setOnAction(event -> {
             scrollToSelectedInstruction();
         });
+        jumpToCurrentButton.setTooltip(new Tooltip("Snap To Current"));
 
         stepBackwardButton.setOnAction(this::stepBackward);
+        stepBackwardButton.setDisable(true);
+        stepBackwardButton.setTooltip(new Tooltip("Step Backward"));
         backwardMenuItem.setOnAction(this::stepBackward);
 
         restartButton.setOnAction(this::restartSim);
+        restartButton.setDisable(true);
+        restartButton.setTooltip(new Tooltip("Restart"));
         restartMenuItem.setOnAction(this::restartSim);
     }
 
@@ -349,14 +362,66 @@ public class FXMLDocumentController implements Initializable {
 
             return row;
         });
+
+        initializeRegisterTableContextMenu();
+    }
+
+    /**
+     * Creates and initializes a right-click menu for the Register Table.
+     */
+    private void initializeRegisterTableContextMenu() {
+        ToggleGroup valueFormatGroup = new ToggleGroup();
+        
+        // Radio select group for the format the value column is displayed in
+        final RadioMenuItem hexMenuItem = new RadioMenuItem("Hexadecimal");
+        hexMenuItem.setToggleGroup(valueFormatGroup);
+        hexMenuItem.setSelected(true);
+        final RadioMenuItem unsignedDecMenuItem = new RadioMenuItem("Unsigned Decimal");
+        unsignedDecMenuItem.setToggleGroup(valueFormatGroup);
+        final RadioMenuItem signedDecMenuItem = new RadioMenuItem("Signed Decimal");
+        signedDecMenuItem.setToggleGroup(valueFormatGroup);
+        
+        Menu valueFormatMenu = new Menu("Value Format");
+        valueFormatMenu.getItems().addAll(hexMenuItem,
+                                            unsignedDecMenuItem,
+                                            signedDecMenuItem);
+    
+        hexMenuItem.setOnAction((ActionEvent event) -> {
+            if (hexMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(0);
+                this.updateSimulatorUIElements();
+            }
+        });
+
+        unsignedDecMenuItem.setOnAction((ActionEvent event) -> {
+            if (unsignedDecMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(1);
+                this.updateSimulatorUIElements();
+            }
+        });
+
+        signedDecMenuItem.setOnAction((ActionEvent event) -> {
+            if (signedDecMenuItem.isSelected()) {
+                activeSimulation.setRegisterBase(2);
+                this.updateSimulatorUIElements();
+            }
+        });
+        
+        ContextMenu menu = new ContextMenu();
+        menu.getItems().add(valueFormatMenu);
+        registerTable.setContextMenu(menu);
     }
 
     private void initializeStackTable() {
         startAddressColumn.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getStartAddress()).toUpperCase()));
+                -> new SimpleStringProperty("0x" + 
+                        Long.toHexString(p.getValue().getStartAddress())
+                                .toUpperCase().replaceFirst("F{4,}", "F..F")));
 
         endAddressColumn.setCellValueFactory((CellDataFeatures<StackEntry, String> p)
-                -> new SimpleStringProperty(Long.toHexString(p.getValue().getEndAddress()).toUpperCase()));
+                -> new SimpleStringProperty("0x" + 
+                        Long.toHexString(p.getValue().getEndAddress())
+                                .toUpperCase().replaceFirst("F{4,}", "F..F")));
 
         valueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
         originColumn.setCellValueFactory(new PropertyValueFactory<>("origin"));
@@ -371,7 +436,11 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void stepForward(Event event) {
-        activeSimulation.stepForward();
+        try {
+            activeSimulation.stepForward();
+        } catch (x86RuntimeException ex) {
+            showRuntimeErrorDialogue(ex);
+        }
         updateSimulatorUIElements();
     }
 
@@ -381,23 +450,44 @@ public class FXMLDocumentController implements Initializable {
      * @param event The event that triggered this action.
      */
     private void runForward(Event event) {
-        while (!activeSimulation.finish()) {
-            Alert longRunningConfirmation = new Alert(AlertType.CONFIRMATION);
-            longRunningConfirmation.setTitle("Long Running Computation");
-            longRunningConfirmation.setHeaderText("Infinited Loop?");
-            longRunningConfirmation.setContentText("Your program has executed many instructions. "
-                    + "It is possible it may be stuck in an infinite loop. "
-                    + "\n\nClick OK to continue simulation, or Cancel to stop.");
-
-            Optional<ButtonType> result = longRunningConfirmation.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.CANCEL) {
-                break;
+        try {
+            while (!activeSimulation.finish()) {
+                Alert longRunningConfirmation = new Alert(AlertType.CONFIRMATION);
+                longRunningConfirmation.setTitle("Long Running Computation");
+                longRunningConfirmation.setHeaderText("Infinite Loop?");
+                longRunningConfirmation.setContentText("Your program has executed many instructions. "
+                        + "It is possible it may be stuck in an infinite loop. "
+                        + "\n\nClick OK to continue simulation, or Cancel to stop.");
+                
+                Optional<ButtonType> result = longRunningConfirmation.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.CANCEL) {
+                    break;
+                }
             }
+        } catch (x86RuntimeException ex) {
+            showRuntimeErrorDialogue(ex);
         }
-
         updateSimulatorUIElements();
     }
 
+    private void showRuntimeErrorDialogue(x86RuntimeException e){
+        simStateLabel.setText("Line " + activeSimulation.getCurrentLine().lineNum + ": " + e.getMessage());
+            ImageView completePic = new ImageView(
+                    new Image(this.getClass().getResourceAsStream("/images/error.png")));
+            completePic.setFitHeight(16);
+            completePic.setFitWidth(16);
+            completePic.setSmooth(true);
+            completePic.setPreserveRatio(true);
+            simStateLabel.setGraphic(completePic);
+        /*
+        Alert evalError = new Alert(Alert.AlertType.ERROR);
+        evalError.setTitle("Simulation Error");
+        evalError.setHeaderText("Error during simulation");
+        evalError.setContentText("The following error occurred while simulating the instruction on line number " + activeSimulation.getCurrentLine().lineNum
+                    + "\n\n" + e.getMessage());
+            evalError.showAndWait();
+        */
+    }
     /**
      * Undoes the previous instruction in our simulation.
      *
@@ -419,17 +509,15 @@ public class FXMLDocumentController implements Initializable {
     }
 
     /**
-     * Checks if end of program has been reached and if so, disable stepForward
-     * and runAll buttons.
+     * Enables and disables simulation controls based on state of simulator.
+     * 
      */
     private void updateSimulationControls() {
-        if (!activeSimulation.isFinished()) {
-            stepForwardButton.setOnAction(this::stepForward);
-            runAllButton.setOnAction(this::runForward);
-        } else {
-            stepForwardButton.setOnAction(null);
-            runAllButton.setOnAction(null);
-        }
+        stepForwardButton.setDisable(activeSimulation.isFinished());
+        runAllButton.setDisable(activeSimulation.isFinished());
+        jumpToCurrentButton.setDisable(activeSimulation.getProgramLines().isEmpty() || activeSimulation.isFinished());
+        stepBackwardButton.setDisable(activeSimulation.isAtBeginning());
+        restartButton.setDisable(activeSimulation.isAtBeginning());
     }
 
     /**
@@ -452,22 +540,31 @@ public class FXMLDocumentController implements Initializable {
             completePic.setSmooth(true);
             completePic.setPreserveRatio(true);
             simStateLabel.setGraphic(completePic);
-        } else {
+        } else if (!activeSimulation.getStuckOnError()) {
             simStateLabel.setText(null);
             simStateLabel.setGraphic(null);
         }
     }
 
     /**
-     * Visually indicates to the user that the current tab is unsaved.
+     * Visually indicates to the user whether the current tab is unsaved.
+     * 
+     * @param isUnsaved Whether the tab is unsaved or not.
      */
-    public void indicateCurrentTabIsUnsaved() {
+    public void setUnsavedTabIndicator(boolean isUnsaved) {
         Tab currTab = programTabs.getSelectionModel().getSelectedItem();
         String currTabName = currTab.getText();
-
-        // Already indicating we have an edited file so don't need to do anything
-        if (!currTabName.endsWith("*")) {
-            currTab.setText(currTabName + "*");
+        
+        if (isUnsaved) {
+            // Already indicating we have an edited file so don't need to do anything
+            if (!currTabName.endsWith("*")) {
+                currTab.setText(currTabName + "*");
+            }
+        }
+        else {
+            if (currTabName.endsWith("*")) {
+                currTab.setText(currTabName.substring(0, currTabName.length()-1));
+            }
         }
     }
 
@@ -512,7 +609,7 @@ public class FXMLDocumentController implements Initializable {
                 newLineEntry.clear();
                 restartSim(keyEvent);
 
-                indicateCurrentTabIsUnsaved();
+                setUnsavedTabIndicator(true);
 
             } catch (X86ParsingException e) {
                 this.indicateParsingError(e);
@@ -581,7 +678,9 @@ public class FXMLDocumentController implements Initializable {
         File file = saveFileChoice.showSaveDialog(menuOptionsBar.getScene().getWindow());
         if (file != null) {
             programTabs.getSelectionModel().getSelectedItem().setText(file.getName());
-            activeSimulation.saveProgramAs(file);
+            if (activeSimulation.saveProgramAs(file)) {
+                this.setUnsavedTabIndicator(false);
+            }
         }
     }
 
@@ -757,7 +856,7 @@ public class FXMLDocumentController implements Initializable {
 
                     try {
                         activeSimulation.replaceInProgram(cell.getItem(), text);
-                        indicateCurrentTabIsUnsaved();
+                        setUnsavedTabIndicator(true);
 
                         newLineEntry.setStyle("-fx-control-inner-background: white;");
                         parseErrorText.setText(null);

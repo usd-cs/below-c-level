@@ -30,8 +30,11 @@ public class ConstantOperand extends Operand {
 
     public ConstantOperand(long val, OpSize size, int base, String stringRep) {
         super(size);
-        this.constant = val;
+        
+        assert size != OpSize.INFERRED;
         assert(base == 10 || base == 16);
+
+        this.constant = val;
         this.base = base;
         this.stringRep = stringRep;
     }
@@ -61,6 +64,26 @@ public class ConstantOperand extends Operand {
     public String getDescriptionString() {
         //return "" + constant;
         return stringRep;
+    }
+    
+    /**
+     * Checks whether a given constant fits within a specified size.
+     * 
+     * @param size The size to check the fit against.
+     * @param constStr A string representing the constant.
+     * @param base The number base of the constant (e.g. 10 for decimal) given 
+     * as a string.
+     * @return True if the constant fits in the given size, false otherwise.
+     */
+    public static boolean fitsInSize(OpSize size, String constStr, int base) {
+        assert !constStr.startsWith("0x");
+        
+        BigInteger val = new BigInteger(constStr, base);
+
+        // check that the constant is within the operand size limit
+        int valSize = base == 10 ? val.bitLength() + 1 : constStr.length() * 4;
+
+        return valSize <= size.numBits();
     }
 }
 

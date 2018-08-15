@@ -37,6 +37,7 @@ public class StackEntry {
             s += String.format("%02X", val[i]);
         }
         if (s.charAt(0) == '0') s = s.replaceFirst("0+", "0");
+        s = s.replaceFirst("F{4,}","F..F");
         s = "0x" + s;
         
         this.value = new SimpleStringProperty(s);

@@ -5,11 +5,12 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 @FunctionalInterface
 interface BinaryX86Operation {
 
-    MachineState apply(MachineState state, Operand src, Operand dest);
+    MachineState apply(MachineState state, Operand src, Operand dest) throws x86RuntimeException;
 }
 
 /**
@@ -33,6 +34,11 @@ public class x86BinaryInstruction extends x86Instruction {
      * The function performed by this instruction.
      */
     private BinaryX86Operation operation;
+    
+    /**
+     * An optional predicate to be used with conditional instructions.
+     */
+    private Optional<Predicate<MachineState>> conditionCheck = Optional.empty();
 
     /**
      * @param instType The type of operation performed by the instruction.
@@ -96,6 +102,22 @@ public class x86BinaryInstruction extends x86Instruction {
             case LEA:
                 this.operation = this::lea;
                 break;
+            case CMOVE:
+            case CMOVNE:
+            case CMOVS:
+            case CMOVNS:
+            case CMOVG:
+            case CMOVGE:
+            case CMOVL:
+            case CMOVLE:
+            case CMOVA:
+            case CMOVAE:
+            case CMOVB:
+            case CMOVBE:
+                String conditionSuffix = instType.name().toLowerCase().substring(4);
+                this.conditionCheck = Optional.of(conditions.get(conditionSuffix));
+                this.operation = this::cmov;
+                break;
             default:
                 throw new RuntimeException("unsupported instr type: " + instType);
         }
@@ -110,7 +132,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest-src)}.
      */
-    private MachineState add(MachineState state, Operand src, Operand dest) {
+    private MachineState add(MachineState state, Operand src, Operand dest) throws x86RuntimeException {
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.add(src2);
@@ -175,7 +197,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * specified, the destination updated with the value of {@code (dest-src)}.
      */
     private MachineState subtract(MachineState state, Operand src, Operand dest,
-            boolean updateDest) {
+            boolean updateDest) throws x86RuntimeException{
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.subtract(src2);
@@ -203,7 +225,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest-src)}.
      */
-    private MachineState sub(MachineState state, Operand src, Operand dest) {
+    private MachineState sub(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         return subtract(state, src, dest, true);
     }
 
@@ -217,8 +239,8 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and status
      * flags set accordingly.
      */
-    private MachineState cmp(MachineState state, Operand src, Operand dest) {
-        return subtract(state, src, dest, false);
+    private MachineState cmp(MachineState state, Operand src, Operand dest) throws x86RuntimeException {
+        return subtract(state, src, dest, false) ;
     }
 
     /**
@@ -230,7 +252,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest*src)}.
      */
-    private MachineState imul(MachineState state, Operand src, Operand dest) {
+    private MachineState imul(MachineState state, Operand src, Operand dest) throws x86RuntimeException {
         BigInteger src1 = dest.getValue(state);
         BigInteger src2 = src.getValue(state);
         BigInteger result = src1.multiply(src2);
@@ -271,7 +293,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest ^ src)}.
      */
-    private MachineState xor(MachineState state, Operand src, Operand dest) {
+    private MachineState xor(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).xor(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
@@ -286,7 +308,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest | src)}.
      */
-    private MachineState or(MachineState state, Operand src, Operand dest) {
+    private MachineState or(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).or(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
@@ -301,7 +323,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest & src)}.
      */
-    private MachineState and(MachineState state, Operand src, Operand dest) {
+    private MachineState and(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).and(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.of(result), flags, true);
@@ -315,7 +337,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @param dest The operand that will be and'ed.
      * @return A clone of {@code state}, but with an incremented rip.
      */
-    private MachineState test(MachineState state, Operand src, Operand dest) {
+    private MachineState test(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger result = dest.getValue(state).and(src.getValue(state));
         Map<String, Boolean> flags = getLogicalOpFlags(result);
         return dest.updateState(state, Optional.empty(), flags, true);
@@ -330,7 +352,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest << src)}.
      */
-    private MachineState sal(MachineState state, Operand src, Operand dest) {
+    private MachineState sal(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         // destination size determines the maximum shift amount
         int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
@@ -369,12 +391,13 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest >> src)}.
      */
-    private MachineState sar(MachineState state, Operand src, Operand dest) {
+    private MachineState sar(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         // destination size determines the maximum shift amount
         int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
         BigInteger result = orig.shiftRight(shamt);
 
+        // TODO: make this throw an x86RuntimeException
         assert result.bitLength() + 1 > this.opSize.numBits();
 
         Map<String, Boolean> flags = new HashMap<>();
@@ -407,7 +430,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} updated with the value of {@code (dest >> src)}.
      */
-    private MachineState shr(MachineState state, Operand src, Operand dest) {
+    private MachineState shr(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         // destination size determines the maximum shift amount
         int shamt = src.getValue(state).intValue() % dest.getOpSize().numBits();
         BigInteger orig = dest.getValue(state);
@@ -471,8 +494,29 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} assigned the value of {@code src}.
      */
-    private MachineState mov(MachineState state, Operand src, Operand dest) {
+    private MachineState mov(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         return dest.updateState(state, Optional.of(src.getValue(state)), new HashMap<>(), true);
+    }
+    
+    /**
+     * Perform the operation {@code if (cond) dest = src}.
+     *
+     * @param state The state in which to work.
+     * @param src The operand specifying the value to assign to {@code dest}.
+     * @param dest The operand that will be assigned to.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * {@code dest} assigned the value of {@code src}.
+     */
+    private MachineState cmov(MachineState state, Operand src, Operand dest)
+            throws x86RuntimeException{
+        assert this.conditionCheck.isPresent();
+        
+        Optional<BigInteger> newDestValue = Optional.empty();
+        if (this.conditionCheck.get().test(state)) {
+            newDestValue = Optional.of(src.getValue(state));
+        }
+
+        return dest.updateState(state, newDestValue, new HashMap<>(), true);
     }
 
     /**
@@ -485,7 +529,7 @@ public class x86BinaryInstruction extends x86Instruction {
      * @return A clone of {@code state}, but with an incremented rip and
      * {@code dest} assigned the value of {@code src}.
      */
-    private MachineState movz(MachineState state, Operand src, Operand dest) {
+    private MachineState movz(MachineState state, Operand src, Operand dest) throws x86RuntimeException{
         BigInteger orig = src.getValue(state);
         byte[] extendedOrig = MachineState.getExtendedByteArray(orig,
                 src.getOpSize().numBytes(),
@@ -506,20 +550,14 @@ public class x86BinaryInstruction extends x86Instruction {
      * {@code dest} assigned the value of {@code &src} (i.e. the address pointed
      * to by {@code src}).
      */
-    private MachineState lea(MachineState state, Operand src, Operand dest) {
-        // TODO: Use polymorophism to avoid this instanceof junk
-        if (!(src instanceof MemoryOperand)) {
-            // FIXME: parse should catch this!
-            System.err.println("ERROR: lea src must be a memory operand");
-            return null;
-        }
-
+    private MachineState lea(MachineState state, Operand src, Operand dest) 
+            throws x86RuntimeException {
         MemoryOperand mo = (MemoryOperand) src;
         return dest.updateState(state, Optional.of(BigInteger.valueOf(mo.calculateAddress(state))), new HashMap<>(), true);
     }
 
     @Override
-    public MachineState eval(MachineState state) {
+    public MachineState eval(MachineState state) throws x86RuntimeException {
         return operation.apply(state, this.source, this.destination);
     }
 
@@ -553,7 +591,7 @@ public class x86BinaryInstruction extends x86Instruction {
 
         String s = lineNum + ": \t" + instrTypeStr + " " + source.toString() + ", " + destination.toString();
         if (comment.isPresent()) {
-            s += comment.get().toString();
+            s += " " + comment.get().toString();
         }
         return s;
     }
@@ -563,7 +601,10 @@ public class x86BinaryInstruction extends x86Instruction {
         String sourceDesc = source.getDescriptionString();
         String destDesc = destination.getDescriptionString();
         String template =  " the value of " + sourceDesc + " to the value of " + destDesc + ", \nstoring the result in " + destDesc + ".";
-        String template2 = " the value of " + sourceDesc + " from the value of " + destDesc + ", \nbut does NOT store the result.";
+        String template2 = " the value of " + sourceDesc + " from the value of " 
+                + destDesc + ".\nThe result is NOT stored but the condition registers are updated based on the result.";
+        String cmovTemplate = "Copies " + sourceDesc + " into " + destDesc + " if the result of the last ";
+        String cmovTemplateEnd = ", \notherwise does nothing.";
         switch (this.type) {
             case ADD:
                 return "Adds" + template;
@@ -595,7 +636,31 @@ public class x86BinaryInstruction extends x86Instruction {
             case MOVZ:
                 return "Copies the zero-extended " + sourceDesc + " into " + destDesc + ".";
             case LEA:
-                return "Calculates address of " + sourceDesc + ", \nstoring this address in " + destDesc + ".";
+                return "Creates a reference to " + sourceDesc + ", \nstoring this reference in " + destDesc + ".";
+            case CMOVE:
+                return cmovTemplate + "comparison was equal/zero (i.e. ZF == 1)" + cmovTemplateEnd;
+            case CMOVNE:
+                return cmovTemplate + "comparison was not equal/zero (i.e. ZF == 0)" + cmovTemplateEnd;
+            case CMOVS:
+                return cmovTemplate + "operation was negative (i.e. SF == 1)" + cmovTemplateEnd;
+            case CMOVNS:
+                return cmovTemplate + "operation was non-negative (i.e. SF == 0)" + cmovTemplateEnd;
+            case CMOVG:
+                return cmovTemplate + "signed comparison was greater than (i.e. ~(SF ^ OF) & ~ZF)" + cmovTemplateEnd;
+            case CMOVGE:
+                return cmovTemplate + "signed comparison was greater than or equal (i.e. ~(SF ^ OF))" + cmovTemplateEnd;
+            case CMOVL:
+                return cmovTemplate + "signed comparison was less than (i.e. SF ^ OF)" + cmovTemplateEnd;
+            case CMOVLE:
+                return cmovTemplate + "signed comparison was less than or equal (i.e. (SF ^ OF) | ZF)" + cmovTemplateEnd;
+            case CMOVA:
+                return cmovTemplate + "unsigned comparison was greater than (i.e. ~CF & ~ZF)" + cmovTemplateEnd;
+            case CMOVAE:
+                return cmovTemplate + "unsigned comparison was greater than or equal (i.e. CF == 0)" + cmovTemplateEnd;
+            case CMOVB:
+                return cmovTemplate + "unsigned comparison was less than (i.e. CF == 1)" + cmovTemplateEnd;
+            case CMOVBE:
+                return cmovTemplate + "unsigned comparison was less than or equal (i.e. CF | ZF)" + cmovTemplateEnd;
             default:
                 throw new RuntimeException("unsupported instr type: " + this.type);
         }

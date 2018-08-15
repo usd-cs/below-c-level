@@ -68,13 +68,14 @@ class MemoryOperand extends Operand {
     }
 
     @Override
-    public BigInteger getValue(MachineState state) {
+    public BigInteger getValue(MachineState state) throws x86RuntimeException {
         return state.getMemoryValue(calculateAddress(state), opSize.numBytes());
     }
 
     @Override
-    public MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP) {
-        return currState.cloneWithUpdatedMemory(calculateAddress(currState), val, opSize.numBytes(), flags, updateRIP);
+    public MachineState updateState(MachineState currState, Optional<BigInteger> val, 
+            Map<String, Boolean> flags, boolean updateRIP) throws x86RuntimeException {
+        return currState.cloneWithUpdatedMemory(val, calculateAddress(currState), opSize.numBytes(), flags, updateRIP);
     }
     
     @Override
@@ -123,5 +124,16 @@ class MemoryOperand extends Operand {
         }
         s += ")";
         return s;
+    }
+
+    @Override
+    public boolean makeSizeExplicit(OpSize explicitSize) {
+        if (this.opSize == OpSize.INFERRED) {
+            this.opSize = explicitSize;
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 }

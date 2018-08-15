@@ -35,6 +35,7 @@ public class x86Program {
         this.parser = new X86Parser();
         this.fileName = "untitled-" + nextUntitledNumber;
         nextUntitledNumber++;
+        this.file = Optional.empty();
         this.isUnsaved = true;
     }
     
@@ -166,6 +167,15 @@ public class x86Program {
                 break;
             }
             i++;
+        }
+    }
+    
+    public x86ProgramLine getBeginningOfProgram(){
+        Optional<x86ProgramLine> firstLine = parser.getFirstLineOfMain();
+        if(firstLine.isPresent()){
+            return firstLine.get();
+        } else {
+            return programLines.get(0);
         }
     }
 }

@@ -33,9 +33,9 @@ public class x86Label extends x86ProgramLine {
 
     @Override
     public String toString() {
-        String s = lineNum + ": " + name + ": ";
+        String s = lineNum + ": " + name + ":";
         if(comment.isPresent()){
-            s += comment.get().toString();
+            s += " " + comment.get().toString();
         }
         return s;
     }

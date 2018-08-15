@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import com.mifmif.common.regex.*;
+import info.debatty.java.stringsimilarity.*;
 
 /**
  * Class for parsing X86-64 programs.
@@ -14,23 +17,53 @@ import java.util.regex.Matcher;
 public class X86Parser {
 
     // Regular expressions used for parsing registers
-    private static final String qRegNames = "r(ax|bx|cx|dx|si|di|bp|sp|8|9|1[0-5])";
-    private static final String lRegNames = "e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])d";
-    private static final String wRegNames = "(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])w";
-    private static final String bRegNames = "(al|ah|bl|bh|cl|ch|dl|dh|sil|dil|bpl|spl)|r(8|9|1[0-5])b";
-    private static final String allRegNames = "(" + qRegNames + "|" + lRegNames + "|" + wRegNames + "|" + bRegNames + ")";
+    private static final String QUAD_REG_REGEX = "r(ax|bx|cx|dx|si|di|bp|sp|8|9|1[0-5])";
+    private static final String LONG_REG_REGEX = "e(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])d";
+    private static final String WORD_REG_REGEX = "(ax|bx|cx|dx|si|di|bp|sp)|r(8|9|1[0-5])w";
+    private static final String BYTE_REG_REGEX = "(al|ah|bl|bh|cl|ch|dl|dh|sil|dil|bpl|spl)|r(8|9|1[0-5])b";
+    private static final String ALL_REG_REGEX = "(" 
+            + QUAD_REG_REGEX 
+            + "|" + LONG_REG_REGEX 
+            + "|" + WORD_REG_REGEX 
+            + "|" + BYTE_REG_REGEX 
+            + ")";
 
     // Regular expressions used for parsing operands
-    private static final String decimalNumEx = "-?(?!0x)\\p{Digit}+";
-    private static final String hexNumEx = "-?0x\\p{XDigit}+";
-    private static final String constOpRegEx = "\\$?(?<const>" + decimalNumEx + "|" + hexNumEx + ")";
-
-    private static final String regOpRegEx = "\\%(?<regName>\\p{Alnum}+)";
-    private static final String memOpRegEx = "(?<imm>" + decimalNumEx + "|" + hexNumEx + ")?\\s*(?!\\(\\s*\\))\\(\\s*(%(?<base>\\p{Alnum}+))?\\s*(,\\s*%(?<index>\\p{Alnum}+)\\s*(,\\s*(?<scale>\\p{Digit}+))?)?\\s*\\)";
-    private static final String labelOpRegEx = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
+    private static final String DECIMAL_CONST_REGEX = "-?(?!0x)\\p{Digit}+";
+    private static final String HEX_CONST_REGEX = "-?0x\\p{XDigit}+";
+    
+    private static final String CONST_OPERAND_REGEX = "\\$?(?<const>" 
+            + DECIMAL_CONST_REGEX 
+            + "|" + HEX_CONST_REGEX 
+            + ")";
+    private static final String REGISTER_OPERAND_REGEX = "\\%(?<regName>\\p{Alnum}+)";
+    private static final String MEM_OPERAND_REGEX = 
+            "(?<imm>\\$?" // "$" is "allowed" here for better error reporting.
+            + DECIMAL_CONST_REGEX + "|" + HEX_CONST_REGEX 
+            + ")?" // immediate is optional
+            + "\\s*"
+            + "(?!\\(\\s*\\))" // Don't allow empty parens string, i.e. "()"
+            + "\\(\\s*(%(?<base>\\p{Alnum}+))?" // base register (optional)
+            + "\\s*(,\\s*%(?<index>\\p{Alnum}+)" // index register
+            + "\\s*(,\\s*(?<scale>\\$?\\p{Digit}+))" // scaling factor (again, "$" allowed only for better error checking)
+            + "?)?" // both index and scaling factor are optional
+            + "\\s*\\)";
+    private static final String LABEL_OPERAND_REGEX = "(?<label>[\\.\\p{Alpha}][\\.\\w]*)";
     
     // ordering is important here: constant must go after mem
-    private static final String operandRegEx = "\\s*(?<operand>" + memOpRegEx + "|" + regOpRegEx + "|" + labelOpRegEx + "|" + constOpRegEx + ")\\s*";
+    private static final String OPERAND_REGEX = "\\s*(?<operand>"
+            + MEM_OPERAND_REGEX 
+            + "|" + REGISTER_OPERAND_REGEX 
+            + "|" + LABEL_OPERAND_REGEX 
+            + "|" + CONST_OPERAND_REGEX
+            + ")(?=\\s+|,|$)";
+    
+    private static final String ONE_SUFFIX_INSTRUCTIONS_REGEX = 
+            "add|sub|imul"
+                + "|idiv|xor|or|and|shl|sal|shr|sar"
+                + "|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret|clt";
+    private static final String TWO_SUFFIX_INSTRUCTIONS_REGEX = "movz|movs";
+    private static final String CONDITIONAL_INSTRUCTIONS_REGEX = "set|j|cmov";
 
     /**
      * The line number that will be given to the next parsed line.
@@ -76,24 +109,28 @@ public class X86Parser {
      * @throws X86ParsingException If it is not a valid instruction or if the
      * size suffix is invalid.
      */
-    private TypeAndOpRequirements parseTypeAndSize(String instrName) throws X86ParsingException {
+    private Optional<TypeAndOpRequirements> parseTypeAndSize(String instrName) throws X86ParsingException {
         InstructionType type;
         OpSize size;
         List<OpSize> opSizes = new ArrayList<>();
-
+        
         /* 
          * "sized" instructions are those that have an instruction name (e.g.
          * "add") followed by a single character suffix to indicate the size
          * (e.g. "q").
          */
-        String validSizedInstrNames = "(?<name>add|sub|imul|idiv|xor|or|and|shl|sal|shr|sar|mov|lea|inc|dec|neg|not|push|pop|cmp|test|call|ret|clt)(?<size>b|w|l|q)";
+        String validSizedInstrNames = "(?<name>" 
+                + ONE_SUFFIX_INSTRUCTIONS_REGEX 
+                + ")(?<size>b|w|l|q)";
         Matcher sizedInstrMatcher = Pattern.compile(validSizedInstrNames).matcher(instrName);
         
         /*
          * "two sizes" instructions are those that have an instruction name followed
          * by two characters that indicate the size of two operands (e.g. "bl")
          */
-        String validTwoSizedInstrNames = "(?<name>movz|movs)(b[wlq]|w[lq])";
+        String validTwoSizedInstrNames = "(?<name>" 
+                + TWO_SUFFIX_INSTRUCTIONS_REGEX
+                + ")(?<suffices>b[wlq]|w[lq])";
         Matcher twoSizedInstrMatcher = Pattern.compile(validTwoSizedInstrNames).matcher(instrName);
 
         /*
@@ -103,16 +140,28 @@ public class X86Parser {
          * (e.g. "ge" for "greater than or equal")
          * The "size" of these instructions is implicit (e.g. byte for SET).
          */
-        String validConditionalInstrName = "((?<name>set|j)(?<op>e|ne|s|ns|g|ge|l|le|a|ae|b|be)|jmp)";
+        String validConditionalInstrName = "(jmp|(?<name>" 
+                + CONDITIONAL_INSTRUCTIONS_REGEX 
+                + ")(?<op>e|ne|s|ns|g|ge|l|le|a|ae|b|be))";
         Matcher condInstrMatcher = Pattern.compile(validConditionalInstrName).matcher(instrName);
+        
+        String invalidSuffix = "(?<name>"
+                + TWO_SUFFIX_INSTRUCTIONS_REGEX // this must come before sizedInstructions
+                + "|" + ONE_SUFFIX_INSTRUCTIONS_REGEX
+                + "|" + "jmp" // this must come before conditionalInstructions
+                + "|" + CONDITIONAL_INSTRUCTIONS_REGEX
+                + ")"
+                + "(?<suffix>\\p{Alpha}+)";
+        Matcher invalidSuffixMatcher = Pattern.compile(invalidSuffix).matcher(instrName);
 
+        String quadOnlyInstructions = "lea|push|pop|call|ret|clt";
         if (sizedInstrMatcher.matches()) {
             type = InstructionType.valueOf(sizedInstrMatcher.group("name").toUpperCase());
 
             // some instructions can only be quad sized so check for that first
-            if (sizedInstrMatcher.group("name").matches("(lea|push|pop|call|ret|clt)")
+            if (sizedInstrMatcher.group("name").matches("(" + quadOnlyInstructions + ")")
                     && !sizedInstrMatcher.group("size").equals("q")) {
-                throw new X86ParsingException("instruction must have quad suffix (i.e. q)",
+                throw new X86ParsingException("Invalid suffix. Must be q.",
                         sizedInstrMatcher.start("size"),
                         instrName.length());
             }
@@ -129,25 +178,112 @@ public class X86Parser {
             
         } else if (twoSizedInstrMatcher.matches()) {
             type = InstructionType.valueOf(twoSizedInstrMatcher.group("name").toUpperCase());
-            String suffix1 = twoSizedInstrMatcher.group(2).substring(0,1);
-            String suffix2 = twoSizedInstrMatcher.group(2).substring(1);
+            String suffix1 = twoSizedInstrMatcher.group("suffices").substring(0,1);
+            String suffix2 = twoSizedInstrMatcher.group("suffices").substring(1);
             
             opSizes.add(OpSize.getOpSizeFromAbbrev(suffix1));
             size = OpSize.getOpSizeFromAbbrev(suffix2);
             opSizes.add(size);
             
         } else if (condInstrMatcher.matches()) {
-            // The SET instruction is implicitly BYTE sized.
-            // The JUMP instructions don't really have a size so BYTE is
-            // arbitrarily chosen.
             type = InstructionType.valueOf(instrName.toUpperCase());
-            size = OpSize.BYTE;
+
+            
+            if (instrName.startsWith("cmov")) {
+                // The CMOV instruction doesn't have an explicit size. It's
+                // size needs to be inferred from the size of the operands.
+                size = OpSize.INFERRED;
+            }
+            else {
+                // The SET instruction is implicitly BYTE sized.
+                // The JUMP instructions don't really have a size so BYTE is
+                // arbitrarily chosen.
+                size = OpSize.BYTE;
+            }
+        } else if (invalidSuffixMatcher.matches()) {
+            String errorMessage = "Invalid suffix.";
+            
+            if (instrName.matches("^(" + quadOnlyInstructions + ").*")) {
+                errorMessage += " Must be q.";
+            }
+            else if (instrName.matches("^(" + ONE_SUFFIX_INSTRUCTIONS_REGEX + ")"
+                    + invalidSuffixMatcher.group("suffix"))) {
+                errorMessage += " Need one suffix: b, w, l, or q";
+            }
+            else if (instrName.matches("^(" + TWO_SUFFIX_INSTRUCTIONS_REGEX + ").*")) {     
+                // Identify scenario when individual suffices are correct but their
+                // ordering is invalid.
+                if (invalidSuffixMatcher.group("suffix").matches("[bwlq][bwlq]")) {
+                    errorMessage += " First suffix size must be < second.";
+                }
+                else {
+                    errorMessage += " Need two suffices: b, w, l, or q";
+                }
+            }
+            else if (instrName.matches("^(" + CONDITIONAL_INSTRUCTIONS_REGEX + ").*")) {
+                errorMessage += " Need one suffix: e, ne, s, ns, g, ge, l, le, a, ae, b, or be";
+            }
+            else if (instrName.startsWith("jmp")) {
+                errorMessage = " No suffix allowed here.";
+            }
+            
+            throw new X86ParsingException(errorMessage,
+                            invalidSuffixMatcher.start("suffix"),
+                            instrName.length());
         } else {
-            throw new X86ParsingException("invalid/unsupported instruction", 0, instrName.length());
+            Optional<String> intendedInstruction = getProbableInstruction(instrName);
+            if (intendedInstruction.isPresent()) {
+                throw new X86ParsingException(
+                        "Invalid instruction. Did you mean " + intendedInstruction.get() + "?",
+                        0,
+                        instrName.length());
+            }
+            else {
+                return Optional.empty();
+            }
+            
         }
         
         List<OperandRequirements> opReqs = getOperandReqs(type, opSizes);
-        return new TypeAndOpRequirements(type, size, opReqs);
+        return Optional.of(new TypeAndOpRequirements(type, size, opReqs));
+    }
+    
+    private static Optional<String> getProbableRegister(String actualRegister) {
+        return getMostSimilarString(ALL_REG_REGEX, actualRegister, 0.8);
+    }
+
+    private static Optional<String> getProbableInstruction(String actualInstruction) {
+        String validInstructions = "(" 
+                + ONE_SUFFIX_INSTRUCTIONS_REGEX
+                + ")(b|w|l|q)";
+        validInstructions += "|(" 
+                + TWO_SUFFIX_INSTRUCTIONS_REGEX
+                + ")(b|w|l|q){2}";
+        validInstructions += "|jmp|(" 
+                + CONDITIONAL_INSTRUCTIONS_REGEX 
+                + ")(e|ne|s|ns|g|ge|l|le|a|ae|b|be)";
+        return getMostSimilarString(validInstructions, actualInstruction, 0.8);
+    }
+
+    private static Optional<String> getMostSimilarString(String validStrings, 
+                                                            String actualString,
+                                                            double minAcceptableSimilarity) {
+        Generex g = new Generex(validStrings);
+        List<String> matchedStrs = g.getAllMatchedStrings();
+        
+        JaroWinkler jw = new JaroWinkler();
+        double maxSimilarity = 0.0;
+        Optional<String> mostSimilarString = Optional.empty();
+        
+        for (String s : matchedStrs) {
+            double similarity = jw.similarity(s, actualString);
+            if (similarity > minAcceptableSimilarity && similarity > maxSimilarity) {
+                mostSimilarString = Optional.of(s);
+                maxSimilarity = similarity;
+            }
+        }
+                
+        return mostSimilarString;
     }
 
     /**
@@ -160,16 +296,21 @@ public class X86Parser {
      */
     public static OpSize getRegisterSize(String name) throws X86ParsingException {
         OpSize opSize = OpSize.BYTE;
-        if (name.matches(lRegNames)) {
+        if (name.matches(LONG_REG_REGEX)) {
             opSize = OpSize.LONG;
-        } else if (name.matches(qRegNames)) {
+        } else if (name.matches(QUAD_REG_REGEX)) {
             opSize = OpSize.QUAD;
-        } else if (name.matches(wRegNames)) {
+        } else if (name.matches(WORD_REG_REGEX)) {
             opSize = OpSize.WORD;
-        } else if (name.matches(bRegNames)) {
+        } else if (name.matches(BYTE_REG_REGEX)) {
             opSize = OpSize.BYTE;
         } else {
-            throw new X86ParsingException("invalid register name", 0, name.length());
+            String errorMessage = "Invalid register name.";
+            Optional<String> intendedRegister = getProbableRegister(name);
+            if (intendedRegister.isPresent()) {
+                errorMessage += " Did you mean " + intendedRegister.get() + "?";
+            }
+            throw new X86ParsingException(errorMessage, 0, name.length());
         }
 
         return opSize;
@@ -183,23 +324,24 @@ public class X86Parser {
      * @return The parsed operand.
      * @throws X86ParsingException There was an error parsing the string.
      */
-    private Operand parseOperand(String str, OperandRequirements opReqs) throws X86ParsingException {
+    private Operand parseOperand(String str, OperandRequirements opReqs) 
+            throws X86ParsingException {
         Operand op = null;
 
-        Matcher constMatcher = Pattern.compile(constOpRegEx).matcher(str);
-        Matcher regMatcher = Pattern.compile(regOpRegEx).matcher(str);
-        Matcher memMatcher = Pattern.compile(memOpRegEx).matcher(str);
-        Matcher labelMatcher = Pattern.compile(labelOpRegEx).matcher(str);
+        Matcher constMatcher = Pattern.compile(CONST_OPERAND_REGEX).matcher(str);
+        Matcher regMatcher = Pattern.compile(REGISTER_OPERAND_REGEX).matcher(str);
+        Matcher memMatcher = Pattern.compile(MEM_OPERAND_REGEX).matcher(str);
+        Matcher labelMatcher = Pattern.compile(LABEL_OPERAND_REGEX).matcher(str);
 
         if (constMatcher.matches()) {
             // Found a constant operand
             if (!str.contains("$"))
-                throw new X86ParsingException("Missing $ before constant", 
+                throw new X86ParsingException("Missing $ before constant.", 
                                                 constMatcher.start(),
                                                 constMatcher.end());
 
             if (!opReqs.canBeConst())
-                throw new X86ParsingException("operand cannot be a constant", 
+                throw new X86ParsingException("Operand cannot be a constant.", 
                                                 constMatcher.start(),
                                                 constMatcher.end());
             
@@ -211,24 +353,21 @@ public class X86Parser {
             }
             assert(base == 10 || base == 16);
             
-            BigInteger val = new BigInteger(constStr, base);
-            
-            // check that the constant is within the operand size limit
-            int valSize = base == 10 ? val.bitLength()+1 : constStr.length()*4;
-            if (valSize > opReqs.getSize().numBits()) {
-                throw new X86ParsingException("constant too large for specified size", 
+            if (!ConstantOperand.fitsInSize(opReqs.getSize(), constStr, base)) {
+                throw new X86ParsingException("Constant is too large for specified size.", 
                                                 constMatcher.start(),
                                                 constMatcher.end());
             }
             
-            op = new ConstantOperand(opReqs.getSize().getValue(val), 
-                                        opReqs.getSize(),
-                                        base,
-                                        constMatcher.group("const"));
+            BigInteger val = new BigInteger(constStr, base);
+            op = new ConstantOperand(opReqs.getSize().getValue(val),
+                    opReqs.getSize(),
+                    base,
+                    constMatcher.group("const"));
         } else if (regMatcher.matches()) {
             // Found a register operand
             if (!opReqs.canBeReg())
-                throw new X86ParsingException("operand cannot be a register", 
+                throw new X86ParsingException("Operand cannot be a register.", 
                                                 regMatcher.start(), 
                                                 regMatcher.end());
             
@@ -245,9 +384,12 @@ public class X86Parser {
 
             // Make sure the size of this register doesn't conflict with the
             // size the instruction uses/wants.
-            // TODO: move this check to a "validation" method
-            if (opSize != opReqs.getSize()) {
-                throw new X86ParsingException("op size mismatch", 
+            if (opReqs.getSize() != OpSize.INFERRED 
+                    && opSize != opReqs.getSize()) {
+                String suggestedRegName = 
+                        Register.getSubRegisterName(regName, opReqs.getSize().numBytes());
+                
+                throw new X86ParsingException("Op size mismatch. Did you mean " + suggestedRegName + "?", 
                                                 regMatcher.start("regName"), 
                                                 regMatcher.end("regName"));
             }
@@ -256,7 +398,7 @@ public class X86Parser {
         } else if (memMatcher.matches()) {
             // Found a memory operand
             if (!opReqs.canBeMem())
-                throw new X86ParsingException("operand cannot be a memory location", 
+                throw new X86ParsingException("Operand cannot be a memory location.", 
                                                 memMatcher.start(), 
                                                 memMatcher.end());
 
@@ -268,6 +410,11 @@ public class X86Parser {
             Integer offset = null;
             String offsetStr = memMatcher.group("imm");
             if (offsetStr != null) {
+                if (offsetStr.startsWith("$")) {
+                    throw new X86ParsingException("Immediate should not start with \"$\".",
+                            memMatcher.start("imm"),
+                            memMatcher.end("imm"));
+                }
                 int base = 10;
                 if (offsetStr.contains("0x")) {
                     base = 16;
@@ -292,7 +439,7 @@ public class X86Parser {
                             memMatcher.start("base") + e.getEndIndex());
                 }
                 if (baseOpSize != OpSize.QUAD) {
-                    throw new X86ParsingException("base register must be quad sized",
+                    throw new X86ParsingException("Base register must be quad sized.",
                             memMatcher.start("base"),
                             memMatcher.end("base"));
                 }
@@ -311,7 +458,7 @@ public class X86Parser {
                 }
 
                 if (indexOpSize != OpSize.QUAD) {
-                    throw new X86ParsingException("index register must be quad sized",
+                    throw new X86ParsingException("Index register must be quad sized.",
                             memMatcher.start("index"),
                             memMatcher.end("index"));
                 }
@@ -321,9 +468,14 @@ public class X86Parser {
             Integer scale = null;
             String scaleStr = memMatcher.group("scale");
             if (scaleStr != null) {
+                if (scaleStr.startsWith("$")) {
+                    throw new X86ParsingException("Scale factor should not start with \"$\".",
+                            memMatcher.start("scale"),
+                            memMatcher.end("scale"));
+                }
                 scale = Integer.parseInt(scaleStr);
                 if (scale != 1 && scale != 2 && scale != 4 && scale != 8) {
-                    throw new X86ParsingException("invalid scaling factor",
+                    throw new X86ParsingException("Invalid scaling factor. Expecting 1, 2, 4, or 8",
                             memMatcher.start("scale"),
                             memMatcher.end("scale"));
                 }
@@ -333,20 +485,19 @@ public class X86Parser {
         } else if (labelMatcher.matches()) {
             // Found a label operand
             String labelName = labelMatcher.group("label");
-            if (labelName.matches(allRegNames))
-                throw new X86ParsingException("Possibly missing % before register name", 
+            if (labelName.matches(ALL_REG_REGEX))
+                throw new X86ParsingException("Possibly missing % before register name.",
                                                 labelMatcher.start(), 
                                                 labelMatcher.end());
             
             // Found a label operand
              if (!opReqs.canBeLabel())
-                throw new X86ParsingException("operand cannot be a label", 
+                throw new X86ParsingException("Operand cannot be a label.", 
                                                 labelMatcher.start(), 
                                                 labelMatcher.end());
             
             op = new LabelOperand(labelName, labels.get(labelName));
         } else {
-            // TODO: throw X86ParsingException here
             System.out.println("ERROR: Unknown type of operand.");
             System.out.println("\t Tried to match " + str);
             System.exit(1);
@@ -363,12 +514,21 @@ public class X86Parser {
      * @return The list of operands that were parsed.
      * @throws X86ParsingException There was a problem parsing the operands.
      */
-    private List<Operand> parseOperands(String operandsStr, List<OperandRequirements> opReqs) throws X86ParsingException {
+    private List<Operand> parseOperands(String operandsStr, 
+            List<OperandRequirements> opReqs) throws X86ParsingException {
         List<Operand> operands = new ArrayList<>();
 
-        Matcher m = Pattern.compile(operandRegEx).matcher(operandsStr);
+        Matcher m = Pattern.compile(OPERAND_REGEX).matcher(operandsStr);
         if (!m.find()) {
             return operands;
+        }
+        
+        if (opReqs.isEmpty()) {
+            throw new X86ParsingException("Unexpected operand(s).",
+                    0, operandsStr.length());
+        } else if (m.start("operand") != 0) {
+            throw new X86ParsingException("Unexpected character(s) before first operand.", 
+                    0, m.start("operand"));
         }
 
         int nextIndex = -1;
@@ -384,12 +544,12 @@ public class X86Parser {
 
             // Update pattern to include the comma separator for the following
             // operands
-            m = Pattern.compile("," + operandRegEx).matcher(operandsStr);
+            m = Pattern.compile("," + OPERAND_REGEX).matcher(operandsStr);
 
             // Keep parsing operands until we don't find any more
             while (m.find(nextIndex)) {
                 if (opIndex >= opReqs.size()) {
-                    throw new X86ParsingException("too many operand(s)",
+                    throw new X86ParsingException("Too many operand(s).",
                             nextIndex + m.start("operand"),
                             operandsStr.length());
                 }
@@ -404,10 +564,13 @@ public class X86Parser {
                     m.start("operand") + e.getStartIndex(),
                     m.start("operand") + e.getEndIndex());
         }
+        
+        String remainder = operandsStr.substring(nextIndex).trim();
 
         // Make sure there isn't any leftover cruft after the last parsed operand
-        if (nextIndex != operandsStr.length()) {
-            throw new X86ParsingException("unexpected value", nextIndex, operandsStr.length());
+        if (!remainder.isEmpty()) {
+            throw new X86ParsingException("Could not parse operand(s).", 
+                    nextIndex, operandsStr.length());
         }
 
         return operands;
@@ -421,7 +584,7 @@ public class X86Parser {
      * @throws X86ParsingException There was a problem parsing the line.
      */
     public x86ProgramLine parseLine(String instr) throws X86ParsingException {
-        Matcher commentMatcher = Pattern.compile("(?<other>.*)(?<comment>#.*)").matcher(instr);
+        Matcher commentMatcher = Pattern.compile("(?<other>[^#]*)(?<comment>#.*)").matcher(instr);
         
         x86Comment c = null;
         if (commentMatcher.matches()){
@@ -436,11 +599,11 @@ public class X86Parser {
         }
         
         Matcher instMatcher = Pattern.compile("\\s*(?<inst>\\p{Alpha}+)(\\s+(?<operands>.*))?").matcher(instr);
-        Matcher labelMatcher = Pattern.compile("\\s*" + labelOpRegEx + ":\\s*").matcher(instr);
+        Matcher labelMatcher = Pattern.compile("\\s*" + LABEL_OPERAND_REGEX + ":\\s*").matcher(instr);
         
         // The line should be either a label or an instruction
         if (!instMatcher.matches() && !labelMatcher.matches()) {
-            throw new X86ParsingException("nonsense input", 0, instr.length());
+            throw new X86ParsingException("Could not parse line: invalid syntax.", 0, instr.length());
         }
 
         if (instMatcher.matches()) {
@@ -451,7 +614,7 @@ public class X86Parser {
             // instruction.
             String instrName = instMatcher.group("inst");
 
-            TypeAndOpRequirements instDetails = null;
+            Optional<TypeAndOpRequirements> instDetails = Optional.empty();
             try {
                 instDetails = parseTypeAndSize(instrName);
             } catch (X86ParsingException e) {
@@ -460,21 +623,33 @@ public class X86Parser {
                         instMatcher.start("inst") + e.getEndIndex());
             }
 
-            InstructionType instrType = instDetails.type;
-            OpSize instrSize = instDetails.instrSize;
-            List<OperandRequirements> opReqs = instDetails.operandReqs;
+            String operandsStr = instMatcher.group("operands");
+            
+            // Check to see if the user might have meant a label here but forgot
+            // to add the ":" after it.
+            if (!instDetails.isPresent()) {
+                String errorMessage = "Invalid instruction.";
+                if (operandsStr == null) {
+                    errorMessage += " Did you forget a \":\" after a label?";
+                }
+                throw new X86ParsingException(errorMessage,
+                            instMatcher.start("inst"),
+                            instMatcher.end("inst"));
+            }
+            
+            InstructionType instrType = instDetails.get().type;
+            OpSize instrSize = instDetails.get().instrSize;
+            List<OperandRequirements> opReqs = instDetails.get().operandReqs;
 
             // Step 2: Parse the operands (putting them into a list) then use
             // those operands plus the instruction type to create a new
             // X86Instruction.
-            String operandsStr = instMatcher.group("operands");
             if (operandsStr != null) {
 
                 List<Operand> operands = null;
                 try {
                     operands = parseOperands(operandsStr, opReqs);
                 } catch (X86ParsingException e) {
-                    System.out.println(instMatcher.start("operands"));
                     throw new X86ParsingException(e.getMessage(),
                             instMatcher.start("operands") + e.getStartIndex(),
                             instMatcher.start("operands") + e.getEndIndex());
@@ -486,16 +661,44 @@ public class X86Parser {
                             instMatcher.start("operands"),
                             instr.length());
                 } else if (instrType.numOperands() == 2) {
-                    // This is a binary instruction (e.g. add), then second operand
-                    // should be something we can write to (i.e. not a constant or a
-                    // label)
-                    if (operands.get(1) instanceof ConstantOperand) {
-                        // FIXME: start/end index is not right here
-                        throw new X86ParsingException("destination cannot be a constant",
+                    // Don't allow both operands to be memory operands.
+                    if (operands.get(0) instanceof MemoryOperand
+                            && operands.get(1) instanceof MemoryOperand) {
+                        throw new X86ParsingException("Cannot have two memory operands.",
                                 instMatcher.start("operands"),
                                 instr.length());
                     }
-                    // TODO: check that the destination isn't a LabelOperand either
+                    
+                    // Determine what size is inferred by the actual operands.
+                    if (instrSize == OpSize.INFERRED) {
+                        // Second operand has to be a register, which will always
+                        // be the explicit size.
+                        OpSize inferredSize = operands.get(1).getOpSize();
+                        instrSize = inferredSize;
+                        OpSize srcSize = operands.get(0).getOpSize();
+                        if (srcSize != OpSize.INFERRED) {
+                            // If not inferred, then src must match size
+                            if (inferredSize != srcSize) {
+                                throw new X86ParsingException("Mismatched operand sizes.",
+                                        instMatcher.start("operands"),
+                                        instr.length());
+                            }
+                        }
+                        else {
+                            boolean ok = operands.get(0).makeSizeExplicit(inferredSize);
+                            assert ok;
+                        }
+                    }
+                    
+                    // According to the Intel IA32/64 manual, CMOV instructions
+                    // cannot be used to move byte sized values.
+                    if (instrType.toString().startsWith("CMOV") 
+                            && instrSize == OpSize.BYTE) {
+                        throw new X86ParsingException("CMOV instructions may not be byte sized.",
+                                instMatcher.start("operands"),
+                                instr.length());
+                    }
+                    
                     return new x86BinaryInstruction(instrType,
                             operands.get(0),
                             operands.get(1),
@@ -503,8 +706,6 @@ public class X86Parser {
                             currLineNum++,
                             c);
                 } else if (instrType.numOperands() == 1) {
-                    // TODO: throw exception if destination is a constant (or a
-                    // label for non-jump instructions)
                     x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
                             operands.get(0),
                             instrSize,
@@ -524,7 +725,7 @@ public class X86Parser {
                     }
                     return inst;
                 }
-                return null; // FIXME: throw exception
+                throw new X86ParsingException("I am confusion", instMatcher.start("operands"), instrName.length());
             } else {
                 if (instrType.numOperands() != 0)
                     throw new X86ParsingException(
@@ -541,7 +742,7 @@ public class X86Parser {
             // This line contains a label
             String labelName = labelMatcher.group("label");
             
-            if (labelName.matches(allRegNames))
+            if (labelName.matches(ALL_REG_REGEX))
                 throw new X86ParsingException("Label name should not be a register name", 
                                                 labelMatcher.start("label"), 
                                                 labelMatcher.end("label"));
@@ -593,6 +794,15 @@ public class X86Parser {
         labels.remove(labelName);
     }
     
+    public Optional<x86ProgramLine> getFirstLineOfMain(){
+        x86Label l = labels.get("main");
+        if (l != null) {
+            return Optional.of(l);
+        } else {
+            return Optional.empty();
+        }
+    } 
+    
     /**
      * Returns a list of operand requirements for an instruction of the given type
      * with the given operand sizes.
@@ -631,7 +841,6 @@ public class X86Parser {
             case SHL:
             case SAL:
             case SHR:
-            case SRL:
             case SAR:
                 opReqs.add(new OperandRequirements(OpSize.BYTE, true, false, false, false));
                 opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
@@ -642,15 +851,27 @@ public class X86Parser {
                 opReqs.add(new OperandRequirements(OpSize.QUAD, false, true, false, false));
                 break;
                 
-            case IDIV:
-                opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
+            case CMOVE:
+            case CMOVNE:
+            case CMOVS:
+            case CMOVNS:
+            case CMOVG:
+            case CMOVGE:
+            case CMOVL:
+            case CMOVLE:
+            case CMOVA:
+            case CMOVAE:
+            case CMOVB:
+            case CMOVBE:
+                opReqs.add(new OperandRequirements(OpSize.INFERRED, false, true, true, false));
+                opReqs.add(new OperandRequirements(OpSize.INFERRED, false, true, false, false));
                 break;
-
                 
             case INC:
             case DEC:
             case NEG:
             case NOT:
+            case IDIV:
                 opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
                 break;
                 

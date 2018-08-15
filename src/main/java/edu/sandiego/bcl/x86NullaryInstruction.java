@@ -11,10 +11,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @FunctionalInterface
 interface NullaryX86Operation {
-    MachineState apply(MachineState state);
+    MachineState apply(MachineState state) throws x86RuntimeException;
 }
 
 /**
@@ -52,7 +54,7 @@ public class x86NullaryInstruction extends x86Instruction {
         }
     }
 
-    private MachineState clt(MachineState state) {
+    private MachineState clt(MachineState state) throws x86RuntimeException {
         // Gets the value of eax, sign extends it then updates rax with that value
         RegOperand eaxReg = new RegOperand("eax", OpSize.LONG);
         BigInteger eaxVal = eaxReg.getValue(state);
@@ -64,16 +66,27 @@ public class x86NullaryInstruction extends x86Instruction {
         return raxReg.updateState(state, Optional.of(raxVal), new HashMap<>(), true);
     }
     
-    private MachineState ret(MachineState state) {
+    private MachineState ret(MachineState state) throws x86RuntimeException {
         Map<String, Boolean> flags = new HashMap<>();
         
         // step 1: store (%rsp) value in rip register 
         MemoryOperand src = new MemoryOperand("rsp", null, null, null, this.opSize, "");
-        MachineState tmp = state.cloneWithNewRIP(src.getValue(state).intValue());
-
-        // step 2: add 8 to rsp
-        RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
-        return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
+        MachineState tmp, mS;
+        try {
+            tmp = state.cloneWithNewRIP(src.getValue(state).intValue());
+            
+            // step 2: add 8 to rsp
+            RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+            mS = rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
+        } catch (x86RuntimeException ex) {
+            if(state.getCallStackSize() != 0){
+                throw ex;
+            }
+            // FIXME: Think about incrementing rip or not
+            mS = src.updateState(state, Optional.empty(), flags, false);
+        }
+        mS.popFromCallStack();
+        return mS;
     }
     
     @Override
@@ -89,7 +102,7 @@ public class x86NullaryInstruction extends x86Instruction {
     }
 
     @Override
-    public MachineState eval(MachineState state) {
+    public MachineState eval(MachineState state) throws x86RuntimeException {
         return operation.apply(state); // the journey is the destination
     }
 

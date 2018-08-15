@@ -1,4 +1,4 @@
-/*
+/**
  * Class that represents the simulation of an assembly program.
  */
 package edu.sandiego.bcl;
@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.collections.ObservableList;
-import javafx.scene.control.Alert;
 
 /**
  *
@@ -19,14 +18,14 @@ public class Simulation {
     /**
      * The history of execution states in our simulation.
      */
-    private List<MachineState> stateHistory;
+    private final List<MachineState> stateHistory;
     
     /**
      * History of registers used by the simulation. This list may contain
      * duplicates as one is added for each register used by an instruction when
      * it is executed.
      */
-    private List<String> regHistory;
+    private final List<String> regHistory;
     
     /**
      * The line in the program where simulation is currently at.
@@ -38,14 +37,25 @@ public class Simulation {
     /**
      * The program being simulated.
      */
-    private x86Program program;
+    private final x86Program program;
+    
+    /**
+     * The radix in which the register value will be displayed.
+     */
+    private int registerBase;
+    
+    /**
+     * The evaluation is stopped because of a RunTime Error.
+     */
+    private boolean stuckOnError;
     
     public Simulation() {
         this.program = new x86Program();
         this.stateHistory = new ArrayList<>();
         this.stateHistory.add(new MachineState());
-        
         this.regHistory = new ArrayList<>();
+        this.registerBase = 0;
+        this.stuckOnError = false;
     }
     
     public Simulation(File assemblyFile) throws FileNotFoundException,
@@ -57,9 +67,11 @@ public class Simulation {
         
         regHistory = new ArrayList<>();
         if (!this.program.isEmpty()) {
-            currentLine = this.program.getLine(0);
+            currentLine = this.program.getBeginningOfProgram();
+            stateHistory.get(0).setRip(currentLine.getLineNum());
             regHistory.addAll(this.program.getLine(0).getUsedRegisters());
         }
+        this.stuckOnError = false;
     }
     
     public String getProgramFileName() { return this.program.getFileName(); }
@@ -73,11 +85,19 @@ public class Simulation {
     }
     
     public List<Register> getRegisters() {
-        return stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory);
+        List<Register> regList = stateHistory.get(this.stateHistory.size() - 1).getRegisters(regHistory);
+        for(Register r : regList){
+            r.setValueToBase(this.registerBase);
+        }
+        return regList;
     }
     
     public List<StackEntry> getStackEntries() {
         return stateHistory.get(this.stateHistory.size() - 1).getStackEntries();
+    }
+    
+    public boolean getStuckOnError() {
+        return this.stuckOnError;
     }
     
     public boolean hasSignFlagSet() {
@@ -101,7 +121,7 @@ public class Simulation {
     }
     
     /**
-     * Restarts simulation back to its starting state.
+     * Restarts simulation back to its beginning state.
      */
     public void restart() {
         this.stateHistory.clear();
@@ -110,25 +130,38 @@ public class Simulation {
         this.regHistory.clear();
 
         if (!this.program.isEmpty()) {
-            currentLine = this.program.getLine(0);
+            currentLine = this.program.getBeginningOfProgram();
+            stateHistory.get(0).setRip(currentLine.getLineNum());
             regHistory.addAll(currentLine.getUsedRegisters());
         }
+        
+        this.stuckOnError = false;
     }
     
     /**
-     * Checks if end of program has been reached and if so.
+     * Checks if end of simulation has been reached.
      * 
      * @return True if simulation is at the end, false otherwise.
      */
     public boolean isFinished(){
-        return stateHistory.get(stateHistory.size() - 1).getRipRegister() 
-                >= this.program.getNumLines();
+        return (stateHistory.get(stateHistory.size() - 1).getRipRegister() 
+                >= this.program.getNumLines()) 
+                || (stateHistory.get(stateHistory.size() - 1).getCallStackSize() < 0);
+    }
+    
+    /**
+     * Checks if simulation is at the beginning (i.e. hasn't executed any instructions).
+     * 
+     * @return True if simulation is at the beginning, false otherwise.
+     */
+    public boolean isAtBeginning(){
+        return stateHistory.size() == 1; 
     }
     
     /**
      * Executes the next instruction in our simulation.
      */
-    public void stepForward() {
+    public void stepForward() throws x86RuntimeException {
         evalCurrentInstruction();
     }
     
@@ -137,7 +170,7 @@ public class Simulation {
      * 
      * @return True if simulation completed or we reached a breakpoint. False otherwise.
      */
-    public boolean finish() {
+    public boolean finish() throws x86RuntimeException {
         int numExecuted = 0; // number of instructions we have executed so far
         
         while (!isFinished()
@@ -154,7 +187,7 @@ public class Simulation {
      * Evaluates the current instruction, adding the newly produced state to our
      * history and selecting the next instruction.
      */
-    private void evalCurrentInstruction() {
+    private void evalCurrentInstruction() throws x86RuntimeException {
         try {
             // evaluate the current instruction, adding its new state to our history
             MachineState nextState = currentLine.eval(stateHistory.get(stateHistory.size() - 1));
@@ -167,15 +200,10 @@ public class Simulation {
             else {
                 currentLine = this.program.getLine(stateHistory.get(stateHistory.size() - 1).getRipRegister());
                 regHistory.addAll(currentLine.getUsedRegisters());
-            }
-        } catch (Exception e) {
-            // TODO: this should catch a custom simulation exception type
-            Alert evalError = new Alert(Alert.AlertType.ERROR);
-            evalError.setTitle("Simulation Error");
-            evalError.setHeaderText("Error during simulation");
-            evalError.setContentText("The following error occurred while simulating the current instruction:"
-                    + "\n\n" + e.getMessage());
-            evalError.showAndWait();
+            } 
+        } catch (x86RuntimeException e) {
+            this.stuckOnError = true;
+            throw e;
         }
     }
     
@@ -186,15 +214,26 @@ public class Simulation {
     public void stepBackward() {
         // We'll only have one state in our history when we are at the beginning
         // of simulation. In this case, going backwards shouldn't do anything.
-        if (stateHistory.size() == 1) return;
+        if (stateHistory.size() == 1) {
+            this.stuckOnError = false;
+            return;
+        }
         
         stateHistory.remove(stateHistory.size() - 1);
         if (!this.program.isEmpty() && currentLine != null) {
             regHistory.removeAll(currentLine.getUsedRegisters());
         }
         currentLine = this.program.getLine(stateHistory.get(stateHistory.size() - 1).getRipRegister());
+        
+        this.stuckOnError = false;
     }
     
+    /**
+     * Add line to end of the program associated with this simulation.
+     * 
+     * @param lineText The line to be added to the program.
+     * @throws X86ParsingException if the given line cannot be parsed.
+     */
     public void appendToProgram(String lineText) throws X86ParsingException {
         x86ProgramLine newLine = this.program.parseThenAddLine(lineText);
 
@@ -206,20 +245,48 @@ public class Simulation {
         }
     }
     
+    /**
+     * Removes the given program line from the program associated with this simulation.
+     * 
+     * @param line The line to remove.
+     */
     public void removeFromProgram(x86ProgramLine line) {
         this.program.removeLine(line);
     }
     
+    /**
+     * Replaces an existing line with a new one in the program associated with
+     * this simulation.
+     * @param existingLine The line that will be replaced.
+     * @param newLine What the existing line will be replaced with.
+     * @throws X86ParsingException if the new line cannot be parsed.
+     */
     public void replaceInProgram(x86ProgramLine existingLine, String newLine) throws X86ParsingException {
         this.program.replaceLine(existingLine, newLine);
     }
     
+    /**
+     * Writes the program out to a file. The location of the file is based on where
+     * it was last saved.
+     * 
+     * @return True if the program was successfully written, False otherwise. 
+     */
     public boolean saveProgram() {
         return this.program.writeToFile();
     }
     
+    /**
+     * Writes the program out to the given file.
+     * 
+     * @param f The file to write the program out to.
+     * @return True if the program was successfully written, False otherwise.
+     */
     public boolean saveProgramAs(File f) {
         this.program.setFile(f);
         return this.program.writeToFile();
+    }
+    
+    public void setRegisterBase(int base){
+        registerBase = base;
     }
 }

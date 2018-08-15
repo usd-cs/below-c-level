@@ -10,6 +10,8 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Stack;
 import javafx.scene.control.Tab;
 
 /**
@@ -44,6 +46,11 @@ public class MachineState {
      * The rip register.
      */
     private int rip;
+    
+    /**
+     * Number of functions on call stack
+     */
+    private int callStackSize;
 
     /**
      * Create a new state with all registers (except %rsp) initialized to 0 but
@@ -55,17 +62,20 @@ public class MachineState {
         this.tabList = new ArrayList<Tab>();
         this.statusFlags = new HashMap<String, Boolean>();
         this.rip = 0;
+        this.callStackSize = 0;
 
         String[] regNames = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
         for (String s : regNames) {
             registers.put(s, new RegisterState(new byte[8], -1));
         }
 
+        // initialize RSP to 0x7FFFFFFFFFFFFFF8
         long initRSP = 1 << 30;
         initRSP <<= 30;
         initRSP <<= 3;
         initRSP = ~initRSP;
-        registers.put("rsp", new RegisterState(ByteBuffer.allocate(8).putLong(initRSP).array(), -1)); // rsp = 0x7FFFFFFFFFFFFFFF
+        initRSP -= 7;
+        registers.put("rsp", new RegisterState(ByteBuffer.allocate(8).putLong(initRSP).array(), -1));
 
         String[] flagNames = {"zf", "sf", "of", "cf"};
         for (String s : flagNames) {
@@ -73,12 +83,13 @@ public class MachineState {
         }
     }
 
-    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, List<Tab> tList, Map<String, Boolean> flags, int RIP) {
+    public MachineState(Map<String, RegisterState> reg, List<StackEntry> mem, List<Tab> tList, Map<String, Boolean> flags, int RIP, int cStack) {
         this.registers = reg;
         this.memory = mem;
         this.tabList = tList;
         this.statusFlags = flags;
         this.rip = RIP;
+        this.callStackSize = cStack;
     }
 
     // Getters for the status flags
@@ -102,33 +113,43 @@ public class MachineState {
      * Create a new MachineState based on the current state but with an updated
      * value for a memory address.
      *
-     * @param address The starting (i.e. lowest) address that will be changed.
-     * @param val The new value of the given memory address.
-     * @param size The number of bytes to write to memory.
-     * @param flags The condition flags to modify for the new state.
+     * @param newValueForStack The new value of the given memory address.
+     * @param newValueStartingAddress The starting (i.e. lowest) address that will be changed.
+     * @param newValueSize The number of bytes to write to memory.
+     * @param flagsForClone The condition flagsForClone to modify for the new state.
      * @param incrementRIP Whether to increment RIP or not.
      * @return A new state that is the same as the current but with new binding
      * from given address to given val.
+     * @throws edu.sandiego.bcl.x86RuntimeException
      */
-    public MachineState cloneWithUpdatedMemory(long address,
-            Optional<BigInteger> val,
-            int size, Map<String, Boolean> flags,
-            boolean incrementRIP) {
+    public MachineState cloneWithUpdatedMemory(Optional<BigInteger> newValueForStack, 
+            long newValueStartingAddress, int newValueSize,
+            Map<String, Boolean> flagsForClone,
+            boolean incrementRIP) throws x86RuntimeException {
         
-        List<StackEntry> mem = this.memory;
-        Map<String, RegisterState> reg = this.registers;
+        List<StackEntry> stackForClone = this.memory;
+        Map<String, RegisterState> registersForClone = this.registers;
 
-        // TODO: Comment
-        if (val.isPresent()) {
-            long newStartAddr = address;
-            long newEndAddr = address + size - 1;
+        if (newValueForStack.isPresent()) {
+            // Limit writes to only valid memory locations (i.e. the stack).
+            if (!isValidMemoryAccess(newValueStartingAddress, newValueSize)) {
+                throw new x86RuntimeException("Invalid write to 0x" 
+                        + Long.toHexString(newValueStartingAddress).toUpperCase());
+            }
             
-            // FIXME: make sure there wasn't overflow causing newEndAddr
-            // to be less than newStartAddr
+            // Enforce Intel-recommended alignments.
+            if (newValueStartingAddress % newValueSize != 0) {
+                throw new x86RuntimeException("Unaligned memory access");
+            }
             
-            mem = new ArrayList<>(this.memory);
+            stackForClone = new ArrayList<>(this.memory);
             
+            long newStartAddr = newValueStartingAddress;
+            long newEndAddr = newValueStartingAddress + newValueSize - 1;
+            
+            // Check for overlap with existing entries and handle accordingly.
             for (StackEntry entry : this.memory) {
+                
                 long entryStartAddr = entry.getStartAddress();
                 long entryEndAddr = entry.getEndAddress();
                 
@@ -136,129 +157,194 @@ public class MachineState {
                         && Long.compareUnsigned(newEndAddr, entryEndAddr) >= 0) {
                     // The new StackEntry completely ensconces the old, so we'll
                     // simply remove the old one
-                    mem.remove(entry);
+                    stackForClone.remove(entry);
                 } else if (Long.compareUnsigned(newStartAddr, entryStartAddr) > 0 
                         && Long.compareUnsigned(newEndAddr, entryEndAddr) < 0) {
-                    // The new stack entry is contained completed within the old
-                    // entry so we'll split the old entry into two entries, one
-                    // for the bottom part and one for the top part
-                    long bottomStartAddr = entryStartAddr;
-                    long bottomEndAddr = newStartAddr - 1;
-                    
-                    byte[] valOld = entry.getValueArr();
-                    byte[] valBottom = Arrays.copyOfRange(valOld, 0, 
-                            (int) ((bottomEndAddr - bottomStartAddr) + 1));
-                    
-                    long topStartAddr = newEndAddr + 1;
-                    long topEndAddr = entryEndAddr;
-                    byte[] valTop = Arrays.copyOfRange(valOld, 
-                            ((int) ((newEndAddr - newStartAddr) + 1)) + valBottom.length, 
-                            valOld.length);
-
-                    StackEntry sBottom = new StackEntry(bottomStartAddr, 
-                                                        bottomEndAddr, 
-                                                        valBottom, 
-                                                        entry.getOrigin());
-                    StackEntry sTop = new StackEntry(topStartAddr, 
-                                                        topEndAddr, 
-                                                        valTop, 
-                                                        entry.getOrigin());
-                    mem.add(sBottom);
-                    mem.add(sTop);
-                    mem.remove(entry);
+                    // The new entry is in the middle of an existing entry, so
+                    // split that entry.
+                    splitStackEntry(newStartAddr, newEndAddr, entry, stackForClone);
                 } else if (!(Long.compareUnsigned(newStartAddr, entryEndAddr) > 0
                         || Long.compareUnsigned(newEndAddr, entryStartAddr) < 0)) {
-                    // The old entry either overlaps at the bottom or top of the
-                    // old entry, so we'll shrink the old entry.
-                    long overlapStartAddr, overlapEndAddr;
-                    
-                    if (Long.compareUnsigned(newStartAddr, entryStartAddr) < 0) {
-                        overlapStartAddr = entryStartAddr;
-                    } else {
-                        overlapStartAddr = newStartAddr;
-                    }
-
-                    if (Long.compareUnsigned(newEndAddr, entryEndAddr) < 0) {
-                        overlapEndAddr = newEndAddr;
-                    } else {
-                        overlapEndAddr = entryEndAddr;
-                    }
-
-                    long shrunkenStartAddr, shrunkenEndAddr;
-                    if (Long.compareUnsigned(overlapStartAddr, entryStartAddr) > 0) {
-                        shrunkenStartAddr = entryStartAddr;
-                    } else {
-                        shrunkenStartAddr = overlapEndAddr + 1;
-                    }
-
-                    if (Long.compareUnsigned(overlapEndAddr, entryEndAddr) < 0) {
-                        shrunkenEndAddr = entryEndAddr;
-                    } else {
-                        shrunkenEndAddr = overlapStartAddr - 1;
-                    }
-                    
-                    int overlapRegionSize = (int) ((overlapEndAddr - overlapStartAddr) + 1);
-                    
-                    // Determine the range of indices to keep (by copying over)
-                    int copyRangeStart, copyRangeEnd;
-                    byte[] valOld = entry.getValueArr();
-                    if (Long.compareUnsigned(entryStartAddr, overlapStartAddr) == 0) {
-                        copyRangeStart = overlapRegionSize;
-                        copyRangeEnd = valOld.length;
-                    } else {
-                        copyRangeStart = 0;
-                        copyRangeEnd = valOld.length - overlapRegionSize;
-                    }
-                    byte[] valNew = Arrays.copyOfRange(valOld, copyRangeStart, copyRangeEnd);
-                    
-                    StackEntry shrunkenEntry = new StackEntry(shrunkenStartAddr, 
-                                                                shrunkenEndAddr, 
-                                                                valNew, 
-                                                                entry.getOrigin());
-                    mem.add(shrunkenEntry);
-                    mem.remove(entry);
+                    // There is overlap with top or bottom of an existing entry
+                    // so shrink that entry.
+                    shrinkStackEntry(newStartAddr, newEndAddr, entry, stackForClone);
                 }
             }
 
-            // Note: Java stores values in big endian format while x86 requires
-            // little endian. We'll work with the big endian and switch over only
-            // at the end.
-            byte[] valArray = val.get().toByteArray();
-            byte[] fullArrayBigEndian = new byte[size];
-            int numToFill = size - valArray.length;
-            byte toFill = 0;
-
-            if (val.get().signum() == -1) {
-                toFill = -1; // i.e. 0xFF
-            }
-
-            // Sign extend to fill total requested size
-            for (int i = 0; i < numToFill; i++) {
-                fullArrayBigEndian[i] = toFill;
-            }
-
-            // copy over the original value
-            for (int dest = numToFill, src = 0; dest < size; dest++, src++) {
-                fullArrayBigEndian[dest] = valArray[src];
-            }
-            
-            // reverse the big endian version to get the little endian
-            byte[] fullArrayLittleEndian = new byte[size];
-            for (int src = 0, dest = size-1; src < size; src++, dest--) {
-                fullArrayLittleEndian[dest] = fullArrayBigEndian[src];
-            }
-
-            StackEntry entry = new StackEntry(address, address + size - 1, 
-                                                fullArrayLittleEndian, rip);
-            mem.add(entry);
+            createAndAddStackEntry(newValueForStack.get(), newValueSize, 
+                    newValueStartingAddress, stackForClone);
+            stackForClone.sort(Comparator.comparing(StackEntry::getStartAddress));
         }
         
         int newRipVal = this.rip;
         if (incrementRIP) newRipVal++;
 
-        mergeFlags(flags);
+        this.mergeFlagsInto(flagsForClone);
 
-        return new MachineState(reg, mem, this.tabList, flags, newRipVal);
+        return new MachineState(registersForClone, stackForClone, this.tabList, 
+                flagsForClone, newRipVal, this.callStackSize);
+    }
+
+    /**
+     * Creates a new stack entry and adds it to the given stack.
+     * 
+     * @param newValue The value for the new stack entry.
+     * @param newValueSize The size (in bytes) of the new stack entry.
+     * @param address Starting address of the new stack entry.
+     * @param stack The stack to which the new entry will be added. 
+     */
+    private void createAndAddStackEntry(BigInteger newValue, int newValueSize,
+            long address, List<StackEntry> stack) {
+        // Note: Java stores values in big endian format while x86 requires
+        // little endian. We'll work with the big endian and switch over only
+        // at the end.
+        byte[] valArray = newValue.toByteArray();
+        byte[] fullArrayBigEndian = new byte[newValueSize];
+        int numToFill = newValueSize - valArray.length;
+        byte toFill = 0;
+        
+        if (newValue.signum() == -1) {
+            toFill = -1; // i.e. 0xFF
+        }
+        
+        // Sign extend to fill total requested newValueSize
+        for (int i = 0; i < numToFill; i++) {
+            fullArrayBigEndian[i] = toFill;
+        }
+        
+        // copy over the original value
+        for (int dest = numToFill, src = 0; dest < newValueSize; dest++, src++) {
+            fullArrayBigEndian[dest] = valArray[src];
+        }
+        
+        // reverse the big endian version to get the little endian
+        byte[] fullArrayLittleEndian = new byte[newValueSize];
+        for (int src = 0, dest = newValueSize-1; src < newValueSize; src++, dest--) {
+            fullArrayLittleEndian[dest] = fullArrayBigEndian[src];
+        }
+        
+        StackEntry entry = new StackEntry(address, address + newValueSize - 1,
+                fullArrayLittleEndian, rip);
+        stack.add(entry);
+    }
+
+    /**
+     * Shrink an existing stack entry based on overlap with a new entry.
+     * This will result in the existing entry being replaced by a new, smaller
+     * entry in the stack.
+     * 
+     * @param newEntryStartAddress Starting address of new stack entry.
+     * @param newEntryEndAddress Ending address (inclusive) of new stack entry.
+     * @param existingEntry The stack entry to shrink.
+     * @param stack The stack.
+     */
+    private void shrinkStackEntry(long newEntryStartAddress, long newEntryEndAddress, 
+            StackEntry existingEntry, List<StackEntry> stack) {
+        long overlapStartAddr, overlapEndAddr;
+        
+        if (Long.compareUnsigned(newEntryStartAddress, existingEntry.getStartAddress()) < 0) {
+            overlapStartAddr = existingEntry.getStartAddress();
+        } else {
+            overlapStartAddr = newEntryStartAddress;
+        }
+        
+        if (Long.compareUnsigned(newEntryEndAddress, existingEntry.getEndAddress()) < 0) {
+            overlapEndAddr = newEntryEndAddress;
+        } else {
+            overlapEndAddr = existingEntry.getEndAddress();
+        }
+        
+        long shrunkenStartAddr, shrunkenEndAddr;
+        if (Long.compareUnsigned(overlapStartAddr, existingEntry.getStartAddress()) > 0) {
+            shrunkenStartAddr = existingEntry.getStartAddress();
+        } else {
+            shrunkenStartAddr = overlapEndAddr + 1;
+        }
+        
+        if (Long.compareUnsigned(overlapEndAddr, existingEntry.getEndAddress()) < 0) {
+            shrunkenEndAddr = existingEntry.getEndAddress();
+        } else {
+            shrunkenEndAddr = overlapStartAddr - 1;
+        }
+        
+        int overlapRegionSize = (int) ((overlapEndAddr - overlapStartAddr) + 1);
+        int copyRangeStart, copyRangeEnd;
+        byte[] valOld = existingEntry.getValueArr();
+        
+        if (Long.compareUnsigned(existingEntry.getStartAddress(), overlapStartAddr) == 0) {
+            copyRangeStart = overlapRegionSize;
+            copyRangeEnd = valOld.length;
+        } else {
+            copyRangeStart = 0;
+            copyRangeEnd = valOld.length - overlapRegionSize;
+        }
+        
+        byte[] valNew = Arrays.copyOfRange(valOld, copyRangeStart, copyRangeEnd);
+        StackEntry shrunkenEntry = new StackEntry(shrunkenStartAddr,
+                shrunkenEndAddr,
+                valNew,
+                existingEntry.getOrigin());
+        stack.add(shrunkenEntry);
+        stack.remove(existingEntry);
+    }
+
+    /**
+     * Splits an existing stack entry that completely encompasses a new entry.
+     * This will result in two new stack entries: the part of the existing entry
+     * that is above the new entry and the part that is below the new entry.
+     * 
+     * @param newEntryStartAddress Starting address of the new stack entry.
+     * @param newEntryEndAddress Ending address (inclusive) of the new stack entry.
+     * @param existingEntry The existing stack entry, which will be split.
+     * @param stack The stack.
+     */
+    private void splitStackEntry(long newEntryStartAddress, long newEntryEndAddress, 
+            StackEntry existingEntry, List<StackEntry> stack) {
+        long bottomStartAddr = existingEntry.getStartAddress();
+        long bottomEndAddr = newEntryStartAddress - 1;
+        
+        byte[] valOld = existingEntry.getValueArr();
+        byte[] valBottom = Arrays.copyOfRange(valOld, 0,
+                (int) ((bottomEndAddr - bottomStartAddr) + 1));
+        
+        long topStartAddr = newEntryEndAddress + 1;
+        long topEndAddr = existingEntry.getEndAddress();
+        byte[] valTop = Arrays.copyOfRange(valOld,
+                ((int) ((newEntryEndAddress - newEntryStartAddress) + 1)) + valBottom.length,
+                valOld.length);
+        
+        StackEntry sBottom = new StackEntry(bottomStartAddr,
+                bottomEndAddr,
+                valBottom,
+                existingEntry.getOrigin());
+        StackEntry sTop = new StackEntry(topStartAddr,
+                topEndAddr,
+                valTop,
+                existingEntry.getOrigin());
+        stack.add(sBottom);
+        stack.add(sTop);
+        stack.remove(existingEntry);
+    }
+
+    /**
+     * Check if access to a given address is valid.
+     * An invalid access includes anything outside of the range of valid stack 
+     * addresses (i.e. 0x7F..FF down to %rsp).
+     * 
+     * @param startAddress The starting (i.e. lowest) address of the access.
+     * @param size The size (number of bytes) of the memory access.
+     * @return True if access is valid, false otherwise.
+     */
+    public boolean isValidMemoryAccess(long startAddress, int size) {
+        long endAddress = (startAddress + size) - 1;
+        long topOfStackAddress = this.getRegisterValue("rsp").longValue();
+        
+        /*
+         * @note Since addresses are of long type, any address larger than
+         * 0x7F..FF will be a negative number so we can simple check if the
+         * address is a negative number.
+         */
+        return (startAddress >= topOfStackAddress && endAddress >= 0);
     }
 
     /**
@@ -346,7 +432,7 @@ public class MachineState {
      * for the incremented rip register.
      */
     public MachineState cloneWithIncrementedRIP() {
-        return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, rip + 1);
+        return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, rip + 1, this.callStackSize);
     }
 
     /**
@@ -358,7 +444,7 @@ public class MachineState {
      * for updated rip register.
      */
     public MachineState cloneWithNewRIP(int newRIPVal) {
-        return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, newRIPVal);
+        return new MachineState(this.registers, this.memory, this.tabList, this.statusFlags, newRIPVal, this.callStackSize);
     }
 
     public static byte[] getExtendedByteArray(BigInteger val, int origSize, int extendedSize, boolean zeroFill) {
@@ -407,10 +493,15 @@ public class MachineState {
     public MachineState cloneWithUpdatedRegister(String regName,
             Optional<BigInteger> val,
             Map<String, Boolean> flags,
-            boolean incrementRIP) {
+            boolean incrementRIP) throws x86RuntimeException {
         Map<String, RegisterState> reg = this.registers;
         List<StackEntry> mem = this.memory;
         if (val.isPresent()) {
+            // Enforce proper alignment of rsp (i.e. multiple of 8)
+            if (regName.equals("rsp") && val.get().longValue() % 8 != 0) {
+                throw new x86RuntimeException("rsp should be multiple of 8");
+            }
+            
             /* 
              * If we are incrementing rsp, that means we are reducing the size
              * of the stack. As a result, we may need to remove some entries
@@ -419,13 +510,16 @@ public class MachineState {
             if (regName.equals("rsp")
                     && val.get().compareTo(getRegisterValue("rsp")) == 1) {
 
-                // We've reduced the size of the stack, so look for entries to
-                // remove.
+                /* 
+                 * We've reduced the size of the stack, so look for entries to
+                 * remove. Any entry with a starting address less than the new
+                 * value for rsp (i.e. above the updated stack) will be removed.
+                 */
                 List<StackEntry> toRemove = new ArrayList<>();
                 for (StackEntry se : this.memory) {
                     long seStartAddr = se.getStartAddress();
-                    if (seStartAddr >= getRegisterValue("rsp").longValue()
-                            && seStartAddr < val.get().longValue()) {
+                    
+                    if (seStartAddr < val.get().longValue()) {
                         // need to remove this entry... eventually
                         toRemove.add(se);
                     }
@@ -474,9 +568,9 @@ public class MachineState {
             newRipVal++;
         }
 
-        mergeFlags(flags);
+        mergeFlagsInto(flags);
 
-        return new MachineState(reg, mem, this.tabList, flags, newRipVal);
+        return new MachineState(reg, mem, this.tabList, flags, newRipVal, this.callStackSize);
     }
 
     /**
@@ -485,7 +579,7 @@ public class MachineState {
      *
      * @param flags The flags to merge into.
      */
-    private void mergeFlags(Map<String, Boolean> flags) {
+    private void mergeFlagsInto(Map<String, Boolean> flags) {
         if (!flags.containsKey("zf")) {
             flags.put("zf", this.statusFlags.get("zf"));
         }
@@ -570,19 +664,97 @@ public class MachineState {
      *
      * @param address The starting address where the value is stored.
      * @param size The number of bytes of memory to read.
+     * @return The value at the given address with the given size
+     * @throws edu.sandiego.bcl.x86RuntimeException
      */
-    public BigInteger getMemoryValue(long address, int size) {
-        //TODO: Allow addresses that aren't starting addresses but are still valid 
-        for (StackEntry e : this.memory) {
-            if (e.getStartAddress() == address) {
-                return e.getValAsBigInt();
+    public BigInteger getMemoryValue(long address, int size) throws x86RuntimeException {
+        if (!this.isValidMemoryAccess(address, size)) {
+            throw new x86RuntimeException("Illegal read from 0x" 
+                + String.format("%X", address));
+        }
+        
+        // Enforce Intel-recommended alignments.
+        if (address % size != 0) {
+            throw new x86RuntimeException("Unaligned memory access");
+        }
+        
+        byte[] valArray = new byte[size];
+        int bytes_remaining = size;
+        
+        int i;
+        long endAddrOfPrevEntry = -1;
+        
+        // Find which stack entry this address starts in and copy over bytes the
+        // bytes from that entry to valArray.
+        for (i = 0; i < this.memory.size(); i++) {
+            StackEntry se = this.memory.get(i);
+            if (se.getStartAddress() <= address && se.getEndAddress() >= address) {
+                // note where we left off (pick up here later)
+                endAddrOfPrevEntry = se.getEndAddress();
+                
+                // copy over the appropriate part of the stack entry
+                byte[] stackEntryValArray = se.getValueArr();
+                int offset = (int)(address - se.getStartAddress());
+                int length = Math.min((int)((se.getEndAddress() - address) + 1), 
+                                        bytes_remaining);
+                
+                System.arraycopy(stackEntryValArray, offset, valArray, 0, length);
+                
+                bytes_remaining -= length;
+                break;
             }
         }
         
-        // Couldn't find the address on the stack so throw an exception to
-        // be caught by the simulator.
-        throw new RuntimeException("Read from illegal address: " 
-                + String.format("%X", address));
+        // If we couldn't find an entry with address in it, then we tried to
+        // read from an uninitialized address so throw an exception.
+        if (i == this.memory.size()) {
+            throw new x86RuntimeException("Read from uninitialized memory: 0x" 
+                    + String.format("%X", address));
+        }
+
+        i++; // We broke the last loop so increment never happened.
+        while (i < this.memory.size() && bytes_remaining > 0) {
+            StackEntry se = this.memory.get(i);
+            // if this entry doesn't pick up right where the last one left off,
+            // then we are trying to read from uninitialized memory.
+            if (se.getStartAddress() != (endAddrOfPrevEntry+1)) {
+                throw new x86RuntimeException("Read from uninitialized memory: 0x" 
+                    + String.format("%X", address + (size-bytes_remaining)));
+            }
+            
+             // note where we left off (pick up here later)
+            endAddrOfPrevEntry = se.getEndAddress();
+
+            // copy over the appropriate part of the stack entry
+            byte[] stackEntryValArray = se.getValueArr();
+            int length = Math.min((int)((se.getEndAddress() - se.getStartAddress()) + 1), 
+                                    bytes_remaining);
+
+            // Since this won't be the first stack entry we are reading from,
+            // it follows that we will start copying from the beginning.
+            System.arraycopy(stackEntryValArray, 0, 
+                    valArray, (size-bytes_remaining),
+                    length);
+
+            bytes_remaining -= length;
+        }
+        
+        // If we got here and there are still bytes to be read, that means we
+        // have reached an unininitialized area of memory.
+        if (bytes_remaining > 0) {
+            throw new x86RuntimeException("Read from uninitialized memory: 0x" 
+                    + String.format("%X", address + (size-bytes_remaining)));
+        }
+        
+        // Array is in little endian but need to make it big endian for Java so
+        // we'll reverse the array here.
+        for (int j = 0; j < size / 2; j++) {
+            byte tmp = valArray[j];
+            valArray[j] = valArray[size - 1 - j];
+            valArray[size - 1 - j] = tmp;
+        }
+        
+        return new BigInteger(valArray);
     }
 
     /**
@@ -663,5 +835,23 @@ public class MachineState {
             s += "\n";
         }
         return s;
+    }
+    
+    public void setRip(int i){
+        if(i >= 0){
+            this.rip = i;
+        }
+    }
+    
+    public void pushToCallStack(){
+        callStackSize++;
+    }
+    
+    public void popFromCallStack(){
+        callStackSize--;
+    }
+    
+    public int getCallStackSize(){
+        return this.callStackSize;
     }
 }

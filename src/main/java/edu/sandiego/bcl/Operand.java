@@ -15,7 +15,7 @@ public abstract class Operand {
    /**
      * The size of the operand.
      */
-    protected final OpSize opSize;
+    protected OpSize opSize;
     
     public Operand(OpSize size) {
         this.opSize = size;
@@ -28,7 +28,7 @@ public abstract class Operand {
      * @param state The state of the machine.
      * @return The value of the operand in a machine with the given state.
      */
-    public abstract BigInteger getValue(MachineState state);
+    public abstract BigInteger getValue(MachineState state) throws x86RuntimeException;
 
     /**
      * @param currState The current state of the machine.
@@ -38,7 +38,9 @@ public abstract class Operand {
      * @return The state after updating the current state with the new value for
      * the operand.
      */
-    public abstract MachineState updateState(MachineState currState, Optional<BigInteger> val, Map<String, Boolean> flags, boolean updateRIP);
+    public abstract MachineState updateState(MachineState currState, 
+            Optional<BigInteger> val, Map<String, Boolean> flags, 
+            boolean updateRIP) throws x86RuntimeException;
 
     /**
      * Returns the names of the registers used by this operand.
@@ -62,4 +64,16 @@ public abstract class Operand {
      * @return A string with a description of this operand.
      */
     public abstract String getDescriptionString();
+    
+    /**
+     * Changes inferred size to an explicit size.
+     * This does nothing if this operand is not of inferred size.
+     * 
+     * @param explicitSize The new, explicit size for this operand.
+     * @return True if this operand had an inferred type and we could change it
+     * to the given type, False otherwise.
+     */
+    public boolean makeSizeExplicit(OpSize explicitSize) {
+        return false;
+    }
 }

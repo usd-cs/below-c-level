@@ -49,7 +49,7 @@ public abstract class x86ProgramLine {
      * @param state The state of the machine before evaluation begins.
      * @return State of machine after evaluating the instruction.
      */
-    public abstract MachineState eval(MachineState state);
+    public abstract MachineState eval(MachineState state) throws x86RuntimeException;
 
 
     /**
