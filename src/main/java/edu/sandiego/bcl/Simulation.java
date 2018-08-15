@@ -1,4 +1,4 @@
-/*
+/**
  * Class that represents the simulation of an assembly program.
  */
 package edu.sandiego.bcl;
@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.collections.ObservableList;
-import javafx.scene.control.Alert;
 
 /**
  *
@@ -19,14 +18,14 @@ public class Simulation {
     /**
      * The history of execution states in our simulation.
      */
-    private List<MachineState> stateHistory;
+    private final List<MachineState> stateHistory;
     
     /**
      * History of registers used by the simulation. This list may contain
      * duplicates as one is added for each register used by an instruction when
      * it is executed.
      */
-    private List<String> regHistory;
+    private final List<String> regHistory;
     
     /**
      * The line in the program where simulation is currently at.
@@ -38,7 +37,7 @@ public class Simulation {
     /**
      * The program being simulated.
      */
-    private x86Program program;
+    private final x86Program program;
     
     /**
      * The radix in which the register value will be displayed.
