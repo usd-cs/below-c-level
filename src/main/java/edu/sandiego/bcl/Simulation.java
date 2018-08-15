@@ -122,7 +122,7 @@ public class Simulation {
     }
     
     /**
-     * Restarts simulation back to its starting state.
+     * Restarts simulation back to its beginning state.
      */
     public void restart() {
         this.stateHistory.clear();
@@ -229,6 +229,12 @@ public class Simulation {
         this.stuckOnError = false;
     }
     
+    /**
+     * Add line to end of the program associated with this simulation.
+     * 
+     * @param lineText The line to be added to the program.
+     * @throws X86ParsingException if the given line cannot be parsed.
+     */
     public void appendToProgram(String lineText) throws X86ParsingException {
         x86ProgramLine newLine = this.program.parseThenAddLine(lineText);
 
@@ -240,18 +246,42 @@ public class Simulation {
         }
     }
     
+    /**
+     * Removes the given program line from the program associated with this simulation.
+     * 
+     * @param line The line to remove.
+     */
     public void removeFromProgram(x86ProgramLine line) {
         this.program.removeLine(line);
     }
     
+    /**
+     * Replaces an existing line with a new one in the program associated with
+     * this simulation.
+     * @param existingLine The line that will be replaced.
+     * @param newLine What the existing line will be replaced with.
+     * @throws X86ParsingException if the new line cannot be parsed.
+     */
     public void replaceInProgram(x86ProgramLine existingLine, String newLine) throws X86ParsingException {
         this.program.replaceLine(existingLine, newLine);
     }
     
+    /**
+     * Writes the program out to a file. The location of the file is based on where
+     * it was last saved.
+     * 
+     * @return True if the program was successfully written, False otherwise. 
+     */
     public boolean saveProgram() {
         return this.program.writeToFile();
     }
     
+    /**
+     * Writes the program out to the given file.
+     * 
+     * @param f The file to write the program out to.
+     * @return True if the program was successfully written, False otherwise.
+     */
     public boolean saveProgramAs(File f) {
         this.program.setFile(f);
         return this.program.writeToFile();
