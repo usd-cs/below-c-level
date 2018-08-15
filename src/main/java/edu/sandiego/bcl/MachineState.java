@@ -709,7 +709,7 @@ public class MachineState {
         // read from an uninitialized address so throw an exception.
         if (i == this.memory.size()) {
             throw new x86RuntimeException("Read from uninitialized memory: 0x" 
-                    + String.format("%X", address));
+                    + String.format("%X", address).replaceFirst("F{4,}","F..F"));
         }
 
         i++; // We broke the last loop so increment never happened.
@@ -719,7 +719,7 @@ public class MachineState {
             // then we are trying to read from uninitialized memory.
             if (se.getStartAddress() != (endAddrOfPrevEntry+1)) {
                 throw new x86RuntimeException("Read from uninitialized memory: 0x" 
-                    + String.format("%X", address + (size-bytes_remaining)));
+                    + String.format("%X", address + (size-bytes_remaining)).replaceFirst("F{4,}","F..F"));
             }
             
              // note where we left off (pick up here later)
@@ -743,7 +743,7 @@ public class MachineState {
         // have reached an unininitialized area of memory.
         if (bytes_remaining > 0) {
             throw new x86RuntimeException("Read from uninitialized memory: 0x" 
-                    + String.format("%X", address + (size-bytes_remaining)));
+                    + String.format("%X", address + (size-bytes_remaining)).replaceFirst("F{4,}","F..F"));
         }
         
         // Array is in little endian but need to make it big endian for Java so
