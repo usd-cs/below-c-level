@@ -112,11 +112,23 @@ public class Register {
     }
     
 
-    public String getSubValue(int numBytes, int base, boolean trim) { 
+    /**
+     * Returns a string containing the register's value in the given number 
+     * representation.
+     * 
+     * @param numBytes The number of bytes in the value returned.
+     * @param base The number representation of the value (e.g. hex).
+     * @param trimHex Whether to "trim" the returned value if it using the
+     * hexadecimal format. Trimming means to remove extra leading zeros and to
+     * replace long sequences of "F" with "F..F". This has no effect for number
+     * representations other than hex.
+     * @return The value in the requested number format.
+     */
+    public String getSubValue(int numBytes, int base, boolean trimHex) { 
         String subRegString = quadValue.substring((8 - numBytes) * 2);
         switch (base) {
             case 0:
-                if (trim) {
+                if (trimHex) {
                     if (subRegString.charAt(0) == '0') {
                         subRegString = subRegString.replaceFirst("0+", "0");
                     }
