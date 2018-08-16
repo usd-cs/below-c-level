@@ -355,7 +355,6 @@ public class FXMLDocumentController implements Initializable {
                 final Register reg = row.getItem();
 
                 if (row.isHover() && reg != null) {
-                    reg.setSubName(reg.getName());
                     String s = reg.getName() + ": " + reg.getSubValue(8, this.registerDisplayFormat, false) 
                             + "\n" + reg.getLongRegName() + ": " + reg.getSubValue(4, this.registerDisplayFormat, false)
                             + "\n" + reg.getWordRegName() + ": " + reg.getSubValue(2, this.registerDisplayFormat, false)

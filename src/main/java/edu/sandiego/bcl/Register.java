@@ -62,14 +62,17 @@ public class Register {
     /**
      * 32, 16, and 8-bit register names.
      */
-    private String longRegName;
-    private String wordRegName;
-    private String byteLowRegName;
+    private final String longRegName;
+    private final String wordRegName;
+    private final String byteLowRegName;
     
     public Register (String quadName, int prom, int origin, String quadVal) {
         assert subRegistersFromFullRegister.keySet().contains(quadName);
         
         this.name = new SimpleStringProperty(quadName);
+        this.longRegName = subRegistersFromFullRegister.get(quadName).get(1);
+        this.wordRegName = subRegistersFromFullRegister.get(quadName).get(2);
+        this.byteLowRegName = subRegistersFromFullRegister.get(quadName).get(3);
         this.prominence = prom;
         this.origin = new SimpleIntegerProperty(origin);
         this.quadValue = quadVal;
@@ -140,19 +143,6 @@ public class Register {
             }
             System.exit(1);
             return "";
-        }
-    }
-    
-    /**
-     * Sets the 32, 16, and 8-bit register names based on given 64-bit register
-     * 
-     * @param name 
-     */
-    public void setSubName(String name) {
-        if (subRegistersFromFullRegister.containsKey(name)) {
-            longRegName = subRegistersFromFullRegister.get(name).get(1);
-            wordRegName = subRegistersFromFullRegister.get(name).get(2);
-            byteLowRegName = subRegistersFromFullRegister.get(name).get(3);
         }
     }
     
