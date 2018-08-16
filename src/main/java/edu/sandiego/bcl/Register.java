@@ -66,8 +66,10 @@ public class Register {
     private String wordRegName;
     private String byteLowRegName;
     
-    public Register (String name, int prom, int origin, String quadVal) {
-        this.name = new SimpleStringProperty(name);
+    public Register (String quadName, int prom, int origin, String quadVal) {
+        assert subRegistersFromFullRegister.keySet().contains(quadName);
+        
+        this.name = new SimpleStringProperty(quadName);
         this.prominence = prom;
         this.origin = new SimpleIntegerProperty(origin);
         this.quadValue = quadVal;
