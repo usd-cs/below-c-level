@@ -49465,3 +49465,499 @@ cmovbe 0x1A(%rax, %rsi, 2), %cx
 cmovbe 0x1A(%rax, %rsi, 2), %bp
 cmovbe 0x1A(%rax, %rsi, 2), %r10w
 cmovbe 0x1A(%rax, %rsi, 2), %r13w
+movzbw %dl, %cx
+movzbw %dl, %bp
+movzbw %dl, %r10w
+movzbw %dl, %r13w
+movzbw %spl, %cx
+movzbw %spl, %bp
+movzbw %spl, %r10w
+movzbw %spl, %r13w
+movzbw %r11b, %cx
+movzbw %r11b, %bp
+movzbw %r11b, %r10w
+movzbw %r11b, %r13w
+movzbw %r12b, %cx
+movzbw %r12b, %bp
+movzbw %r12b, %r10w
+movzbw %r12b, %r13w
+movzbw (%rax), %cx
+movzbw (%rax), %bp
+movzbw (%rax), %r10w
+movzbw (%rax), %r13w
+movzbw (%rbx), %cx
+movzbw (%rbx), %bp
+movzbw (%rbx), %r10w
+movzbw (%rbx), %r13w
+movzbw (%rcx), %cx
+movzbw (%rcx), %bp
+movzbw (%rcx), %r10w
+movzbw (%rcx), %r13w
+movzbw (%rdx), %cx
+movzbw (%rdx), %bp
+movzbw (%rdx), %r10w
+movzbw (%rdx), %r13w
+movzbw (%rsi), %cx
+movzbw (%rsi), %bp
+movzbw (%rsi), %r10w
+movzbw (%rsi), %r13w
+movzbw (%rdi), %cx
+movzbw (%rdi), %bp
+movzbw (%rdi), %r10w
+movzbw (%rdi), %r13w
+movzbw (%rbp), %cx
+movzbw (%rbp), %bp
+movzbw (%rbp), %r10w
+movzbw (%rbp), %r13w
+movzbw (%rsp), %cx
+movzbw (%rsp), %bp
+movzbw (%rsp), %r10w
+movzbw (%rsp), %r13w
+movzbw (%r8), %cx
+movzbw (%r8), %bp
+movzbw (%r8), %r10w
+movzbw (%r8), %r13w
+movzbw (%r9), %cx
+movzbw (%r9), %bp
+movzbw (%r9), %r10w
+movzbw (%r9), %r13w
+movzbw (%r10), %cx
+movzbw (%r10), %bp
+movzbw (%r10), %r10w
+movzbw (%r10), %r13w
+movzbw (%r11), %cx
+movzbw (%r11), %bp
+movzbw (%r11), %r10w
+movzbw (%r11), %r13w
+movzbw (%r12), %cx
+movzbw (%r12), %bp
+movzbw (%r12), %r10w
+movzbw (%r12), %r13w
+movzbw (%r13), %cx
+movzbw (%r13), %bp
+movzbw (%r13), %r10w
+movzbw (%r13), %r13w
+movzbw (%r14), %cx
+movzbw (%r14), %bp
+movzbw (%r14), %r10w
+movzbw (%r14), %r13w
+movzbw (%r15), %cx
+movzbw (%r15), %bp
+movzbw (%r15), %r10w
+movzbw (%r15), %r13w
+movzbw (%rax, %rsi), %cx
+movzbw (%rax, %rsi), %bp
+movzbw (%rax, %rsi), %r10w
+movzbw (%rax, %rsi), %r13w
+movzbw (%rax, %r8), %cx
+movzbw (%rax, %r8), %bp
+movzbw (%rax, %r8), %r10w
+movzbw (%rax, %r8), %r13w
+movzbw (%rax, %r15), %cx
+movzbw (%rax, %r15), %bp
+movzbw (%rax, %r15), %r10w
+movzbw (%rax, %r15), %r13w
+movzbw (%rsi, %rax), %cx
+movzbw (%rsi, %rax), %bp
+movzbw (%rsi, %rax), %r10w
+movzbw (%rsi, %rax), %r13w
+movzbw (%rsi, %r8), %cx
+movzbw (%rsi, %r8), %bp
+movzbw (%rsi, %r8), %r10w
+movzbw (%rsi, %r8), %r13w
+movzbw (%rsi, %r15), %cx
+movzbw (%rsi, %r15), %bp
+movzbw (%rsi, %r15), %r10w
+movzbw (%rsi, %r15), %r13w
+movzbw (%r8, %rax), %cx
+movzbw (%r8, %rax), %bp
+movzbw (%r8, %rax), %r10w
+movzbw (%r8, %rax), %r13w
+movzbw (%r8, %rsi), %cx
+movzbw (%r8, %rsi), %bp
+movzbw (%r8, %rsi), %r10w
+movzbw (%r8, %rsi), %r13w
+movzbw (%r8, %r15), %cx
+movzbw (%r8, %r15), %bp
+movzbw (%r8, %r15), %r10w
+movzbw (%r8, %r15), %r13w
+movzbw (%r15, %rax), %cx
+movzbw (%r15, %rax), %bp
+movzbw (%r15, %rax), %r10w
+movzbw (%r15, %rax), %r13w
+movzbw (%r15, %rsi), %cx
+movzbw (%r15, %rsi), %bp
+movzbw (%r15, %rsi), %r10w
+movzbw (%r15, %rsi), %r13w
+movzbw (%r15, %r8), %cx
+movzbw (%r15, %r8), %bp
+movzbw (%r15, %r8), %r10w
+movzbw (%r15, %r8), %r13w
+movzbw (%rax, %rsi, 2), %cx
+movzbw (%rax, %rsi, 2), %bp
+movzbw (%rax, %rsi, 2), %r10w
+movzbw (%rax, %rsi, 2), %r13w
+movzbw (%rax, %rsi, 4), %cx
+movzbw (%rax, %rsi, 4), %bp
+movzbw (%rax, %rsi, 4), %r10w
+movzbw (%rax, %rsi, 4), %r13w
+movzbw (%rax, %rsi, 8), %cx
+movzbw (%rax, %rsi, 8), %bp
+movzbw (%rax, %rsi, 8), %r10w
+movzbw (%rax, %rsi, 8), %r13w
+movzbw 2(%rax), %cx
+movzbw 2(%rax), %bp
+movzbw 2(%rax), %r10w
+movzbw 2(%rax), %r13w
+movzbw 2(%rax, %rsi), %cx
+movzbw 2(%rax, %rsi), %bp
+movzbw 2(%rax, %rsi), %r10w
+movzbw 2(%rax, %rsi), %r13w
+movzbw 2(%rax, %rsi, 2), %cx
+movzbw 2(%rax, %rsi, 2), %bp
+movzbw 2(%rax, %rsi, 2), %r10w
+movzbw 2(%rax, %rsi, 2), %r13w
+movzbw -2(%rax), %cx
+movzbw -2(%rax), %bp
+movzbw -2(%rax), %r10w
+movzbw -2(%rax), %r13w
+movzbw -2(%rax, %rsi), %cx
+movzbw -2(%rax, %rsi), %bp
+movzbw -2(%rax, %rsi), %r10w
+movzbw -2(%rax, %rsi), %r13w
+movzbw -2(%rax, %rsi, 2), %cx
+movzbw -2(%rax, %rsi, 2), %bp
+movzbw -2(%rax, %rsi, 2), %r10w
+movzbw -2(%rax, %rsi, 2), %r13w
+movzbw 0x1A(%rax), %cx
+movzbw 0x1A(%rax), %bp
+movzbw 0x1A(%rax), %r10w
+movzbw 0x1A(%rax), %r13w
+movzbw 0x1A(%rax, %rsi), %cx
+movzbw 0x1A(%rax, %rsi), %bp
+movzbw 0x1A(%rax, %rsi), %r10w
+movzbw 0x1A(%rax, %rsi), %r13w
+movzbw 0x1A(%rax, %rsi, 2), %cx
+movzbw 0x1A(%rax, %rsi, 2), %bp
+movzbw 0x1A(%rax, %rsi, 2), %r10w
+movzbw 0x1A(%rax, %rsi, 2), %r13w
+movsbw %dl, %cx
+movsbw %dl, %bp
+movsbw %dl, %r10w
+movsbw %dl, %r13w
+movsbw %spl, %cx
+movsbw %spl, %bp
+movsbw %spl, %r10w
+movsbw %spl, %r13w
+movsbw %r11b, %cx
+movsbw %r11b, %bp
+movsbw %r11b, %r10w
+movsbw %r11b, %r13w
+movsbw %r12b, %cx
+movsbw %r12b, %bp
+movsbw %r12b, %r10w
+movsbw %r12b, %r13w
+movsbw (%rax), %cx
+movsbw (%rax), %bp
+movsbw (%rax), %r10w
+movsbw (%rax), %r13w
+movsbw (%rbx), %cx
+movsbw (%rbx), %bp
+movsbw (%rbx), %r10w
+movsbw (%rbx), %r13w
+movsbw (%rcx), %cx
+movsbw (%rcx), %bp
+movsbw (%rcx), %r10w
+movsbw (%rcx), %r13w
+movsbw (%rdx), %cx
+movsbw (%rdx), %bp
+movsbw (%rdx), %r10w
+movsbw (%rdx), %r13w
+movsbw (%rsi), %cx
+movsbw (%rsi), %bp
+movsbw (%rsi), %r10w
+movsbw (%rsi), %r13w
+movsbw (%rdi), %cx
+movsbw (%rdi), %bp
+movsbw (%rdi), %r10w
+movsbw (%rdi), %r13w
+movsbw (%rbp), %cx
+movsbw (%rbp), %bp
+movsbw (%rbp), %r10w
+movsbw (%rbp), %r13w
+movsbw (%rsp), %cx
+movsbw (%rsp), %bp
+movsbw (%rsp), %r10w
+movsbw (%rsp), %r13w
+movsbw (%r8), %cx
+movsbw (%r8), %bp
+movsbw (%r8), %r10w
+movsbw (%r8), %r13w
+movsbw (%r9), %cx
+movsbw (%r9), %bp
+movsbw (%r9), %r10w
+movsbw (%r9), %r13w
+movsbw (%r10), %cx
+movsbw (%r10), %bp
+movsbw (%r10), %r10w
+movsbw (%r10), %r13w
+movsbw (%r11), %cx
+movsbw (%r11), %bp
+movsbw (%r11), %r10w
+movsbw (%r11), %r13w
+movsbw (%r12), %cx
+movsbw (%r12), %bp
+movsbw (%r12), %r10w
+movsbw (%r12), %r13w
+movsbw (%r13), %cx
+movsbw (%r13), %bp
+movsbw (%r13), %r10w
+movsbw (%r13), %r13w
+movsbw (%r14), %cx
+movsbw (%r14), %bp
+movsbw (%r14), %r10w
+movsbw (%r14), %r13w
+movsbw (%r15), %cx
+movsbw (%r15), %bp
+movsbw (%r15), %r10w
+movsbw (%r15), %r13w
+movsbw (%rax, %rsi), %cx
+movsbw (%rax, %rsi), %bp
+movsbw (%rax, %rsi), %r10w
+movsbw (%rax, %rsi), %r13w
+movsbw (%rax, %r8), %cx
+movsbw (%rax, %r8), %bp
+movsbw (%rax, %r8), %r10w
+movsbw (%rax, %r8), %r13w
+movsbw (%rax, %r15), %cx
+movsbw (%rax, %r15), %bp
+movsbw (%rax, %r15), %r10w
+movsbw (%rax, %r15), %r13w
+movsbw (%rsi, %rax), %cx
+movsbw (%rsi, %rax), %bp
+movsbw (%rsi, %rax), %r10w
+movsbw (%rsi, %rax), %r13w
+movsbw (%rsi, %r8), %cx
+movsbw (%rsi, %r8), %bp
+movsbw (%rsi, %r8), %r10w
+movsbw (%rsi, %r8), %r13w
+movsbw (%rsi, %r15), %cx
+movsbw (%rsi, %r15), %bp
+movsbw (%rsi, %r15), %r10w
+movsbw (%rsi, %r15), %r13w
+movsbw (%r8, %rax), %cx
+movsbw (%r8, %rax), %bp
+movsbw (%r8, %rax), %r10w
+movsbw (%r8, %rax), %r13w
+movsbw (%r8, %rsi), %cx
+movsbw (%r8, %rsi), %bp
+movsbw (%r8, %rsi), %r10w
+movsbw (%r8, %rsi), %r13w
+movsbw (%r8, %r15), %cx
+movsbw (%r8, %r15), %bp
+movsbw (%r8, %r15), %r10w
+movsbw (%r8, %r15), %r13w
+movsbw (%r15, %rax), %cx
+movsbw (%r15, %rax), %bp
+movsbw (%r15, %rax), %r10w
+movsbw (%r15, %rax), %r13w
+movsbw (%r15, %rsi), %cx
+movsbw (%r15, %rsi), %bp
+movsbw (%r15, %rsi), %r10w
+movsbw (%r15, %rsi), %r13w
+movsbw (%r15, %r8), %cx
+movsbw (%r15, %r8), %bp
+movsbw (%r15, %r8), %r10w
+movsbw (%r15, %r8), %r13w
+movsbw (%rax, %rsi, 2), %cx
+movsbw (%rax, %rsi, 2), %bp
+movsbw (%rax, %rsi, 2), %r10w
+movsbw (%rax, %rsi, 2), %r13w
+movsbw (%rax, %rsi, 4), %cx
+movsbw (%rax, %rsi, 4), %bp
+movsbw (%rax, %rsi, 4), %r10w
+movsbw (%rax, %rsi, 4), %r13w
+movsbw (%rax, %rsi, 8), %cx
+movsbw (%rax, %rsi, 8), %bp
+movsbw (%rax, %rsi, 8), %r10w
+movsbw (%rax, %rsi, 8), %r13w
+movsbw 2(%rax), %cx
+movsbw 2(%rax), %bp
+movsbw 2(%rax), %r10w
+movsbw 2(%rax), %r13w
+movsbw 2(%rax, %rsi), %cx
+movsbw 2(%rax, %rsi), %bp
+movsbw 2(%rax, %rsi), %r10w
+movsbw 2(%rax, %rsi), %r13w
+movsbw 2(%rax, %rsi, 2), %cx
+movsbw 2(%rax, %rsi, 2), %bp
+movsbw 2(%rax, %rsi, 2), %r10w
+movsbw 2(%rax, %rsi, 2), %r13w
+movsbw -2(%rax), %cx
+movsbw -2(%rax), %bp
+movsbw -2(%rax), %r10w
+movsbw -2(%rax), %r13w
+movsbw -2(%rax, %rsi), %cx
+movsbw -2(%rax, %rsi), %bp
+movsbw -2(%rax, %rsi), %r10w
+movsbw -2(%rax, %rsi), %r13w
+movsbw -2(%rax, %rsi, 2), %cx
+movsbw -2(%rax, %rsi, 2), %bp
+movsbw -2(%rax, %rsi, 2), %r10w
+movsbw -2(%rax, %rsi, 2), %r13w
+movsbw 0x1A(%rax), %cx
+movsbw 0x1A(%rax), %bp
+movsbw 0x1A(%rax), %r10w
+movsbw 0x1A(%rax), %r13w
+movsbw 0x1A(%rax, %rsi), %cx
+movsbw 0x1A(%rax, %rsi), %bp
+movsbw 0x1A(%rax, %rsi), %r10w
+movsbw 0x1A(%rax, %rsi), %r13w
+movsbw 0x1A(%rax, %rsi, 2), %cx
+movsbw 0x1A(%rax, %rsi, 2), %bp
+movsbw 0x1A(%rax, %rsi, 2), %r10w
+movsbw 0x1A(%rax, %rsi, 2), %r13w
+movzbl %dl, %ebx
+movzbl %dl, %edi
+movzbl %dl, %r9d
+movzbl %dl, %r14d
+movzbl %spl, %ebx
+movzbl %spl, %edi
+movzbl %spl, %r9d
+movzbl %spl, %r14d
+movzbl %r11b, %ebx
+movzbl %r11b, %edi
+movzbl %r11b, %r9d
+movzbl %r11b, %r14d
+movzbl %r12b, %ebx
+movzbl %r12b, %edi
+movzbl %r12b, %r9d
+movzbl %r12b, %r14d
+movsbl %dl, %ebx
+movsbl %dl, %edi
+movsbl %dl, %r9d
+movsbl %dl, %r14d
+movsbl %spl, %ebx
+movsbl %spl, %edi
+movsbl %spl, %r9d
+movsbl %spl, %r14d
+movsbl %r11b, %ebx
+movsbl %r11b, %edi
+movsbl %r11b, %r9d
+movsbl %r11b, %r14d
+movsbl %r12b, %ebx
+movsbl %r12b, %edi
+movsbl %r12b, %r9d
+movsbl %r12b, %r14d
+movzbq %dl, %rax
+movzbq %dl, %rsi
+movzbq %dl, %r8
+movzbq %dl, %r15
+movzbq %spl, %rax
+movzbq %spl, %rsi
+movzbq %spl, %r8
+movzbq %spl, %r15
+movzbq %r11b, %rax
+movzbq %r11b, %rsi
+movzbq %r11b, %r8
+movzbq %r11b, %r15
+movzbq %r12b, %rax
+movzbq %r12b, %rsi
+movzbq %r12b, %r8
+movzbq %r12b, %r15
+movsbq %dl, %rax
+movsbq %dl, %rsi
+movsbq %dl, %r8
+movsbq %dl, %r15
+movsbq %spl, %rax
+movsbq %spl, %rsi
+movsbq %spl, %r8
+movsbq %spl, %r15
+movsbq %r11b, %rax
+movsbq %r11b, %rsi
+movsbq %r11b, %r8
+movsbq %r11b, %r15
+movsbq %r12b, %rax
+movsbq %r12b, %rsi
+movsbq %r12b, %r8
+movsbq %r12b, %r15
+movzwl %cx, %ebx
+movzwl %cx, %edi
+movzwl %cx, %r9d
+movzwl %cx, %r14d
+movzwl %bp, %ebx
+movzwl %bp, %edi
+movzwl %bp, %r9d
+movzwl %bp, %r14d
+movzwl %r10w, %ebx
+movzwl %r10w, %edi
+movzwl %r10w, %r9d
+movzwl %r10w, %r14d
+movzwl %r13w, %ebx
+movzwl %r13w, %edi
+movzwl %r13w, %r9d
+movzwl %r13w, %r14d
+movswl %cx, %ebx
+movswl %cx, %edi
+movswl %cx, %r9d
+movswl %cx, %r14d
+movswl %bp, %ebx
+movswl %bp, %edi
+movswl %bp, %r9d
+movswl %bp, %r14d
+movswl %r10w, %ebx
+movswl %r10w, %edi
+movswl %r10w, %r9d
+movswl %r10w, %r14d
+movswl %r13w, %ebx
+movswl %r13w, %edi
+movswl %r13w, %r9d
+movswl %r13w, %r14d
+movzwq %cx, %rax
+movzwq %cx, %rsi
+movzwq %cx, %r8
+movzwq %cx, %r15
+movzwq %bp, %rax
+movzwq %bp, %rsi
+movzwq %bp, %r8
+movzwq %bp, %r15
+movzwq %r10w, %rax
+movzwq %r10w, %rsi
+movzwq %r10w, %r8
+movzwq %r10w, %r15
+movzwq %r13w, %rax
+movzwq %r13w, %rsi
+movzwq %r13w, %r8
+movzwq %r13w, %r15
+movswq %cx, %rax
+movswq %cx, %rsi
+movswq %cx, %r8
+movswq %cx, %r15
+movswq %bp, %rax
+movswq %bp, %rsi
+movswq %bp, %r8
+movswq %bp, %r15
+movswq %r10w, %rax
+movswq %r10w, %rsi
+movswq %r10w, %r8
+movswq %r10w, %r15
+movswq %r13w, %rax
+movswq %r13w, %rsi
+movswq %r13w, %r8
+movswq %r13w, %r15
+movslq %ebx, %rax
+movslq %ebx, %rsi
+movslq %ebx, %r8
+movslq %ebx, %r15
+movslq %edi, %rax
+movslq %edi, %rsi
+movslq %edi, %r8
+movslq %edi, %r15
+movslq %r9d, %rax
+movslq %r9d, %rsi
+movslq %r9d, %r8
+movslq %r9d, %r15
+movslq %r14d, %rax
+movslq %r14d, %rsi
+movslq %r14d, %r8
+movslq %r14d, %r15
