@@ -114,35 +114,39 @@ public class Register {
 
     public String getSubValue(int numBytes, int base, boolean trim) { 
         String subRegString = quadValue.substring((8 - numBytes) * 2);
-        if (base == 0) {
-            if (trim) {
-                if (subRegString.charAt(0) == '0') {
-                    subRegString = subRegString.replaceFirst("0+", "0");
+        switch (base) {
+            case 0:
+                if (trim) {
+                    if (subRegString.charAt(0) == '0') {
+                        subRegString = subRegString.replaceFirst("0+", "0");
+                    }
+                    subRegString = subRegString.replaceFirst("FFFF+", "F..F");
                 }
-                subRegString = subRegString.replaceFirst("FFFF+", "F..F");
+                return "0x" + subRegString;
+            case 1:
+            {
+                BigInteger bI = new BigInteger(subRegString, 16);
+                return bI.toString();
             }
-            return "0x" + subRegString;
-        }
-        else if (base == 1) {
-            BigInteger bI = new BigInteger(subRegString, 16);
-            return bI.toString();
-        }
-        else {
-            BigInteger bI = new BigInteger(quadValue, 16);
-            switch (numBytes) {
-                case 1:
-                    return String.valueOf(bI.byteValue());
-                case 2:
-                    return String.valueOf(bI.shortValue());
-                case 4:
-                    return String.valueOf(bI.intValue());
-                case 8:
-                    return String.valueOf(bI.intValue());
-                default:
-                    break;
+            case 2:
+            default:
+            {
+                BigInteger bI = new BigInteger(quadValue, 16);
+                switch (numBytes) {
+                    case 1:
+                        return String.valueOf(bI.byteValue());
+                    case 2:
+                        return String.valueOf(bI.shortValue());
+                    case 4:
+                        return String.valueOf(bI.intValue());
+                    case 8:
+                        return String.valueOf(bI.intValue());
+                    default:
+                        break;
+                }
+                System.exit(1);
+                return "";
             }
-            System.exit(1);
-            return "";
         }
     }
     
