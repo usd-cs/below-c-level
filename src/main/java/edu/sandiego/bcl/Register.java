@@ -40,28 +40,24 @@ public class Register {
     /**
      * The name of the register (e.g. "rax")
      */
-    private SimpleStringProperty name;
-
-    /**
-     * String representation of the register's value (in hex).
-     */
-    private SimpleStringProperty value;
+    private final SimpleStringProperty name;
 
     /**
      * The prominence of this register.
      * Larger values mean higher prominence (e.g. more recently used.)
      */
-    private int prominence;
+    private final int prominence;
     
     /**
      * The line number from which the register last was updated.
      */
-    private SimpleIntegerProperty origin;
+    private final SimpleIntegerProperty origin;
     
     /**
-     * The full 64 bit value of the register.
+     * The full, quad length (8 bytes) value of the register.
+     * This value is a string containing a hexadecimal number.
      */
-    private String fullValue;
+    private final String quadValue;
     
     /**
      * 32, 16, and 8-bit register names.
@@ -70,12 +66,11 @@ public class Register {
     private String wordRegName;
     private String byteLowRegName;
     
-    public Register (String name, String value, int prom, int origin, String fullVal) {
+    public Register (String name, int prom, int origin, String quadVal) {
         this.name = new SimpleStringProperty(name);
-        this.value = new SimpleStringProperty(value);
         this.prominence = prom;
         this.origin = new SimpleIntegerProperty(origin);
-        this.fullValue = fullVal;
+        this.quadValue = quadVal;
     }
     
     // Getters and setters
@@ -99,14 +94,6 @@ public class Register {
         name.set(s);
     }
     
-    public String getValue(){
-        return value.get();
-    }
-    
-    public void setValue(String s){
-        value.set(s);
-    }
-    
     public int getProminence(){
         return this.prominence;
     }
@@ -119,25 +106,38 @@ public class Register {
         origin.set(ori);
     }
     
-    public String getSubValue(int numBytes){ 
-        return "0x" + fullValue.substring((8 - numBytes) * 2);
-    }
-    
-    public void setValueToBase(int base) {
-        // 0 is hex, 1 unsigned dec, 2 signed dec
+
+    public String getSubValue(int numBytes, int base, boolean trim) { 
+        String subRegString = quadValue.substring((8 - numBytes) * 2);
         if (base == 0) {
-            String hexString = fullValue;
-            if (fullValue.charAt(0) == '0') {
-                hexString = fullValue.replaceFirst("0+", "0");
+            if (trim) {
+                if (subRegString.charAt(0) == '0') {
+                    subRegString = subRegString.replaceFirst("0+", "0");
+                }
+                subRegString = subRegString.replaceFirst("FFFF+", "F..F");
             }
-            hexString = hexString.replaceFirst("FFFF+", "F..F");
-            value.set("0x" + hexString);
-        } else if (base == 1) {
-            BigInteger bI = new BigInteger(fullValue, 16);
-            value.set(bI.toString());
-        } else if (base == 2) {
-            BigInteger bI = new BigInteger(fullValue, 16);
-            value.set(String.valueOf(bI.longValue()));
+            return "0x" + subRegString;
+        }
+        else if (base == 1) {
+            BigInteger bI = new BigInteger(subRegString, 16);
+            return bI.toString();
+        }
+        else {
+            BigInteger bI = new BigInteger(quadValue, 16);
+            switch (numBytes) {
+                case 1:
+                    return String.valueOf(bI.byteValue());
+                case 2:
+                    return String.valueOf(bI.shortValue());
+                case 4:
+                    return String.valueOf(bI.intValue());
+                case 8:
+                    return String.valueOf(bI.intValue());
+                default:
+                    break;
+            }
+            System.exit(1);
+            return "";
         }
     }
     

@@ -764,11 +764,10 @@ public class MachineState {
      * @return List of Register objects for all of the registers in this state.
      */
     public List<Register> getRegisters(List<String> regHistory) {
-        ArrayList<Register> arr = new ArrayList<Register>();
+        ArrayList<Register> arr = new ArrayList<>();
         for (Map.Entry<String, RegisterState> entry : registers.entrySet()) {
             BigInteger b = new BigInteger(entry.getValue().getValue());
             byte[] ba = b.toByteArray();
-            String s = "0x";
             String fullS = "";
             for (int i = 0; i < 8 - ba.length; i++) {
                 if (b.signum() == -1) {
@@ -777,19 +776,12 @@ public class MachineState {
                     fullS += "00";
                 }
             }
-            if (ba.length != 8) {
-                if (b.signum() == -1) {
-                    s += "F...";
-                } else {
-                    s += "0...";
-                }
-            }
+
             for (byte i : ba) {
-                s += String.format("%02X", i);
                 fullS += String.format("%02X", i);
             }
             int regHist = regHistory.lastIndexOf(entry.getKey());
-            arr.add(new Register(entry.getKey(), s, regHist, entry.getValue().getOrigin(), fullS));
+            arr.add(new Register(entry.getKey(), regHist, entry.getValue().getOrigin(), fullS));
         }
         return arr;
     }

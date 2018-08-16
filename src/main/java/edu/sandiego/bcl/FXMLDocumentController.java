@@ -145,6 +145,11 @@ public class FXMLDocumentController implements Initializable {
      * List of registers values in our current state.
      */
     private ObservableList<Register> registerTableEntries;
+    
+    /**
+     * Format in which register values will be displayed.
+     */
+    private int registerDisplayFormat;
 
     // Fields for status flag labels
     @FXML
@@ -335,8 +340,10 @@ public class FXMLDocumentController implements Initializable {
     private void initializeRegisterTable() {
         // Initialize the register table
         registerNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-        registerValueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
         registerOriginColumn.setCellValueFactory(new PropertyValueFactory<>("origin"));
+        
+        registerValueColumn.setCellValueFactory((CellDataFeatures<Register, String> r)
+                -> new SimpleStringProperty(r.getValue().getSubValue(8, registerDisplayFormat, true)));
 
         registerTableEntries = FXCollections.observableArrayList();
         registerTable.setItems(registerTableEntries.sorted(Register.comparator));
@@ -349,10 +356,10 @@ public class FXMLDocumentController implements Initializable {
 
                 if (row.isHover() && reg != null) {
                     reg.setSubName(reg.getName());
-                    String s = reg.getName() + ": " + reg.getSubValue(8) + "\n"
-                            + reg.getLongRegName() + ": " + reg.getSubValue(4)
-                            + "\n" + reg.getWordRegName() + ": " + reg.getSubValue(2)
-                            + "\n" + reg.getByteLowRegName() + ": " + reg.getSubValue(1);
+                    String s = reg.getName() + ": " + reg.getSubValue(8, this.registerDisplayFormat, false) 
+                            + "\n" + reg.getLongRegName() + ": " + reg.getSubValue(4, this.registerDisplayFormat, false)
+                            + "\n" + reg.getWordRegName() + ": " + reg.getSubValue(2, this.registerDisplayFormat, false)
+                            + "\n" + reg.getByteLowRegName() + ": " + reg.getSubValue(1, this.registerDisplayFormat, false);
                     Tooltip t = new Tooltip(s);
                     row.setTooltip(t);
                 }
@@ -386,21 +393,24 @@ public class FXMLDocumentController implements Initializable {
     
         hexMenuItem.setOnAction((ActionEvent event) -> {
             if (hexMenuItem.isSelected()) {
-                activeSimulation.setRegisterBase(0);
+                this.registerDisplayFormat = 0;
+                this.registerValueColumn.setText("Value (Hex)");
                 this.updateSimulatorUIElements();
             }
         });
 
         unsignedDecMenuItem.setOnAction((ActionEvent event) -> {
             if (unsignedDecMenuItem.isSelected()) {
-                activeSimulation.setRegisterBase(1);
+                this.registerDisplayFormat = 1;
+                this.registerValueColumn.setText("Value (Unsigned)");
                 this.updateSimulatorUIElements();
             }
         });
 
         signedDecMenuItem.setOnAction((ActionEvent event) -> {
             if (signedDecMenuItem.isSelected()) {
-                activeSimulation.setRegisterBase(2);
+                this.registerDisplayFormat = 2;
+                this.registerValueColumn.setText("Value (Signed)");
                 this.updateSimulatorUIElements();
             }
         });
