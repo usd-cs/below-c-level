@@ -9,8 +9,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import java.util.*;
 import java.net.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -713,11 +711,11 @@ public class FXMLDocumentController implements Initializable {
      */
     private void createTab(Simulation sim) {
         Tab t = new Tab(sim.getProgramFileName());
-        ListView<x86ProgramLine> programView = new ListView<>(sim.getProgramLines());
-        programView.setCellFactory(this::instructionListCellFactory);
-        t.setContent(programView);
+        ListView<x86ProgramLine> newProgramView = new ListView<>(sim.getProgramLines());
+        newProgramView.setCellFactory(this::instructionListCellFactory);
+        t.setContent(newProgramView);
 
-        simStateFromTab.put(t, new SimState(programView, sim));
+        simStateFromTab.put(t, new SimState(newProgramView, sim));
         programTabs.getTabs().add(t);
 
         t.setOnSelectionChanged((event) -> {
