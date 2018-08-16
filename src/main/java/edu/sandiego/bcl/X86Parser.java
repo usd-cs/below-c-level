@@ -130,7 +130,7 @@ public class X86Parser {
          */
         String validTwoSizedInstrNames = "(?<name>" 
                 + TWO_SUFFIX_INSTRUCTIONS_REGEX
-                + ")(?<suffices>b[wlq]|w[lq])";
+                + ")(?<suffices>b[wlq]|w[lq]|lq)";
         Matcher twoSizedInstrMatcher = Pattern.compile(validTwoSizedInstrNames).matcher(instrName);
 
         /*
@@ -173,6 +173,15 @@ public class X86Parser {
             type = InstructionType.valueOf(twoSizedInstrMatcher.group("name").toUpperCase());
             String suffix1 = twoSizedInstrMatcher.group("suffices").substring(0,1);
             String suffix2 = twoSizedInstrMatcher.group("suffices").substring(1);
+            
+            // movzlq doesn't exist because movl automatically zero extends 
+            // to fill the full quad register.
+            if (type == InstructionType.MOVZ 
+                    && suffix1.equals("l") && suffix2.equals("q")) {
+                throw new X86ParsingException("MOVZ does not have an lq variant.",
+                        twoSizedInstrMatcher.start("suffices"),
+                        twoSizedInstrMatcher.end("suffices"));
+            }
             
             opSizes.add(OpSize.getOpSizeFromAbbrev(suffix1));
             size = OpSize.getOpSizeFromAbbrev(suffix2);
@@ -827,8 +836,8 @@ public class X86Parser {
                 
             case MOVZ:
             case MOVS:
-                opReqs.add(new OperandRequirements(sizes.get(0), true, true, true, false));
-                opReqs.add(new OperandRequirements(sizes.get(1), false, true, true, false));
+                opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
+                opReqs.add(new OperandRequirements(sizes.get(1), false, true, false, false));
                 break;
                 
             case SHL:
