@@ -506,11 +506,8 @@ public class X86Parser {
                                                 labelMatcher.end());
             
             op = new LabelOperand(labelName, labelFromName.get(labelName));
-        } else {
-            System.out.println("ERROR: Unknown type of operand.");
-            System.out.println("\t Tried to match " + str);
-            System.exit(1);
         }
+        assert op != null;
         return op;
     }
 
