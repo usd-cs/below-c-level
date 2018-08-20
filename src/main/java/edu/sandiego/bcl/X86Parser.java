@@ -71,20 +71,27 @@ public class X86Parser {
     private int currLineNum;
     
     /**
-     * Map for keeping track of all the labels we have parsed so far.
+     * Map for keeping track of all the labelFromName we have parsed so far.
      */
-    private final Map<String, x86Label> labels;
+    private final Map<String, x86Label> labelFromName;
 
-    private final Map<String, List<x86Instruction>> labelUsers;
+    /**
+     * Map for tracking all the instructions that use a label with a specific name.
+     */
+    private final Map<String, List<x86Instruction>> labelUsersFromName;
+    
+    /**
+     * Object to construct operands for instructions.
+     */
+    private OperandGetter operandGetter;
 
     public X86Parser(){
-        currLineNum = 0;
-        labels = new HashMap<>();
-        labelUsers = new HashMap<>();
+        this.currLineNum = 0;
+        this.labelFromName = new HashMap<>();
+        this.labelUsersFromName = new HashMap<>();
+        this.operandGetter = new x86OperandGetter();
     }
-    
 
-    
     /**
      * Class to represent information about the instruction being parsed,
      * including it's type, size, and operand requirements.
@@ -498,7 +505,7 @@ public class X86Parser {
                                                 labelMatcher.start(), 
                                                 labelMatcher.end());
             
-            op = new LabelOperand(labelName, labels.get(labelName));
+            op = new LabelOperand(labelName, labelFromName.get(labelName));
         } else {
             System.out.println("ERROR: Unknown type of operand.");
             System.out.println("\t Tried to match " + str);
@@ -709,20 +716,18 @@ public class X86Parser {
                             c);
                 } else if (instrType.numOperands() == 1) {
                     x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
-                            operands.get(0),
-                            instrSize,
-                            currLineNum++,
-                            c);
+                            operands.get(0), instrSize, currLineNum++, c,
+                            this.operandGetter);
 
                     if (operands.get(0) instanceof LabelOperand) {
                         LabelOperand lo = (LabelOperand) operands.get(0);
                         String loName = lo.getName();
-                        if (labelUsers.containsKey(loName)) {
-                            labelUsers.get(loName).add(inst);
+                        if (labelUsersFromName.containsKey(loName)) {
+                            labelUsersFromName.get(loName).add(inst);
                         } else {
                             List<x86Instruction> l = new ArrayList<>();
                             l.add(inst);
-                            labelUsers.put(loName, l);
+                            labelUsersFromName.put(loName, l);
                         }
                     }
                     return inst;
@@ -735,10 +740,8 @@ public class X86Parser {
                                 instMatcher.end("inst"),
                                 instr.length());
                 // nullary skullduggery
-                return new x86NullaryInstruction(instrType,
-                        instrSize,
-                        currLineNum++,
-                        c);
+                return new x86NullaryInstruction(instrType, instrSize,
+                        currLineNum++, c, this.operandGetter);
             }
         } else {
             // This line contains a label
@@ -750,7 +753,7 @@ public class X86Parser {
                                                 labelMatcher.end("label"));
 
             // Make sure this label doesn't already exist
-            if (labels.containsKey(labelName)) {
+            if (labelFromName.containsKey(labelName)) {
                 System.out.println("Duplicate label: " + labelName);
                 throw new X86ParsingException("Duplicate label name",
                         labelMatcher.start("label"),
@@ -758,9 +761,9 @@ public class X86Parser {
             }
 
             x86Label l = new x86Label(labelName, currLineNum++, c);
-            labels.put(labelName, l);
-            if (labelUsers.containsKey(labelName)) {
-                labelUsers.get(labelName).forEach((inst) -> {
+            labelFromName.put(labelName, l);
+            if (labelUsersFromName.containsKey(labelName)) {
+                labelUsersFromName.get(labelName).forEach((inst) -> {
                     inst.updateLabels(labelName, l);
                 });
             }
@@ -773,8 +776,8 @@ public class X86Parser {
      * Resets the parser back to its starting state.
      */
     public void clear() {
-        labels.clear();
-        labelUsers.clear();
+        labelFromName.clear();
+        labelUsersFromName.clear();
         currLineNum = 0;
     }
     
@@ -793,11 +796,11 @@ public class X86Parser {
      * @param labelName The label to remove.
      */
     public void removeLabel(String labelName){
-        labels.remove(labelName);
+        labelFromName.remove(labelName);
     }
     
     public Optional<x86ProgramLine> getFirstLineOfMain(){
-        x86Label l = labels.get("main");
+        x86Label l = labelFromName.get("main");
         if (l != null) {
             return Optional.of(l);
         } else {

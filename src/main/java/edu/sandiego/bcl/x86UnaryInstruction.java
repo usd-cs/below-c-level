@@ -34,6 +34,11 @@ public class x86UnaryInstruction extends x86Instruction {
      * An optional predicate to be used with conditional instructions.
      */
     private Optional<Predicate<MachineState>> conditionCheck = Optional.empty();
+    
+    /**
+     * Object to construct operands for this instruction.
+     */
+    private OperandGetter operandGetter;
 
     /**
      * @param instType The type of operation performed by the instruction.
@@ -41,13 +46,16 @@ public class x86UnaryInstruction extends x86Instruction {
      * @param size Number of bytes this instruction works on.
      * @param line The line number associated with this instruction.
      * @param c A comment to be associated with this instruction (or null if none).
+     * @param og An operand generator for this instruction to use.
      */
-    public x86UnaryInstruction(InstructionType instType, Operand destOp, OpSize size, int line, x86Comment c) {
+    public x86UnaryInstruction(InstructionType instType, Operand destOp, 
+            OpSize size, int line, x86Comment c, OperandGetter og) {
         this.type = instType;
         this.destination = destOp;
         this.opSize = size;
         this.lineNum = line;
         this.comment = Optional.ofNullable(c);
+        this.operandGetter = og;
 
         switch (instType) {
             case IDIV:
@@ -136,20 +144,20 @@ public class x86UnaryInstruction extends x86Instruction {
         // determine which registers will be used for the quotient and remainder
         switch (this.opSize) {
             case QUAD:
-                modDest = new RegOperand("rdx", this.opSize);
-                divDest = new RegOperand("rax", this.opSize);
+                modDest = this.operandGetter.getRegisterOperand("rdx");
+                divDest = this.operandGetter.getRegisterOperand("rax");
                 break;
             case LONG:
-                modDest = new RegOperand("edx", this.opSize);
-                divDest = new RegOperand("eax", this.opSize);
+                modDest = this.operandGetter.getRegisterOperand("edx");
+                divDest = this.operandGetter.getRegisterOperand("eax");;
                 break;
             case WORD:
-                modDest = new RegOperand("dx", this.opSize);
-                divDest = new RegOperand("ax", this.opSize);
+                modDest = this.operandGetter.getRegisterOperand("dx");
+                divDest = this.operandGetter.getRegisterOperand("ax");
                 break;
             case BYTE:
-                modDest = new RegOperand("ah", this.opSize);
-                divDest = new RegOperand("al", this.opSize);
+                modDest = this.operandGetter.getRegisterOperand("ah");
+                divDest = this.operandGetter.getRegisterOperand("al");
                 break;
             default:
                 throw new RuntimeException("Unsupported op size");
@@ -252,11 +260,11 @@ public class x86UnaryInstruction extends x86Instruction {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: subtract 8 from rsp
-        RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");;
         MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
 
         // step 2: store src operand value in (%rsp)
-        MemoryOperand dest = new MemoryOperand("rsp", null, null, null, this.opSize, "");
+        MemoryOperand dest = this.operandGetter.getStackPointerOperand();
 
         return dest.updateState(tmp, Optional.of(src.getValue(tmp)), flags, true);
     }
@@ -274,11 +282,11 @@ public class x86UnaryInstruction extends x86Instruction {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: store (%rsp) value in dest operand 
-        MemoryOperand src = new MemoryOperand("rsp", null, null, null, this.opSize, "");
+        MemoryOperand src = this.operandGetter.getStackPointerOperand();
         MachineState tmp = dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
 
         // step 2: add 8 to rsp
-        RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");;
 
         return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
     }
@@ -330,14 +338,14 @@ public class x86UnaryInstruction extends x86Instruction {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: subtract 8 from rsp
-        RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");;
         MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
 
         int rA = tmp.getRipRegister() + 1;
         BigInteger returnAddr = new BigInteger("" + rA);
 
         // step 2: store return address in (%rsp)
-        MemoryOperand rspMemOperand = new MemoryOperand("rsp", null, null, null, this.opSize, "");
+        MemoryOperand rspMemOperand = this.operandGetter.getStackPointerOperand();
         tmp = rspMemOperand.updateState(tmp, Optional.of(returnAddr), flags, false);
 
         // return new state with rip set to beginning of callee

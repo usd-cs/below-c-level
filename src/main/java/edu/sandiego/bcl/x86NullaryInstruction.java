@@ -28,19 +28,26 @@ public class x86NullaryInstruction extends x86Instruction {
      * The function that this instruction performs.
      */
     private NullaryX86Operation operation;
+    
+    /**
+     * Object to construct operands for this instruction.
+     */
+    private OperandGetter operandGetter;
 
     /**
      * @param instType The type of operation performed by the instruction.
      * @param size Number of bytes this instruction works on.
      * @param line The line number associated with this instruction.
      * @param c A commend associated with this line of the program.
+     * @param og An operand generator for this instruction to use.
      */
     public x86NullaryInstruction(InstructionType instType, OpSize size, int line, 
-            x86Comment c) {
+            x86Comment c, OperandGetter og) {
         this.type = instType;
         this.opSize = size;
         this.lineNum = line;
         this.comment = Optional.ofNullable(c);
+        this.operandGetter = og;
 
         switch (instType) {
             case CLT:
@@ -65,11 +72,11 @@ public class x86NullaryInstruction extends x86Instruction {
      */
     private MachineState clt(MachineState state) throws x86RuntimeException {
         // Gets the value of eax, sign extends it then updates rax with that value
-        RegOperand eaxReg = new RegOperand("eax", OpSize.LONG);
+        RegOperand eaxReg = this.operandGetter.getRegisterOperand("eax");
         BigInteger eaxVal = eaxReg.getValue(state);
         byte[] raxByteArray = MachineState.getExtendedByteArray(eaxVal, 4, 8, false);
         BigInteger raxVal = new BigInteger(raxByteArray);
-        RegOperand raxReg = new RegOperand("rax", OpSize.QUAD);
+        RegOperand raxReg =  this.operandGetter.getRegisterOperand("rax");
         
         // TODO: make sure CLT doesn't update any status flags
         return raxReg.updateState(state, Optional.of(raxVal), new HashMap<>(), true);
@@ -89,13 +96,13 @@ public class x86NullaryInstruction extends x86Instruction {
         Map<String, Boolean> flags = new HashMap<>();
         
         // step 1: store (%rsp) value in rip register 
-        MemoryOperand src = new MemoryOperand("rsp", null, null, null, this.opSize, "");
+        MemoryOperand src = this.operandGetter.getStackPointerOperand();
         MachineState tmp, mS;
         try {
             tmp = state.cloneWithNewRIP(src.getValue(state).intValue());
             
             // step 2: add 8 to rsp
-            RegOperand rsp = new RegOperand("rsp", OpSize.QUAD);
+            RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");
             mS = rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
         } catch (x86RuntimeException ex) {
             if(state.getCallStackSize() != 0){
