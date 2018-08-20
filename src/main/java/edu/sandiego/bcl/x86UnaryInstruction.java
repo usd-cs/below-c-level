@@ -260,7 +260,7 @@ public class x86UnaryInstruction extends x86Instruction {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: subtract 8 from rsp
-        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");;
+        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");
         MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
 
         // step 2: store src operand value in (%rsp)
@@ -286,7 +286,7 @@ public class x86UnaryInstruction extends x86Instruction {
         MachineState tmp = dest.updateState(state, Optional.of(src.getValue(state)), flags, true);
 
         // step 2: add 8 to rsp
-        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");;
+        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");
 
         return rsp.updateState(tmp, Optional.of(rsp.getValue(tmp).add(BigInteger.valueOf(8))), flags, false);
     }
@@ -338,7 +338,7 @@ public class x86UnaryInstruction extends x86Instruction {
         Map<String, Boolean> flags = new HashMap<>();
 
         // step 1: subtract 8 from rsp
-        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");;
+        RegOperand rsp = this.operandGetter.getRegisterOperand("rsp");
         MachineState tmp = rsp.updateState(state, Optional.of(rsp.getValue(state).subtract(BigInteger.valueOf(8))), flags, false);
 
         int rA = tmp.getRipRegister() + 1;
