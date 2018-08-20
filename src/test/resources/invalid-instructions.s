@@ -59,3 +59,4 @@ cmove %eax, %rbx
 cmovel %rax, %rbx
 cmovq %rax, %rbx
 movzlq %eax, %rbx
+movzop %ax, %ebx
