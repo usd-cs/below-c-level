@@ -11,8 +11,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @FunctionalInterface
 interface NullaryX86Operation {
@@ -35,8 +33,10 @@ public class x86NullaryInstruction extends x86Instruction {
      * @param instType The type of operation performed by the instruction.
      * @param size Number of bytes this instruction works on.
      * @param line The line number associated with this instruction.
+     * @param c A commend associated with this line of the program.
      */
-    public x86NullaryInstruction(InstructionType instType, OpSize size, int line, x86Comment c) {
+    public x86NullaryInstruction(InstructionType instType, OpSize size, int line, 
+            x86Comment c) {
         this.type = instType;
         this.opSize = size;
         this.lineNum = line;
@@ -54,6 +54,15 @@ public class x86NullaryInstruction extends x86Instruction {
         }
     }
 
+    /**
+     * Sign extends the eax register to fill the rax register.
+     * 
+     * @param state The machine state in which to work.
+     * @return A clone of {@code state}, but with an incremented rip and
+     * register eax sign extended to fill register rax.
+     * @throws x86RuntimeException if there is a runtime error while performing
+     * the operation.
+     */
     private MachineState clt(MachineState state) throws x86RuntimeException {
         // Gets the value of eax, sign extends it then updates rax with that value
         RegOperand eaxReg = new RegOperand("eax", OpSize.LONG);
@@ -66,6 +75,16 @@ public class x86NullaryInstruction extends x86Instruction {
         return raxReg.updateState(state, Optional.of(raxVal), new HashMap<>(), true);
     }
     
+    /**
+     * Performs a function call return by popping the return address from the top
+     * of the stack and jumping to that address.
+     * 
+     * @param state The machine state in which to work.
+     * @return @return A clone of {@code state}, but with a quad word popped off
+     * the stack and the rip set to the value that was popped off.
+     * @throws x86RuntimeException if there is a runtime error while performing
+     * the operation.
+     */
     private MachineState ret(MachineState state) throws x86RuntimeException {
         Map<String, Boolean> flags = new HashMap<>();
         
