@@ -160,6 +160,8 @@ public class Simulation {
      * Executes instructions until it reaches the end of the program.
      * 
      * @return True if simulation completed or we reached a breakpoint. False otherwise.
+     * @throws edu.sandiego.bcl.x86RuntimeException if simulation had to halt
+     * because of a runtime exception.
      */
     public boolean finish() throws x86RuntimeException {
         int numExecuted = 0; // number of instructions we have executed so far
