@@ -436,42 +436,10 @@ public class X86Parser {
                 offsetStr = "";
             }
 
-            // Look for a base register, which should be a quad sized register
-            String baseReg = memMatcher.group("base");
-            if (baseReg != null) {
-                OpSize baseOpSize = null;
-                try {
-                    baseOpSize = getRegisterSize(baseReg);
-                } catch (X86ParsingException e) {
-                    throw new X86ParsingException(e.getMessage(),
-                            memMatcher.start("base") + e.getStartIndex(),
-                            memMatcher.start("base") + e.getEndIndex());
-                }
-                if (baseOpSize != OpSize.QUAD) {
-                    throw new X86ParsingException("Base register must be quad sized.",
-                            memMatcher.start("base"),
-                            memMatcher.end("base"));
-                }
-            }
-
-            // Look for an index register, which should be a quad sized register
-            String indexReg = memMatcher.group("index");
-            if (indexReg != null) {
-                OpSize indexOpSize = null;
-                try {
-                    indexOpSize = getRegisterSize(indexReg);
-                } catch (X86ParsingException e) {
-                    throw new X86ParsingException(e.getMessage(),
-                            memMatcher.start("index") + e.getStartIndex(),
-                            memMatcher.start("index") + e.getEndIndex());
-                }
-
-                if (indexOpSize != OpSize.QUAD) {
-                    throw new X86ParsingException("Index register must be quad sized.",
-                            memMatcher.start("index"),
-                            memMatcher.end("index"));
-                }
-            }
+            // Look for the base and index registers, which should both be
+            // quad sized registers.
+            String baseReg = getMemoryOperandRegister("base", memMatcher);
+            String indexReg = getMemoryOperandRegister("index", memMatcher);
 
             // Look for a scaling factor, which should be 1, 2, 4, or 8
             Integer scale = null;
@@ -509,6 +477,37 @@ public class X86Parser {
         }
         assert op != null;
         return op;
+    }
+
+    /**
+     * Gets the role of the register with the given role in the memory operand.
+     * 
+     * @param role The role of the register to match (base or index)
+     * @param operandMatcher The regex matcher that contains the match.
+     * @return Name of the register with the given role.
+     * @throws X86ParsingException if could not parse the register.
+     */
+    private String getMemoryOperandRegister(String role, Matcher operandMatcher) 
+            throws X86ParsingException {
+        assert role.equals("base") || role.equals("index");
+        // Look for a base register, which should be a quad sized register
+        String baseReg = operandMatcher.group(role);
+        if (baseReg != null) {
+            OpSize baseOpSize = null;
+            try {
+                baseOpSize = getRegisterSize(baseReg);
+            } catch (X86ParsingException e) {
+                throw new X86ParsingException(e.getMessage(),
+                        operandMatcher.start(role) + e.getStartIndex(),
+                        operandMatcher.start(role) + e.getEndIndex());
+            }
+            if (baseOpSize != OpSize.QUAD) {
+                throw new X86ParsingException(role + " register must be quad sized.",
+                        operandMatcher.start(role),
+                        operandMatcher.end(role));
+            }
+        }
+        return baseReg;
     }
 
     /**
