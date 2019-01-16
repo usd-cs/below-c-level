@@ -11,7 +11,7 @@ import java.util.HashSet;
  *
  * @author Sat Garcia (sat@sandiego.edu)
  */
-class MemoryOperand extends Operand {
+public class MemoryOperand extends Operand {
 
     /**
      * Name of the base register.

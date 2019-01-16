@@ -40,42 +40,42 @@ public class Register {
     /**
      * The name of the register (e.g. "rax")
      */
-    private SimpleStringProperty name;
-
-    /**
-     * String representation of the register's value (in hex).
-     */
-    private SimpleStringProperty value;
+    private final SimpleStringProperty name;
 
     /**
      * The prominence of this register.
      * Larger values mean higher prominence (e.g. more recently used.)
      */
-    private int prominence;
+    private final int prominence;
     
     /**
      * The line number from which the register last was updated.
      */
-    private SimpleIntegerProperty origin;
+    private final SimpleIntegerProperty origin;
     
     /**
-     * The full 64 bit value of the register.
+     * The full, quad length (8 bytes) value of the register.
+     * This value is a string containing a hexadecimal number.
      */
-    private String fullValue;
+    private final String quadValue;
     
     /**
      * 32, 16, and 8-bit register names.
      */
-    private String longRegName;
-    private String wordRegName;
-    private String byteLowRegName;
+    private final String longRegName;
+    private final String wordRegName;
+    private final String byteLowRegName;
     
-    public Register (String name, String value, int prom, int origin, String fullVal) {
-        this.name = new SimpleStringProperty(name);
-        this.value = new SimpleStringProperty(value);
+    public Register (String quadName, int prom, int origin, String quadVal) {
+        assert subRegistersFromFullRegister.keySet().contains(quadName);
+        
+        this.name = new SimpleStringProperty(quadName);
+        this.longRegName = subRegistersFromFullRegister.get(quadName).get(1);
+        this.wordRegName = subRegistersFromFullRegister.get(quadName).get(2);
+        this.byteLowRegName = subRegistersFromFullRegister.get(quadName).get(3);
         this.prominence = prom;
         this.origin = new SimpleIntegerProperty(origin);
-        this.fullValue = fullVal;
+        this.quadValue = quadVal;
     }
     
     // Getters and setters
@@ -99,14 +99,6 @@ public class Register {
         name.set(s);
     }
     
-    public String getValue(){
-        return value.get();
-    }
-    
-    public void setValue(String s){
-        value.set(s);
-    }
-    
     public int getProminence(){
         return this.prominence;
     }
@@ -119,38 +111,54 @@ public class Register {
         origin.set(ori);
     }
     
-    public String getSubValue(int numBytes){ 
-        return "0x" + fullValue.substring((8 - numBytes) * 2);
-    }
-    
-    public void setValueToBase(int base) {
-        // 0 is hex, 1 unsigned dec, 2 signed dec
-        if (base == 0) {
-            String hexString = fullValue;
-            if (fullValue.charAt(0) == '0') {
-                hexString = fullValue.replaceFirst("0+", "0");
-            }
-            hexString = hexString.replaceFirst("FFFF+", "F..F");
-            value.set("0x" + hexString);
-        } else if (base == 1) {
-            BigInteger bI = new BigInteger(fullValue, 16);
-            value.set(bI.toString());
-        } else if (base == 2) {
-            BigInteger bI = new BigInteger(fullValue, 16);
-            value.set(String.valueOf(bI.longValue()));
-        }
-    }
-    
+
     /**
-     * Sets the 32, 16, and 8-bit register names based on given 64-bit register
+     * Returns a string containing the register's value in the given number 
+     * representation.
      * 
-     * @param name 
+     * @param numBytes The number of bytes in the value returned.
+     * @param base The number representation of the value (e.g. hex).
+     * @param trimHex Whether to "trim" the returned value if it using the
+     * hexadecimal format. Trimming means to remove extra leading zeros and to
+     * replace long sequences of "F" with "F..F". This has no effect for number
+     * representations other than hex.
+     * @return The value in the requested number format.
      */
-    public void setSubName(String name) {
-        if (subRegistersFromFullRegister.containsKey(name)) {
-            longRegName = subRegistersFromFullRegister.get(name).get(1);
-            wordRegName = subRegistersFromFullRegister.get(name).get(2);
-            byteLowRegName = subRegistersFromFullRegister.get(name).get(3);
+    public String getSubValue(int numBytes, int base, boolean trimHex) { 
+        String subRegString = quadValue.substring((8 - numBytes) * 2);
+        switch (base) {
+            case 0:
+                if (trimHex) {
+                    if (subRegString.charAt(0) == '0') {
+                        subRegString = subRegString.replaceFirst("0+", "0");
+                    }
+                    subRegString = subRegString.replaceFirst("FFFF+", "F..F");
+                }
+                return "0x" + subRegString;
+            case 1:
+            {
+                BigInteger bI = new BigInteger(subRegString, 16);
+                return bI.toString();
+            }
+            case 2:
+            default:
+            {
+                BigInteger bI = new BigInteger(quadValue, 16);
+                switch (numBytes) {
+                    case 1:
+                        return String.valueOf(bI.byteValue());
+                    case 2:
+                        return String.valueOf(bI.shortValue());
+                    case 4:
+                        return String.valueOf(bI.intValue());
+                    case 8:
+                        return String.valueOf(bI.intValue());
+                    default:
+                        break;
+                }
+                System.exit(1);
+                return "";
+            }
         }
     }
     

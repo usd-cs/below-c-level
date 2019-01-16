@@ -709,7 +709,7 @@ public class MachineState {
         // read from an uninitialized address so throw an exception.
         if (i == this.memory.size()) {
             throw new x86RuntimeException("Read from uninitialized memory: 0x" 
-                    + String.format("%X", address));
+                    + String.format("%X", address).replaceFirst("F{4,}","F..F"));
         }
 
         i++; // We broke the last loop so increment never happened.
@@ -719,7 +719,7 @@ public class MachineState {
             // then we are trying to read from uninitialized memory.
             if (se.getStartAddress() != (endAddrOfPrevEntry+1)) {
                 throw new x86RuntimeException("Read from uninitialized memory: 0x" 
-                    + String.format("%X", address + (size-bytes_remaining)));
+                    + String.format("%X", address + (size-bytes_remaining)).replaceFirst("F{4,}","F..F"));
             }
             
              // note where we left off (pick up here later)
@@ -743,7 +743,7 @@ public class MachineState {
         // have reached an unininitialized area of memory.
         if (bytes_remaining > 0) {
             throw new x86RuntimeException("Read from uninitialized memory: 0x" 
-                    + String.format("%X", address + (size-bytes_remaining)));
+                    + String.format("%X", address + (size-bytes_remaining)).replaceFirst("F{4,}","F..F"));
         }
         
         // Array is in little endian but need to make it big endian for Java so
@@ -764,11 +764,10 @@ public class MachineState {
      * @return List of Register objects for all of the registers in this state.
      */
     public List<Register> getRegisters(List<String> regHistory) {
-        ArrayList<Register> arr = new ArrayList<Register>();
+        ArrayList<Register> arr = new ArrayList<>();
         for (Map.Entry<String, RegisterState> entry : registers.entrySet()) {
             BigInteger b = new BigInteger(entry.getValue().getValue());
             byte[] ba = b.toByteArray();
-            String s = "0x";
             String fullS = "";
             for (int i = 0; i < 8 - ba.length; i++) {
                 if (b.signum() == -1) {
@@ -777,19 +776,12 @@ public class MachineState {
                     fullS += "00";
                 }
             }
-            if (ba.length != 8) {
-                if (b.signum() == -1) {
-                    s += "F...";
-                } else {
-                    s += "0...";
-                }
-            }
+
             for (byte i : ba) {
-                s += String.format("%02X", i);
                 fullS += String.format("%02X", i);
             }
             int regHist = regHistory.lastIndexOf(entry.getKey());
-            arr.add(new Register(entry.getKey(), s, regHist, entry.getValue().getOrigin(), fullS));
+            arr.add(new Register(entry.getKey(), regHist, entry.getValue().getOrigin(), fullS));
         }
         return arr;
     }

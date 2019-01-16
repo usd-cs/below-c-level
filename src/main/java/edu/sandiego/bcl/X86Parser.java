@@ -71,20 +71,27 @@ public class X86Parser {
     private int currLineNum;
     
     /**
-     * Map for keeping track of all the labels we have parsed so far.
+     * Map for keeping track of all the labelFromName we have parsed so far.
      */
-    private final Map<String, x86Label> labels;
+    private final Map<String, x86Label> labelFromName;
 
-    private final Map<String, List<x86Instruction>> labelUsers;
+    /**
+     * Map for tracking all the instructions that use a label with a specific name.
+     */
+    private final Map<String, List<x86Instruction>> labelUsersFromName;
+    
+    /**
+     * Object to construct operands for instructions.
+     */
+    private OperandGetter operandGetter;
 
     public X86Parser(){
-        currLineNum = 0;
-        labels = new HashMap<>();
-        labelUsers = new HashMap<>();
+        this.currLineNum = 0;
+        this.labelFromName = new HashMap<>();
+        this.labelUsersFromName = new HashMap<>();
+        this.operandGetter = new x86OperandGetter();
     }
-    
 
-    
     /**
      * Class to represent information about the instruction being parsed,
      * including it's type, size, and operand requirements.
@@ -130,7 +137,7 @@ public class X86Parser {
          */
         String validTwoSizedInstrNames = "(?<name>" 
                 + TWO_SUFFIX_INSTRUCTIONS_REGEX
-                + ")(?<suffices>b[wlq]|w[lq])";
+                + ")(?<suffices>b[wlq]|w[lq]|lq)";
         Matcher twoSizedInstrMatcher = Pattern.compile(validTwoSizedInstrNames).matcher(instrName);
 
         /*
@@ -166,20 +173,22 @@ public class X86Parser {
                         instrName.length());
             }
             
-            try {
-                size = OpSize.getOpSizeFromAbbrev(sizedInstrMatcher.group("size"));
-            } catch (X86ParsingException e) {
-                throw new X86ParsingException("unexpected size suffix",
-                            sizedInstrMatcher.start("size"),
-                            instrName.length());
-            }
-            
+            size = OpSize.getOpSizeFromAbbrev(sizedInstrMatcher.group("size"));
             opSizes.add(size);
             
         } else if (twoSizedInstrMatcher.matches()) {
             type = InstructionType.valueOf(twoSizedInstrMatcher.group("name").toUpperCase());
             String suffix1 = twoSizedInstrMatcher.group("suffices").substring(0,1);
             String suffix2 = twoSizedInstrMatcher.group("suffices").substring(1);
+            
+            // movzlq doesn't exist because movl automatically zero extends 
+            // to fill the full quad register.
+            if (type == InstructionType.MOVZ 
+                    && suffix1.equals("l") && suffix2.equals("q")) {
+                throw new X86ParsingException("MOVZ does not have an lq variant.",
+                        twoSizedInstrMatcher.start("suffices"),
+                        twoSizedInstrMatcher.end("suffices"));
+            }
             
             opSizes.add(OpSize.getOpSizeFromAbbrev(suffix1));
             size = OpSize.getOpSizeFromAbbrev(suffix2);
@@ -427,42 +436,10 @@ public class X86Parser {
                 offsetStr = "";
             }
 
-            // Look for a base register, which should be a quad sized register
-            String baseReg = memMatcher.group("base");
-            if (baseReg != null) {
-                OpSize baseOpSize = null;
-                try {
-                    baseOpSize = getRegisterSize(baseReg);
-                } catch (X86ParsingException e) {
-                    throw new X86ParsingException(e.getMessage(),
-                            memMatcher.start("base") + e.getStartIndex(),
-                            memMatcher.start("base") + e.getEndIndex());
-                }
-                if (baseOpSize != OpSize.QUAD) {
-                    throw new X86ParsingException("Base register must be quad sized.",
-                            memMatcher.start("base"),
-                            memMatcher.end("base"));
-                }
-            }
-
-            // Look for an index register, which should be a quad sized register
-            String indexReg = memMatcher.group("index");
-            if (indexReg != null) {
-                OpSize indexOpSize = null;
-                try {
-                    indexOpSize = getRegisterSize(indexReg);
-                } catch (X86ParsingException e) {
-                    throw new X86ParsingException(e.getMessage(),
-                            memMatcher.start("index") + e.getStartIndex(),
-                            memMatcher.start("index") + e.getEndIndex());
-                }
-
-                if (indexOpSize != OpSize.QUAD) {
-                    throw new X86ParsingException("Index register must be quad sized.",
-                            memMatcher.start("index"),
-                            memMatcher.end("index"));
-                }
-            }
+            // Look for the base and index registers, which should both be
+            // quad sized registers.
+            String baseReg = getMemoryOperandRegister("base", memMatcher);
+            String indexReg = getMemoryOperandRegister("index", memMatcher);
 
             // Look for a scaling factor, which should be 1, 2, 4, or 8
             Integer scale = null;
@@ -496,13 +473,41 @@ public class X86Parser {
                                                 labelMatcher.start(), 
                                                 labelMatcher.end());
             
-            op = new LabelOperand(labelName, labels.get(labelName));
-        } else {
-            System.out.println("ERROR: Unknown type of operand.");
-            System.out.println("\t Tried to match " + str);
-            System.exit(1);
+            op = new LabelOperand(labelName, labelFromName.get(labelName));
         }
+        assert op != null;
         return op;
+    }
+
+    /**
+     * Gets the role of the register with the given role in the memory operand.
+     * 
+     * @param role The role of the register to match (base or index)
+     * @param operandMatcher The regex matcher that contains the match.
+     * @return Name of the register with the given role.
+     * @throws X86ParsingException if could not parse the register.
+     */
+    private String getMemoryOperandRegister(String role, Matcher operandMatcher) 
+            throws X86ParsingException {
+        assert role.equals("base") || role.equals("index");
+        // Look for a base register, which should be a quad sized register
+        String baseReg = operandMatcher.group(role);
+        if (baseReg != null) {
+            OpSize baseOpSize = null;
+            try {
+                baseOpSize = getRegisterSize(baseReg);
+            } catch (X86ParsingException e) {
+                throw new X86ParsingException(e.getMessage(),
+                        operandMatcher.start(role) + e.getStartIndex(),
+                        operandMatcher.start(role) + e.getEndIndex());
+            }
+            if (baseOpSize != OpSize.QUAD) {
+                throw new X86ParsingException(role + " register must be quad sized.",
+                        operandMatcher.start(role),
+                        operandMatcher.end(role));
+            }
+        }
+        return baseReg;
     }
 
     /**
@@ -707,20 +712,18 @@ public class X86Parser {
                             c);
                 } else if (instrType.numOperands() == 1) {
                     x86UnaryInstruction inst = new x86UnaryInstruction(instrType,
-                            operands.get(0),
-                            instrSize,
-                            currLineNum++,
-                            c);
+                            operands.get(0), instrSize, currLineNum++, c,
+                            this.operandGetter);
 
                     if (operands.get(0) instanceof LabelOperand) {
                         LabelOperand lo = (LabelOperand) operands.get(0);
                         String loName = lo.getName();
-                        if (labelUsers.containsKey(loName)) {
-                            labelUsers.get(loName).add(inst);
+                        if (labelUsersFromName.containsKey(loName)) {
+                            labelUsersFromName.get(loName).add(inst);
                         } else {
                             List<x86Instruction> l = new ArrayList<>();
                             l.add(inst);
-                            labelUsers.put(loName, l);
+                            labelUsersFromName.put(loName, l);
                         }
                     }
                     return inst;
@@ -733,10 +736,8 @@ public class X86Parser {
                                 instMatcher.end("inst"),
                                 instr.length());
                 // nullary skullduggery
-                return new x86NullaryInstruction(instrType,
-                        instrSize,
-                        currLineNum++,
-                        c);
+                return new x86NullaryInstruction(instrType, instrSize,
+                        currLineNum++, c, this.operandGetter);
             }
         } else {
             // This line contains a label
@@ -748,7 +749,7 @@ public class X86Parser {
                                                 labelMatcher.end("label"));
 
             // Make sure this label doesn't already exist
-            if (labels.containsKey(labelName)) {
+            if (labelFromName.containsKey(labelName)) {
                 System.out.println("Duplicate label: " + labelName);
                 throw new X86ParsingException("Duplicate label name",
                         labelMatcher.start("label"),
@@ -756,9 +757,9 @@ public class X86Parser {
             }
 
             x86Label l = new x86Label(labelName, currLineNum++, c);
-            labels.put(labelName, l);
-            if (labelUsers.containsKey(labelName)) {
-                labelUsers.get(labelName).forEach((inst) -> {
+            labelFromName.put(labelName, l);
+            if (labelUsersFromName.containsKey(labelName)) {
+                labelUsersFromName.get(labelName).forEach((inst) -> {
                     inst.updateLabels(labelName, l);
                 });
             }
@@ -771,8 +772,8 @@ public class X86Parser {
      * Resets the parser back to its starting state.
      */
     public void clear() {
-        labels.clear();
-        labelUsers.clear();
+        labelFromName.clear();
+        labelUsersFromName.clear();
         currLineNum = 0;
     }
     
@@ -791,11 +792,11 @@ public class X86Parser {
      * @param labelName The label to remove.
      */
     public void removeLabel(String labelName){
-        labels.remove(labelName);
+        labelFromName.remove(labelName);
     }
     
     public Optional<x86ProgramLine> getFirstLineOfMain(){
-        x86Label l = labels.get("main");
+        x86Label l = labelFromName.get("main");
         if (l != null) {
             return Optional.of(l);
         } else {
@@ -834,8 +835,8 @@ public class X86Parser {
                 
             case MOVZ:
             case MOVS:
-                opReqs.add(new OperandRequirements(sizes.get(0), true, true, true, false));
-                opReqs.add(new OperandRequirements(sizes.get(1), false, true, true, false));
+                opReqs.add(new OperandRequirements(sizes.get(0), false, true, true, false));
+                opReqs.add(new OperandRequirements(sizes.get(1), false, true, false, false));
                 break;
                 
             case SHL:
