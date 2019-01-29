@@ -4,6 +4,8 @@ Below C Level (BCL) is a simulator for a subset of the x86-64 assembly language.
 It is designed for students new to assembly programming and offers a simple
 interface that focuses on key concepts.
 
+![Below C Level's Interface](resources/images/interface.png)
+
 ## Requirements
 
 - Java 11
