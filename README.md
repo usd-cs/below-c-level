@@ -23,7 +23,7 @@ mvn clean compile
 To run the simulator, use the following Maven command:
 
 ```bash
-mvn exec:java
+mvn exec:exec
 ```
 
 ### Netbeans
