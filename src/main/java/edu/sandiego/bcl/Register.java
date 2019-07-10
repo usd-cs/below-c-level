@@ -110,8 +110,11 @@ public class Register {
     public void setOrigin(int ori){
         origin.set(ori);
     }
-    
 
+    public String getValue() {
+        return this.quadValue;
+    }
+    
     /**
      * Returns a string containing the register's value in the given number 
      * representation.
@@ -205,4 +208,3 @@ public class Register {
         }
     };
 }
-
