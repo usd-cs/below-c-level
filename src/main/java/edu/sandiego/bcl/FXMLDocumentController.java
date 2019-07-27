@@ -177,8 +177,8 @@ public class FXMLDocumentController implements Initializable {
         initializeKeyboardShortcuts();
         initializeButtonGraphics();
 
-        // initialize "instruction entry" text box
-        newLineEntry.setOnKeyPressed(this::parseAndAddInstruction);
+        // initialize "instruction entry" text box 
+        newLineEntry.setOnKeyPressed(this::parseAndAddInstruction); 
 
         // Initialize the simulation state and create our first (blank) tab.
         simStateFromTab = new HashMap<>();

@@ -128,6 +128,18 @@ public class Simulation {
         
         this.stuckOnError = false;
     }
+
+    /**
+     * Resets simulation completely
+     */
+     public void createNewSim() {
+         this.stateHistory.clear();
+         this.stateHistory.add(new MachineState());
+         this.regHistory.clear();
+         this.program.programLines.clear();
+         this.currentLine = null;
+
+     }
     
     /**
      * Checks if end of simulation has been reached.
