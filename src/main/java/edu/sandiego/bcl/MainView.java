@@ -69,7 +69,7 @@ public class MainView extends AppLayout {
         // Set up x86-64 instruction list table
         Grid<x86ProgramLine> instructionTable  = new Grid<>(x86ProgramLine.class);
         GridSelectionModel<x86ProgramLine> selectionMode = instructionTable
-        .setSelectionMode(Grid.SelectionMode.SINGLE);
+            .setSelectionMode(Grid.SelectionMode.SINGLE);
         initializeInstructionTable(instructionTable);
     
         // Set up stack entry table
@@ -182,16 +182,26 @@ public class MainView extends AppLayout {
         left.add(instructionInput, instructionTable, buttons);
         left.setSpacing(false);
 
+        VerticalLayout stackLayout = new VerticalLayout();
+        stackLayout.add(stack, stackTable);
+        stackLayout.setSpacing(false);
+        stackLayout.setSizeFull();
+
+        VerticalLayout regLayout = new VerticalLayout();
+        regLayout.add(register, registerTable);
+        regLayout.setSizeFull();
+        regLayout.setSpacing(false);
+
         // Container for right side of app
         VerticalLayout right = new VerticalLayout();
-        right.setWidthFull();
-        right.add(stack, stackTable, register, registerTable, statusFlags); 
-        right.setSpacing(false);
+        //right.setwidthFull();
+        right.add(stackLayout, regLayout, statusFlags);
+        right.setSizeFull(); 
  
        // Container for Simulation
         HorizontalLayout simContainer = new HorizontalLayout();
         simContainer.add(left, right);
-
+        
         // For visibility and scroll testing purposes
         simContainer.setWidth("90%");
         simContainer.setHeight("80%");
@@ -286,6 +296,7 @@ public class MainView extends AppLayout {
     public void updateTables(Grid<x86ProgramLine> g, Grid<StackEntry> s, Grid<Register> r, 
                                 Label sf, Label zf, Label of, Label cf) {
         g.getSelectionModel().select(activeSimulation.getCurrentLine());
+        scrollToSelectedInstruction(g);
         s.setItems(activeSimulation.getStackEntries());
         r.setItems(activeSimulation.getRegisters());
         updateStatusFlags(sf, zf, of, cf);
