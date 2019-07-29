@@ -251,7 +251,7 @@ public class MainView extends AppLayout {
         Button newSim = new Button("Start a New Simulation");
         newSim.addClickListener( event -> {
             Notification.show("Starting new sim!");
-            activeSimulation.createNewSim();
+            activeSimulation = new Simulation();
             instructionTable.getDataProvider().refreshAll();
             instructionTable.setItems(activeSimulation.getProgramLines());
             updateSimulation();
