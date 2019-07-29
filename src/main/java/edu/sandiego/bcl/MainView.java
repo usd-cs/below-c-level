@@ -35,6 +35,7 @@ import com.vaadin.flow.data.provider.SortOrder;
 import com.vaadin.flow.data.provider.QuerySortOrder;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.selection.*;
+import com.vaadin.flow.server.StreamResource;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.ArrayList;
@@ -84,7 +85,11 @@ public class MainView extends AppLayout {
         activeSimulation = new Simulation();
 
         // Image placement currently wrong, only displays alt text
-        Image headerImage = new Image("/below-c-level/resources/images/interface.png", "Below C Level");
+        StreamResource res = new StreamResource("BCLHeader.png", () -> 
+            // eg. load image data from classpath (src/main/resources/images/image.png)
+            MainView.class.getClassLoader().getResourceAsStream("images/BCLHeader.png")
+        );
+        Image headerImage = new Image( res,"Alternativ text description for logo image");
         setBranding(headerImage);
 
         // Navigation Bar
