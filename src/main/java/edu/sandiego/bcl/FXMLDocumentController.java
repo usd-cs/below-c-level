@@ -337,7 +337,7 @@ public class FXMLDocumentController implements Initializable {
     }
 
     private void initializeRegisterTable() {
-        // Initialize the register table
+        // Initialize the register tabletool
         registerNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         registerOriginColumn.setCellValueFactory(new PropertyValueFactory<>("origin"));
         

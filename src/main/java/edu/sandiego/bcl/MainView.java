@@ -18,6 +18,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.GridSelectionModel;
 import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.grid.Grid.*;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.tabs.Tab;
@@ -28,6 +29,7 @@ import com.vaadin.flow.component.HtmlContainer.*;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.data.provider.SortOrder;
 import com.vaadin.flow.data.provider.QuerySortOrder;
@@ -50,6 +52,33 @@ public class MainView extends AppLayout {
     // Declare current sim
     private Simulation activeSimulation;
     
+    // Declare Labels
+    private Label stack;
+    private Label register;
+    private Label valueFormatLabel;
+    private Label sfLabel;
+    private Label ofLabel;
+    private Label zfLabel;
+    private Label cfLabel;
+
+    // Instruction input
+    private TextField instructionInput;
+
+    // Declare grids
+    private Grid<x86ProgramLine> instructionTable;
+    private Grid<Register> registerTable;
+    private Grid<StackEntry> stackTable;
+
+    // Register table context menu
+    private ComboBox<String> valueFormat;
+
+    // Declare buttons
+    private Button restart;
+    private Button forward;
+    private Button current;
+    private Button back;
+    private Button end;
+
     public MainView() {
         
         activeSimulation = new Simulation();
@@ -67,36 +96,44 @@ public class MainView extends AppLayout {
         nav.addMenuItems(home, userGuide, tutorials, feedback);
      
         // Set up x86-64 instruction list table
-        Grid<x86ProgramLine> instructionTable  = new Grid<>(x86ProgramLine.class);
+        instructionTable  = new Grid<>(x86ProgramLine.class);
         GridSelectionModel<x86ProgramLine> selectionMode = instructionTable
             .setSelectionMode(Grid.SelectionMode.SINGLE);
-        initializeInstructionTable(instructionTable);
+        initializeInstructionTable();
     
         // Set up stack entry table
-        Label stack = new Label("Program Stack");
+        stack = new Label("Program Stack");
         stack.setWidthFull();
-        Grid<StackEntry> stackTable = new Grid<>();
-        initializeStackTable(stackTable);
+        stackTable = new Grid<>();
+        initializeStackTable();
                        
+        // Set up Combo Box for number value format
+        valueFormatLabel = new Label("Select a Value Format:"); 
+        valueFormat = new ComboBox<>();
+        valueFormat.setItems("Hexidecimal", "Unsigned Decimal", "Signed Decimal");
+        valueFormat.setPlaceholder("Select an option");
+        valueFormat.addValueChangeListener( event ->
+            Notification.show("Selected option: " + event.getValue()));
+        
         // Set up register table
-        Label register = new Label("Register View");
+        register = new Label("Register View");
         register.setWidthFull();
-        Grid<Register> registerTable = new Grid<>();
+        registerTable = new Grid<>();
         registerTable.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        initializeRegisterTable(registerTable);
-    
+        initializeRegisterTable();
+
         // Set up status flags
         HorizontalLayout statusFlags = new HorizontalLayout();
-        Label sfLabel = new Label();
-        Label zfLabel = new Label();
-        Label ofLabel = new Label();
-        Label cfLabel = new Label();
-        updateStatusFlags(sfLabel, zfLabel, ofLabel, cfLabel);
+        sfLabel = new Label();
+        zfLabel = new Label();
+        ofLabel = new Label();
+        cfLabel = new Label();
+        updateStatusFlags();
         statusFlags.add(sfLabel, zfLabel, ofLabel, cfLabel);
         
         // Set up instruction input field
-        TextField instructionInput = new TextField();
-        initializeInputField(instructionInput);
+        instructionInput = new TextField();
+        initializeInputField();
 
         // Set up instruction input field event listener
         instructionInput.addValueChangeListener(event -> { 
@@ -107,7 +144,7 @@ public class MainView extends AppLayout {
                     instructionInput.setInvalid(false);
                     Notification.show("Successfully added!");
                     instructionTable.getDataProvider().refreshAll();
-                    updateTables(instructionTable, stackTable, registerTable, sfLabel, zfLabel, ofLabel, cfLabel);
+                    updateSimulation();
                     instructionInput.clear();
                 }
                 catch (X86ParsingException e) {
@@ -126,36 +163,36 @@ public class MainView extends AppLayout {
          HorizontalLayout buttons = new HorizontalLayout();
          
          // Reset program to beginning of instructions (DONE)
-         Button reset = new Button("Restart");
-         reset.addClickListener( event -> {
+         restart = new Button("Restart");
+         restart.addClickListener( event -> {
              activeSimulation.restart();
              Notification.show("Simulation Reset");
-             updateTables(instructionTable, stackTable, registerTable, sfLabel, zfLabel, ofLabel, cfLabel);
+             updateSimulation();
              instructionTable.setItems(activeSimulation.getProgramLines());
          });
         
          // Undo the simulation of 1 instruction (DONE)
-         Button back = new Button("Step Back");
+         back = new Button("Step Back");
          back.addClickListener( event -> {
                  activeSimulation.stepBackward();
                  Notification.show("Backward");
-                 updateTables(instructionTable, stackTable, registerTable, sfLabel, zfLabel, ofLabel, cfLabel);
+                 updateSimulation();
          });
         
          // Jump to current instruction (DONE)
-         Button play = new Button("Play");
-         play.addClickListener(event -> { 
+         current = new Button("Play");
+         current.addClickListener(event -> { 
              Notification.show("Play");
-             scrollToSelectedInstruction(instructionTable);
+             scrollToSelectedInstruction();
          });
         
          // Simulate 1 instruction (DONE)
-         Button forward = new Button("Step Forward");
+         forward = new Button("Step Forward");
          forward.addClickListener(event -> {
              try { 
                  activeSimulation.stepForward();
                  Notification.show("Forward");
-                 updateTables(instructionTable, stackTable, registerTable, sfLabel, zfLabel, ofLabel, cfLabel);
+                 updateSimulation();
                  }
              catch(x86RuntimeException e) {
                 Notification.show("Forward: x86RuntimeException");
@@ -163,19 +200,19 @@ public class MainView extends AppLayout {
             });
 
          // Skip to end of simulation
-         Button end = new Button("End");
+         end = new Button("End");
          end.addClickListener( event -> {
              try {
                  Notification.show("Execute simulation");
                  activeSimulation.finish();
-                 updateTables(instructionTable, stackTable, registerTable, sfLabel, zfLabel, ofLabel, cfLabel);
+                 updateSimulation();
                  }
              catch(x86RuntimeException e) {
                  Notification.show("End: x86RuntimeException");
              }
          });
         
-        buttons.add(reset, back, play, forward, end);
+        buttons.add(restart, back, current, forward, end);
         
         // Container for left side of app
         VerticalLayout left = new VerticalLayout();
@@ -194,7 +231,6 @@ public class MainView extends AppLayout {
 
         // Container for right side of app
         VerticalLayout right = new VerticalLayout();
-        //right.setwidthFull();
         right.add(stackLayout, regLayout, statusFlags);
         right.setSizeFull(); 
  
@@ -204,7 +240,7 @@ public class MainView extends AppLayout {
         
         // For visibility and scroll testing purposes
         simContainer.setWidth("90%");
-        simContainer.setHeight("80%");
+        simContainer.setHeight("90%");
     
         // Start a new, blank simulation
         Button newSim = new Button("Start a New Simulation");
@@ -213,7 +249,7 @@ public class MainView extends AppLayout {
             activeSimulation.createNewSim();
             instructionTable.getDataProvider().refreshAll();
             instructionTable.setItems(activeSimulation.getProgramLines());
-            updateTables(instructionTable, stackTable, registerTable, sfLabel, zfLabel, ofLabel, cfLabel);
+            updateSimulation();
             
             // Test confirmation
             if(activeSimulation.isAtBeginning()) {
@@ -232,115 +268,113 @@ public class MainView extends AppLayout {
 
     /**
      * Method to initialize the instruction table
-     * @param g the grid to contain x86-64 program instructions 
      */
-    public void initializeInstructionTable(Grid<x86ProgramLine> g) {
-        g.setWidthFull();
-        g.removeAllColumns();
-        g.addColumn(TemplateRenderer.<x86ProgramLine>of(
+    public void initializeInstructionTable() {
+        instructionTable.setWidthFull();
+        instructionTable.removeAllColumns();
+        instructionTable.addColumn(TemplateRenderer.<x86ProgramLine>of(
             "<div title='[[item.description]]'>[[item.Instruction]]</div>")
             .withProperty("Instruction", line -> line.toString())
             .withProperty("description", line -> line.getDescriptionString()))
             .setHeader("Instruction");
-        g.setItems(activeSimulation.getProgramLines());    
-        
+        instructionTable.setItems(activeSimulation.getProgramLines());    
     }
 
     /**
     * Method to initialize the instruction input field
-    * @param t the textfield to input instructions
     */
-    public void initializeInputField(TextField t) {
-        t.setWidthFull();
-        t.setPlaceholder("Enter an x86 instruction or comment");
-        t.setClearButtonVisible(true);
+    public void initializeInputField() {
+        instructionInput.setWidthFull();
+        instructionInput.setPlaceholder("Enter an x86 instruction or comment");
+        instructionInput.setClearButtonVisible(true);
     }
 
     /** 
     * Method to initialize the stack table
-    * @param g the table containing stackEntry objects
     */
-    public void initializeStackTable(Grid<StackEntry> g) {
-        g.setSizeFull();
-        g.removeAllColumns();
-        g.addColumn(StackEntry::getStartAddress).setHeader("Start");
-        g.addColumn(StackEntry::getEndAddress).setHeader("End");
-        g.addColumn(StackEntry::getValue).setHeader("Value");
-        g.addColumn(StackEntry::getOrigin)
+    public void initializeStackTable() {
+        stackTable.setSizeFull();
+        stackTable.removeAllColumns();
+        stackTable.addColumn(StackEntry::getStartAddress).setHeader("Start");
+        stackTable.addColumn(StackEntry::getEndAddress).setHeader("End");
+        stackTable.addColumn(StackEntry::getValue).setHeader("Value");
+        stackTable.addColumn(StackEntry::getOrigin)
             .setComparator(StackEntry.comparator)
             .setHeader("Line #");
-        g.setItems(activeSimulation.getStackEntries());
+        stackTable.setItems(activeSimulation.getStackEntries());
     }
 
     /** 
-    * Method to initialize the register table
-    * @param g the table containing registers and their states 
+    * Method to initialize the register table 
     */
-    public void initializeRegisterTable(Grid<Register> g) {
-        g.setSizeFull();
-        g.removeAllColumns();
-        Comparator<Register> regComp = Register.comparator;
-        g.addColumn(Register::getName).setHeader("Register");
-        g.addColumn(Register::getValue).setHeader("Value");
-        g.addColumn(Register::getOrigin).setHeader("Line #");
-        g.setItems(activeSimulation.getRegisters());
+    public void initializeRegisterTable() {
+        registerTable.setSizeFull();
+        registerTable.removeAllColumns();
+        registerTable.addColumn(Register::getName).setHeader("Register")
+            .setFooter(valueFormatLabel);
+        registerTable.addColumn(Register::getValue).setHeader("Value")
+            .setFooter(valueFormat);
+        registerTable.addColumn(Register::getOrigin).setHeader("Line #");
+        registerTable.setItems(activeSimulation.getRegisters());
+        
     }
 
     /**
      * Method to update the stack and register tables when an 
      * instruction is executed
-     * @param s the stack table to update
-     * @param r the register table to update
-     * @param sf, zf, of, cf the status flags to update
      */
-    public void updateTables(Grid<x86ProgramLine> g, Grid<StackEntry> s, Grid<Register> r, 
-                                Label sf, Label zf, Label of, Label cf) {
-        g.getSelectionModel().select(activeSimulation.getCurrentLine());
-        scrollToSelectedInstruction(g);
-        s.setItems(activeSimulation.getStackEntries());
-        r.setItems(activeSimulation.getRegisters());
-        updateStatusFlags(sf, zf, of, cf);
+    public void updateSimulation() {
+        instructionTable.getSelectionModel().select(activeSimulation.getCurrentLine());
+        scrollToSelectedInstruction();
+        stackTable.setItems(activeSimulation.getStackEntries());
+        registerTable.setItems(activeSimulation.getRegisters());
+        updateStatusFlags();
+        updateSimulationControls();
     }
 
     /**
      * Method to update the status flags
-     * @param sf the sign flag
-     * @param zf the zero flag
-     * @param of the overflow flag
-     * @param cf the carry flag
      */
-    public void updateStatusFlags(Label sf, Label zf, Label of, Label cf) {
-        sf.setText("SF: " + (activeSimulation.hasSignFlagSet() ? "1" : "0"));
-        zf.setText("ZF: " + (activeSimulation.hasZeroFlagSet() ? "1" : "0"));
-        of.setText("OF: " + (activeSimulation.hasOverflowFlagSet() ? "1" : "0"));
-        cf.setText("CF: " + (activeSimulation.hasCarryFlagSet() ? "1" : "0"));
+    public void updateStatusFlags() {
+        sfLabel.setText("SF: " + (activeSimulation.hasSignFlagSet() ? "1" : "0"));
+        zfLabel.setText("ZF: " + (activeSimulation.hasZeroFlagSet() ? "1" : "0"));
+        ofLabel.setText("OF: " + (activeSimulation.hasOverflowFlagSet() ? "1" : "0"));
+        cfLabel.setText("CF: " + (activeSimulation.hasCarryFlagSet() ? "1" : "0"));
     }
 
     /**
-     * Method to find the index of the current instruction and scroll to it
-     * @param g the grid that contains the instruction list   
+     * Method to find the index of the current instruction and scroll to it   
      */
-    private static void scrollToSelectedInstruction(Grid g) {
-        Set<x86ProgramLine> sourceIndexSet = g.getSelectedItems();
+    private void scrollToSelectedInstruction() {
+        Set<x86ProgramLine> sourceIndexSet = instructionTable.getSelectedItems();
         ArrayList<x86ProgramLine> selectedIndices = new ArrayList<>(sourceIndexSet);
         if (!selectedIndices.isEmpty()) {
             int selectedIndex = selectedIndices.get(0).getLineNum();
-            //int selectedIndex = selectedIndices.get(0) - 2;
             Notification.show("Selected Index: " + selectedIndices.get(0).getLineNum());
             if (selectedIndex < 0) {
                 selectedIndex = 0;
             }
-            scrollToIndex(g, selectedIndex);
+            scrollToIndex(selectedIndex);
        }
     }
     
     /**
      * JavaScript workaround because the scrollToRow method is missing 
      * in our version of Vaadin
-     * @param grid the grid that contains the instruction list
      * @param index the index to scroll to 
       */
-    public static void scrollToIndex(Grid<?> grid, int index) {
-       UI.getCurrent().getPage().executeJavaScript("$0._scrollToIndex($1)", grid, index);
+    public void scrollToIndex(int index) {
+       UI.getCurrent().getPage().executeJavaScript("$0._scrollToIndex($1)", instructionTable, index);
+    }
+
+    /**
+     * Method to update simulation buttons
+     */
+    private void updateSimulationControls() {
+        forward.setEnabled(!activeSimulation.isFinished());
+        end.setEnabled(!activeSimulation.isFinished());
+        current.setEnabled(!activeSimulation.getProgramLines().isEmpty() || activeSimulation.isFinished());
+        back.setEnabled(!activeSimulation.isAtBeginning());
+        restart.setEnabled(!activeSimulation.isAtBeginning());
     }
 }
