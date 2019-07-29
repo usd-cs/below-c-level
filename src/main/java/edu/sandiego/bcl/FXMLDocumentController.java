@@ -807,9 +807,16 @@ public class FXMLDocumentController implements Initializable {
                 } else {
                     setFont(new Font("Courier", 14));
                     setText(item.toString());
-                    Circle circle = new Circle(4);
-                    circle.setFill(Color.TRANSPARENT);
-                    setGraphic(circle);
+                    if (getItem().getBreakpoint()) {
+                        setGraphic(new Circle(4));
+                    } else {
+                        Circle c = new Circle(4);
+                        c.setFill(Color.TRANSPARENT);
+                        setGraphic(c);
+                    }
+                    //Circle circle = new Circle(4);
+                    //circle.setFill(Color.TRANSPARENT);
+                    //setGraphic(circle);
                 }
             }
         };
