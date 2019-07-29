@@ -38,6 +38,7 @@ import com.vaadin.flow.data.selection.*;
 import com.vaadin.flow.server.StreamResource;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -148,6 +149,7 @@ public class MainView extends AppLayout {
                     activeSimulation.appendToProgram(event.getValue());
                     instructionInput.setInvalid(false);
                     Notification.show("Successfully added!");
+                    activeSimulation.restart();
                     instructionTable.getDataProvider().refreshAll();
                     updateSimulation();
                     instructionInput.clear();
@@ -242,7 +244,7 @@ public class MainView extends AppLayout {
         // Container for right side of app
         VerticalLayout right = new VerticalLayout();
         right.add(stackLayout, regLayout, statusFlags);
-        right.setSizeFull(); 
+        right.setSizeFull();
  
        // Container for Simulation
         HorizontalLayout simContainer = new HorizontalLayout();
@@ -250,7 +252,7 @@ public class MainView extends AppLayout {
         
         // For visibility and scroll testing purposes
         simContainer.setWidth("90%");
-        simContainer.setHeight("90%");
+        simContainer.setHeight("100%");
     
         // Start a new, blank simulation
         Button newSim = new Button("Start a New Simulation");
@@ -308,10 +310,8 @@ public class MainView extends AppLayout {
         stackTable.addColumn(StackEntry::getStartAddress).setHeader("Start");
         stackTable.addColumn(StackEntry::getEndAddress).setHeader("End");
         stackTable.addColumn(StackEntry::getValue).setHeader("Value");
-        stackTable.addColumn(StackEntry::getOrigin)
-            .setComparator(StackEntry.comparator)
-            .setHeader("Line #");
-        stackTable.setItems(activeSimulation.getStackEntries());
+        stackTable.addColumn(StackEntry::getOrigin).setHeader("Line #");
+        updateStackTable();
     }
 
     /** 
@@ -325,8 +325,18 @@ public class MainView extends AppLayout {
         registerTable.addColumn(Register::getValue).setHeader("Value")
             .setFooter(valueFormat);
         registerTable.addColumn(Register::getOrigin).setHeader("Line #");
-        registerTable.setItems(activeSimulation.getRegisters());
-        
+        updateRegisterTable();
+    }
+
+    public void updateStackTable() {
+        List<StackEntry> stackEntries = activeSimulation.getStackEntries();
+        Collections.sort(stackEntries, StackEntry.comparator);
+        stackTable.setItems(stackEntries);
+    }
+    public void updateRegisterTable() {
+        List<Register> registers = activeSimulation.getRegisters();
+        Collections.sort(registers, Register.comparator);
+        registerTable.setItems(registers);
     }
 
     /**
@@ -336,8 +346,10 @@ public class MainView extends AppLayout {
     public void updateSimulation() {
         instructionTable.getSelectionModel().select(activeSimulation.getCurrentLine());
         scrollToSelectedInstruction();
-        stackTable.setItems(activeSimulation.getStackEntries());
-        registerTable.setItems(activeSimulation.getRegisters());
+        updateStackTable();
+        updateRegisterTable();
+//        stackTable.setItems(activeSimulation.getStackEntries());
+//        registerTable.setItems(activeSimulation.getRegisters());
         updateStatusFlags();
         updateSimulationControls();
     }
