@@ -170,6 +170,7 @@ public class MainView extends AppLayout {
              updateSimulation();
              instructionTable.setItems(activeSimulation.getProgramLines());
          });
+         restart.setEnabled(false);
         
          // Undo the simulation of 1 instruction (DONE)
          back = new Button("Step Back");
@@ -178,6 +179,7 @@ public class MainView extends AppLayout {
                  Notification.show("Backward");
                  updateSimulation();
          });
+         back.setEnabled(false);
         
          // Jump to current instruction (DONE)
          current = new Button("Play");
@@ -185,6 +187,7 @@ public class MainView extends AppLayout {
              Notification.show("Play");
              scrollToSelectedInstruction();
          });
+         current.setEnabled(false);
         
          // Simulate 1 instruction (DONE)
          forward = new Button("Step Forward");
@@ -197,7 +200,8 @@ public class MainView extends AppLayout {
              catch(x86RuntimeException e) {
                 Notification.show("Forward: x86RuntimeException");
              }
-            });
+         });
+         forward.setEnabled(false);
 
          // Skip to end of simulation
          end = new Button("End");
@@ -211,6 +215,7 @@ public class MainView extends AppLayout {
                  Notification.show("End: x86RuntimeException");
              }
          });
+         end.setEnabled(false);
         
         buttons.add(restart, back, current, forward, end);
         
