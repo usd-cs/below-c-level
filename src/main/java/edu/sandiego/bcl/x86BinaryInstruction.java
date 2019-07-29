@@ -601,7 +601,7 @@ public class x86BinaryInstruction extends x86Instruction {
         String sourceDesc = source.getDescriptionString();
         String destDesc = destination.getDescriptionString();
         String template =  " the value of " + sourceDesc + " to the value of " + destDesc + ", \nstoring the result in " + destDesc + ".";
-        String template2 = " the value of " + sourceDesc + " from the value of " 
+        String condTemplate = " the value of " + sourceDesc + " from the value of " 
                 + destDesc + ".\nThe result is NOT stored but the condition registers are updated based on the result.";
         String cmovTemplate = "Copies " + sourceDesc + " into " + destDesc + " if the result of the last ";
         String cmovTemplateEnd = ", \notherwise does nothing.";
@@ -613,7 +613,9 @@ public class x86BinaryInstruction extends x86Instruction {
             case IMUL:
                 return "Multiplies" + template;
             case CMP:
-                return "Subtracts" + template2;
+                return "Enables the comparison of the value of " + destDesc + " to the value of " + sourceDesc
+                        + " in a subsequent conditional instruction (e.g. je)." 
+                        + "\n(Note: This instruction performs a subtraction but only updates the conditional registers.)";
             case XOR:
                 return "Bitwise XORs" + template;
             case OR:
@@ -621,7 +623,7 @@ public class x86BinaryInstruction extends x86Instruction {
             case AND:
                 return "Bitwise ANDs" + template;
             case TEST:
-                return "Bitwise ANDs" + template2;
+                return "Bitwise ANDs" + condTemplate;
             case SAL:
             case SHL:
                 return "Shifts " + destDesc + " left by the amount specified by " + sourceDesc + ", \nstoring the result back in " + destDesc + ".";
