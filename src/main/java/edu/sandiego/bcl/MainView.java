@@ -55,6 +55,7 @@ import java.util.Set;
 @Route("")
 @PWA(name = "Project Base for Vaadin Flow", shortName = "Project Base")
 @HtmlImport("frontend://coolstyle.html")
+@StyleSheet("frontend://instruction-table.css")
 public class MainView extends AppLayout {
     
     // Declare current sim
@@ -64,6 +65,7 @@ public class MainView extends AppLayout {
     private Label stack;
     private Label register;
     private Label valueFormatLabel;
+    private Label condFlags;
     private Label sfLabel;
     private Label ofLabel;
     private Label zfLabel;
@@ -143,13 +145,16 @@ public class MainView extends AppLayout {
             }
          });
         // Set up register table
-        register = new Label("Register View");
+        register = new Label("Register Table");
         register.setWidthFull();
         registerTable = new Grid<>();
         registerTable.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         initializeRegisterTable();
 
         // Set up status flags
+        condFlags = new Label("Condition Flags");
+        condFlags.setWidthFull();
+
         HorizontalLayout statusFlags = new HorizontalLayout();
         sfLabel = new Label();
         zfLabel = new Label();
@@ -166,10 +171,8 @@ public class MainView extends AppLayout {
         instructionInput.addValueChangeListener(event -> { 
             if(event.getValue().length() > 0) {
                 try {  
-                    //Notification.show("event: " + event.getValue());
                     activeSimulation.appendToProgram(event.getValue());
                     instructionInput.setInvalid(false);
-                    //Notification.show("Successfully added!");
                     activeSimulation.restart();
                     instructionTable.getDataProvider().refreshAll();
                     updateSimulation();
@@ -178,7 +181,6 @@ public class MainView extends AppLayout {
                 catch (X86ParsingException e) {
                     instructionInput.setErrorMessage(e.getMessage());
                     instructionInput.setInvalid(true);
-                    //Notification.show("Bad instruction!");
                 }
             }
         });
@@ -263,7 +265,7 @@ public class MainView extends AppLayout {
 
         // Container for right side of app
         VerticalLayout right = new VerticalLayout();
-        right.add(stackLayout, regLayout, statusFlags);
+        right.add(stackLayout, regLayout, condFlags, statusFlags);
         right.setSizeFull();
  
        // Container for Simulation
@@ -300,7 +302,7 @@ public class MainView extends AppLayout {
         instructionTable.setWidthFull();
         instructionTable.removeAllColumns();
         instructionTable.addColumn(TemplateRenderer.<x86ProgramLine>of(
-            "<div title='[[item.description]]'>[[item.Instruction]]</div>")
+            "<div title='[[item.description]]' class='instruction'>[[item.Instruction]]</div>")
             .withProperty("Instruction", line -> line.toString())
             .withProperty("description", line -> line.getDescriptionString()))
             .setHeader("Instruction");
@@ -317,6 +319,7 @@ public class MainView extends AppLayout {
                 return "";
             }
         });
+        instructionTable.setClassName("instruction-table");
 
         instructionTable.setItems(activeSimulation.getProgramLines());    
     }

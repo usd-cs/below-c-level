@@ -2,15 +2,15 @@
 <dom-module id="my-grid-styles" theme-for="vaadin-grid">
   <template>
     <style>
-      [part~="cell"].italic {
-        font-style: italic;
-      }
+	  <!-- This gets overridden by the themes css -->
+	  :host(.instruction-table) [part~="header-cell"] {
+		  font-weight: bold;
+	  }
 
       [part~="cell"].current-instruction {
         background: rgb(255, 229, 204);
 		font-weight: bold;
       }
-
 	  
       [part~="row"][selected] {
 		  <!-- No idea what to do here to remove styling -->
