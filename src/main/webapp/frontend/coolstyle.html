@@ -1,0 +1,20 @@
+<!-- Define a style module with custom cell styles -->
+<dom-module id="my-grid-styles" theme-for="vaadin-grid">
+  <template>
+    <style>
+      [part~="cell"].italic {
+        font-style: italic;
+      }
+
+      [part~="cell"].current-instruction {
+        background: rgb(255, 229, 204);
+		font-weight: bold;
+      }
+
+	  
+      [part~="row"][selected] {
+		  <!-- No idea what to do here to remove styling -->
+	  }
+    </style>
+  </template>
+</dom-module>
