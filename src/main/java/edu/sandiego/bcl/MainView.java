@@ -18,6 +18,8 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.GridSelectionModel;
 import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.grid.Grid.*;
+import com.vaadin.flow.component.grid.FooterRow;
+import com.vaadin.flow.component.grid.FooterRow.FooterCell;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.tabs.Tabs;
@@ -35,6 +37,7 @@ import com.vaadin.flow.data.provider.SortOrder;
 import com.vaadin.flow.data.provider.QuerySortOrder;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.selection.*;
+import com.vaadin.flow.data.renderer.NativeButtonRenderer;
 import com.vaadin.flow.server.StreamResource;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -81,6 +84,10 @@ public class MainView extends AppLayout {
     private Button back;
     private Button end;
 
+    private HorizontalLayout currentButton;
+    // Register display format int
+    private int registerDisplayFormat;
+    
     public MainView() {
         
         activeSimulation = new Simulation();
@@ -90,8 +97,8 @@ public class MainView extends AppLayout {
             // eg. load image data from classpath (src/main/resources/images/image.png)
             MainView.class.getClassLoader().getResourceAsStream("images/BCLHeader.png")
         );
-        Image headerImage = new Image( res,"Alternativ text description for logo image");
-        setBranding(headerImage);
+        Image headerImage = new Image( res,"Alternative text description for logo image");
+        //setBranding(headerImage);
 
         // Navigation Bar
         AppLayoutMenu nav = createMenu();
@@ -118,9 +125,21 @@ public class MainView extends AppLayout {
         valueFormat = new ComboBox<>();
         valueFormat.setItems("Hexidecimal", "Unsigned Decimal", "Signed Decimal");
         valueFormat.setPlaceholder("Select an option");
-        valueFormat.addValueChangeListener( event ->
-            Notification.show("Selected option: " + event.getValue()));
-        
+        valueFormat.addValueChangeListener( event -> {
+            Notification.show("Selected option: " + event.getValue());
+            if(event.getValue().equals("Unsigned Decimal")) {
+                registerDisplayFormat = 1;
+                updateSimulation();
+            }
+            else if(event.getValue().equals("Signed Decimal")) {
+                registerDisplayFormat = 2;
+                updateSimulation();
+            }
+            else {
+                registerDisplayFormat = 0;
+                updateSimulation();
+            }
+         });
         // Set up register table
         register = new Label("Register View");
         register.setWidthFull();
@@ -189,12 +208,15 @@ public class MainView extends AppLayout {
          back.setEnabled(false);
         
          // Jump to current instruction (DONE)
-         current = new Button("Play");
+         current = new Button("Scroll to Current Instruction");
          current.addClickListener(event -> { 
-             Notification.show("Play");
+             Notification.show("scrolling to current");
              scrollToSelectedInstruction();
          });
          current.setEnabled(false);
+
+         currentButton = new HorizontalLayout(current);
+         currentButton.setWidthFull();
         
          // Simulate 1 instruction (DONE)
          forward = new Button("Step Forward");
@@ -224,7 +246,7 @@ public class MainView extends AppLayout {
          });
          end.setEnabled(false);
         
-        buttons.add(restart, back, current, forward, end);
+        buttons.add(restart, back, forward, end);
         
         // Container for left side of app
         VerticalLayout left = new VerticalLayout();
@@ -307,8 +329,14 @@ public class MainView extends AppLayout {
     public void initializeStackTable() {
         stackTable.setSizeFull();
         stackTable.removeAllColumns();
-        stackTable.addColumn(StackEntry::getStartAddress).setHeader("Start");
-        stackTable.addColumn(StackEntry::getEndAddress).setHeader("End");
+        stackTable.addColumn(stackEntry ->
+            "0x" + Long.toHexString(stackEntry.getStartAddress())
+                                    .toUpperCase().replaceFirst("F{4,}", "F..F"))
+            .setHeader("Start");
+        stackTable.addColumn(stackEntry ->
+            "0x" + Long.toHexString(stackEntry.getEndAddress())
+                                    .toUpperCase().replaceFirst("F{4,}", "F..F"))
+            .setHeader("End");
         stackTable.addColumn(StackEntry::getValue).setHeader("Value");
         stackTable.addColumn(StackEntry::getOrigin).setHeader("Line #");
         updateStackTable();
@@ -322,7 +350,9 @@ public class MainView extends AppLayout {
         registerTable.removeAllColumns();
         registerTable.addColumn(Register::getName).setHeader("Register")
             .setFooter(valueFormatLabel);
-        registerTable.addColumn(Register::getValue).setHeader("Value")
+        registerTable.addColumn( register ->
+                register.getSubValue(8, registerDisplayFormat, true))
+            .setHeader("Value")
             .setFooter(valueFormat);
         registerTable.addColumn(Register::getOrigin).setHeader("Line #");
         updateRegisterTable();
