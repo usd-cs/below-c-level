@@ -7,6 +7,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.dependency.StyleSheet;
+import com.vaadin.flow.component.dependency.HtmlImport;
 import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.PWA;
@@ -52,6 +54,7 @@ import java.util.Set;
  */
 @Route("")
 @PWA(name = "Project Base for Vaadin Flow", shortName = "Project Base")
+@HtmlImport("frontend://coolstyle.html")
 public class MainView extends AppLayout {
     
     // Declare current sim
@@ -84,7 +87,6 @@ public class MainView extends AppLayout {
     private Button back;
     private Button end;
 
-    private HorizontalLayout currentButton;
     // Register display format int
     private int registerDisplayFormat;
     
@@ -164,10 +166,10 @@ public class MainView extends AppLayout {
         instructionInput.addValueChangeListener(event -> { 
             if(event.getValue().length() > 0) {
                 try {  
-                    Notification.show("event: " + event.getValue());
+                    //Notification.show("event: " + event.getValue());
                     activeSimulation.appendToProgram(event.getValue());
                     instructionInput.setInvalid(false);
-                    Notification.show("Successfully added!");
+                    //Notification.show("Successfully added!");
                     activeSimulation.restart();
                     instructionTable.getDataProvider().refreshAll();
                     updateSimulation();
@@ -176,7 +178,7 @@ public class MainView extends AppLayout {
                 catch (X86ParsingException e) {
                     instructionInput.setErrorMessage(e.getMessage());
                     instructionInput.setInvalid(true);
-                    Notification.show("Bad instruction!");
+                    //Notification.show("Bad instruction!");
                 }
             }
         });
@@ -192,9 +194,8 @@ public class MainView extends AppLayout {
          restart = new Button("Restart");
          restart.addClickListener( event -> {
              activeSimulation.restart();
-             Notification.show("Simulation Reset");
+             //Notification.show("Simulation Reset");
              updateSimulation();
-             instructionTable.setItems(activeSimulation.getProgramLines());
          });
          restart.setEnabled(false);
         
@@ -202,7 +203,7 @@ public class MainView extends AppLayout {
          back = new Button("Step Back");
          back.addClickListener( event -> {
                  activeSimulation.stepBackward();
-                 Notification.show("Backward");
+                 //Notification.show("Backward");
                  updateSimulation();
          });
          back.setEnabled(false);
@@ -214,16 +215,13 @@ public class MainView extends AppLayout {
              scrollToSelectedInstruction();
          });
          current.setEnabled(false);
-
-         currentButton = new HorizontalLayout(current);
-         currentButton.setWidthFull();
         
          // Simulate 1 instruction (DONE)
          forward = new Button("Step Forward");
          forward.addClickListener(event -> {
              try { 
                  activeSimulation.stepForward();
-                 Notification.show("Forward");
+                 //Notification.show("Forward");
                  updateSimulation();
                  }
              catch(x86RuntimeException e) {
@@ -236,7 +234,7 @@ public class MainView extends AppLayout {
          end = new Button("End");
          end.addClickListener( event -> {
              try {
-                 Notification.show("Execute simulation");
+                 //Notification.show("Execute simulation");
                  activeSimulation.finish();
                  updateSimulation();
                  }
@@ -246,7 +244,7 @@ public class MainView extends AppLayout {
          });
          end.setEnabled(false);
         
-        buttons.add(restart, back, forward, end);
+        buttons.add(restart, back, current, forward, end);
         
         // Container for left side of app
         VerticalLayout left = new VerticalLayout();
@@ -284,11 +282,6 @@ public class MainView extends AppLayout {
             instructionTable.getDataProvider().refreshAll();
             instructionTable.setItems(activeSimulation.getProgramLines());
             updateSimulation();
-            
-            // Test confirmation
-            if(activeSimulation.isAtBeginning()) {
-                Notification.show("SUCCESS");
-            }
         });
         
         // Upload file button
@@ -311,6 +304,20 @@ public class MainView extends AppLayout {
             .withProperty("Instruction", line -> line.toString())
             .withProperty("description", line -> line.getDescriptionString()))
             .setHeader("Instruction");
+
+        instructionTable.setClassNameGenerator(line -> {
+            x86ProgramLine currLine = activeSimulation.getCurrentLine();
+            if (currLine == null) {
+                return "";
+            }
+            else if (line.getLineNum() == currLine.getLineNum()) {
+                return "current-instruction";
+            }
+            else {
+                return "";
+            }
+        });
+
         instructionTable.setItems(activeSimulation.getProgramLines());    
     }
 
@@ -402,7 +409,7 @@ public class MainView extends AppLayout {
         ArrayList<x86ProgramLine> selectedIndices = new ArrayList<>(sourceIndexSet);
         if (!selectedIndices.isEmpty()) {
             int selectedIndex = selectedIndices.get(0).getLineNum();
-            Notification.show("Selected Index: " + selectedIndices.get(0).getLineNum());
+            //Notification.show("Selected Index: " + selectedIndices.get(0).getLineNum());
             if (selectedIndex < 0) {
                 selectedIndex = 0;
             }
