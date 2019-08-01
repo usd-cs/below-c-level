@@ -307,6 +307,8 @@ public class MainView extends AppLayout {
             .withProperty("description", line -> line.getDescriptionString()))
             .setHeader("Instruction");
 
+        instructionTable.addComponentColumn(this::createInstructionActions).setHeader("Actions");
+        
         instructionTable.setClassNameGenerator(line -> {
             x86ProgramLine currLine = activeSimulation.getCurrentLine();
             if (currLine == null) {
@@ -358,8 +360,23 @@ public class MainView extends AppLayout {
     public void initializeRegisterTable() {
         registerTable.setSizeFull();
         registerTable.removeAllColumns();
-        registerTable.addColumn(Register::getName).setHeader("Register")
-            .setFooter(valueFormatLabel);
+        registerTable.addColumn(TemplateRenderer.<Register> of(
+            "<div title='[[item.name]]: [[item.8value]]\n"
+            +"[[item.longRegName]]: [[item.4value]]\n"
+            +"[[item.wordRegName]]: [[item.2value]]\n"
+            +"[[item.byteLowRegName]]: [[item.1value]]'>"
+            +"[[item.name]]</div>")
+            .withProperty("name", Register::getName).withProperty("8value", 
+                register -> register.getSubValue(8, registerDisplayFormat, false))
+            .withProperty("longRegName", Register::getLongRegName).withProperty("4value", 
+                register -> register.getSubValue(4, registerDisplayFormat, false))
+            .withProperty("wordRegName", Register::getWordRegName).withProperty("2value", 
+                register -> register.getSubValue(2, registerDisplayFormat, false))
+            .withProperty("byteLowRegName", Register::getByteLowRegName).withProperty("1value", 
+                register -> register.getSubValue(1, registerDisplayFormat, false)))
+            .setHeader("Register").setFooter(valueFormatLabel);
+
+            
         registerTable.addColumn( register ->
                 register.getSubValue(8, registerDisplayFormat, true))
             .setHeader("Value")
@@ -438,5 +455,40 @@ public class MainView extends AppLayout {
         current.setEnabled(!activeSimulation.getProgramLines().isEmpty() || activeSimulation.isFinished());
         back.setEnabled(!activeSimulation.isAtBeginning());
         restart.setEnabled(!activeSimulation.isAtBeginning());
+    }
+    /**
+     * Method to create buttons for setting breakpoints, editing a line,
+     * and deleting a line and place them in a Horizontal Layout.
+     * // EDIT BUTTON CURRENTLY UNIMPLIMENTED
+     * @param line the x86ProgramLine to target with actions
+     */
+    private HorizontalLayout createInstructionActions(x86ProgramLine line) {
+
+        Button breakPt = new Button("Breakpoint");
+        breakPt.addClickListener( event -> {
+            Notification.show("Breakpoint button clicked!");
+            line.toggleBreakpoint();
+        });
+
+        Button edit = new Button("Edit");
+        edit.addClickListener( event -> {
+            Notification.show("Edit button clicked!");
+        });
+
+        Button delete = new Button("Delete");
+        delete.addClickListener( event -> {
+            Notification.show("Remove button Clicked");
+            activeSimulation.removeFromProgram(line);
+            ListDataProvider<x86ProgramLine> dataProvider = (ListDataProvider<x86ProgramLine>) instructionTable
+                .getDataProvider();
+        dataProvider.getItems().remove(line);
+        dataProvider.refreshAll();
+        updateSimulation();
+        });
+
+        HorizontalLayout actionItems = new HorizontalLayout();
+        actionItems.add(breakPt, edit, delete);
+
+        return actionItems;
     }
 }
