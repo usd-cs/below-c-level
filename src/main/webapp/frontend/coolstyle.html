@@ -2,19 +2,39 @@
 <dom-module id="my-grid-styles" theme-for="vaadin-grid">
   <template>
     <style>
-	  <!-- This gets overridden by the themes css -->
-	  :host(.instruction-table) [part~="header-cell"] {
-		  font-weight: bold;
-	  }
+    
+    :host(.instruction-table) [part~="header-cell"] {
+      font-weight: bold;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 20px;
+      background: #e2e5e5;
+    }
+    :host(.register-table) [part~="header-cell"] {
+      font-weight: bold;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 20px;
+      background: #e2e5e5;
+    }
+    :host(.stack-table) [part~="header-cell"] {
+      font-weight: bold;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 20px;
+      background: #e2e5e5;
+    }
+    :host(.register-table) [part~="body-cell"] {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+    }
+    :host(.stack-table) [part~="body-cell"] {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+    }
 
       [part~="cell"].current-instruction {
-        background: rgb(255, 229, 204);
-		font-weight: bold;
+        background: #b3b3ff;
+		    font-weight: bold;
       }
-	  
-      [part~="row"][selected] {
-		  <!-- No idea what to do here to remove styling -->
-	  }
+
     </style>
   </template>
 </dom-module>
