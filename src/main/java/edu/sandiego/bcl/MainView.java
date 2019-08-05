@@ -527,17 +527,11 @@ public class MainView extends AppLayout {
      * Method to find the index of the current instruction and scroll to it   
      */
     private void scrollToSelectedInstruction() {
-  //      Set<x86ProgramLine> sourceIndexSet = instructionTable.getSelectedItems();
-  //      ArrayList<x86ProgramLine> selectedIndices = new ArrayList<>(sourceIndexSet);
-  //      if (!selectedIndices.isEmpty()) {
-  //          int selectedIndex = selectedIndices.get(0).getLineNum();
-            //Notification.show("Selected Index: " + selectedIndices.get(0).getLineNum());
-            int selectedIndex = activeSimulation.getCurrentLine().getLineNum();
-            if (selectedIndex < 0) {
-                selectedIndex = 0;
-            }
+        x86ProgramLine currLine = activeSimulation.getCurrentLine();
+        if (currLine != null) {
+            int selectedIndex = currLine.getLineNum();
             scrollToIndex(selectedIndex);
-   //    }
+        }
     }
     
     /**
