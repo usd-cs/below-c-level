@@ -140,6 +140,7 @@ public class MainView extends AppLayout {
     
         // Set up stack entry table
         stack = new Label("Program Stack");
+        stack.getStyle().set("font-weight", "bold");
         stack.setWidthFull();
         stackTable = new Grid<>();
         initializeStackTable();
@@ -166,6 +167,7 @@ public class MainView extends AppLayout {
          });
         // Set up register table
         register = new Label("Register Table");
+        register.getStyle().set("font-weight", "bold");
         register.setWidthFull();
         registerTable = new Grid<>();
         registerTable.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
@@ -173,6 +175,7 @@ public class MainView extends AppLayout {
 
         // Set up status flags
         condFlags = new Label("Condition Flags");
+        condFlags.getStyle().set("font-weight", "bold");
         condFlags.setWidthFull();
 
         HorizontalLayout statusFlags = new HorizontalLayout();
