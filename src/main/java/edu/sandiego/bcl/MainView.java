@@ -84,6 +84,7 @@ public class MainView extends AppLayout {
     private Label ofLabel;
     private Label zfLabel;
     private Label cfLabel;
+    private Label runtimeErrorMessage;
 
     // Instruction input
     private TextField instructionInput;
@@ -132,6 +133,10 @@ public class MainView extends AppLayout {
         GridSelectionModel<x86ProgramLine> selectionMode = instructionTable
             .setSelectionMode(Grid.SelectionMode.NONE);
         initializeInstructionTable();
+
+        runtimeErrorMessage = new Label();
+        runtimeErrorMessage.setWidthFull();
+        runtimeErrorMessage.getStyle().set("color", "red");
     
         // Set up stack entry table
         stack = new Label("Program Stack");
@@ -211,21 +216,19 @@ public class MainView extends AppLayout {
          restart = new Button(new Icon(VaadinIcon.FAST_BACKWARD));
          restart.addClickListener( event -> {
              activeSimulation.restart();
-             //Notification.show("Simulation Reset");
+             runtimeErrorMessage.setText(" ");
              updateSimulation();
          });
          restart.onEnabledStateChanged(false);
-         styleIcon((Icon)restart.getIcon());
+         restart.setEnabled(false);
         
          // Undo the simulation of 1 instruction (DONE)
          back = new Button(new Icon(VaadinIcon.STEP_BACKWARD));
          back.addClickListener( event -> {
-                 activeSimulation.stepBackward();
-                 //Notification.show("Backward");
-                 updateSimulation();
+             activeSimulation.stepBackward();
+             updateSimulation();
          });
          back.onEnabledStateChanged(false);
-         styleIcon((Icon)back.getIcon());
 
          // Jump to current instruction (DONE)
          current = new Button("Scroll to Current Instruction");
@@ -240,15 +243,14 @@ public class MainView extends AppLayout {
          forward.addClickListener(event -> {
              try { 
                  activeSimulation.stepForward();
-                 //Notification.show("Forward");
                  updateSimulation();
-                 }
+             }
              catch(x86RuntimeException e) {
-                Notification.show("Forward: x86RuntimeException");
+                 runtimeErrorMessage.setText("Line " + activeSimulation.getCurrentLine().lineNum + ": " + e.getMessage());
+                 updateSimulation();
              }
          });
          forward.onEnabledStateChanged(false);
-         styleIcon((Icon)forward.getIcon());
 
          // Skip to end of simulation
          end = new Button(new Icon(VaadinIcon.FAST_FORWARD));
@@ -290,13 +292,13 @@ public class MainView extends AppLayout {
                  updateSimulation();
              }
              catch(x86RuntimeException e) {
-                 Notification.show("End: x86RuntimeException");
+                 runtimeErrorMessage.setText("Line " + activeSimulation.getCurrentLine().lineNum + ": " + e.getMessage());
+                 updateSimulation();
              }
              catch(Exception e) {
              }
          });
          end.onEnabledStateChanged(false);
-         styleIcon((Icon)end.getIcon());
         buttons.add(restart, back, current, forward, end);
         buttons.setWidthFull();
         buttons.setPadding(true);
@@ -342,13 +344,14 @@ public class MainView extends AppLayout {
             }
 
             catch(X86ParsingException e) {
-                Notification.show("PARSING ERROR");
+                instructionInput.setErrorMessage(e.getMessage());
+                instructionInput.setInvalid(true);
             }
         });
 
         // Container for left side of app
         VerticalLayout left = new VerticalLayout();
-        left.add(instructionInput, instructionTable, tableFooter, buttons);
+        left.add(instructionInput, instructionTable, runtimeErrorMessage, tableFooter, buttons);
         left.setSpacing(false);
         left.setAlignItems(Alignment.CENTER);
    //    left.setPadding(false);
@@ -389,6 +392,8 @@ public class MainView extends AppLayout {
         // Container for page content
         Span content = new Span(fileSim, upload, simContainer);
         setContent(content);
+
+        updateSimulation();
     }
 
     public void runForward() {
@@ -585,12 +590,17 @@ public class MainView extends AppLayout {
      * Method to update simulation buttons
      */
     private void updateSimulationControls() {
-        forward.onEnabledStateChanged(!activeSimulation.isFinished());
-        end.onEnabledStateChanged(!activeSimulation.isFinished());
-        current.setEnabled(!activeSimulation.getProgramLines().isEmpty() || !activeSimulation.isFinished());
-        back.onEnabledStateChanged(!activeSimulation.isAtBeginning());
-        restart.onEnabledStateChanged(!activeSimulation.isAtBeginning());
+        boolean simulationDone = activeSimulation.isFinished();
+        boolean atBeginning = activeSimulation.isAtBeginning();
+        boolean emptyProgram = activeSimulation.getProgramLines().isEmpty();
+
+        forward.setEnabled(!simulationDone);
+        end.setEnabled(!simulationDone);
+        current.setEnabled(!emptyProgram && !simulationDone);
+        back.setEnabled(!atBeginning && !emptyProgram);
+        restart.setEnabled(!atBeginning);
     }
+
     /**
      * Method to create buttons for setting breakpoints, editing a line,
      * and deleting a line and place them in a Horizontal Layout.
@@ -637,14 +647,19 @@ public class MainView extends AppLayout {
     }
 
     public void updateIcons() {
-        styleIcon((Icon)restart.getIcon());
-        styleIcon((Icon)forward.getIcon());
-        styleIcon((Icon)back.getIcon());
-        styleIcon((Icon)end.getIcon());
+        styleIcon((Icon)restart.getIcon(), restart.isEnabled());
+        styleIcon((Icon)forward.getIcon(), forward.isEnabled());
+        styleIcon((Icon)back.getIcon(), back.isEnabled());
+        styleIcon((Icon)end.getIcon(), end.isEnabled());
     }
 
-    public void styleIcon(Icon icon) {
+    public void styleIcon(Icon icon, boolean isEnabled) {
         icon.setSize("30px");
-        icon.setColor("#5271ffff");
+        if (isEnabled) {
+            icon.setColor("#5271ffff");
+        }
+        else {
+            icon.setColor("gray");
+        }
     }
 }
