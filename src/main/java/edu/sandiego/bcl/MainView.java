@@ -7,8 +7,10 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.dependency.HtmlImport;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.PWA;
@@ -96,11 +98,11 @@ public class MainView extends AppLayout {
     private ComboBox<String> valueFormat;
 
     // Declare buttons
-    private Icon restart;
-    private Icon forward;
+    private Button restart;
+    private Button forward;
     private Button current;
-    private Icon back;
-    private Icon end;
+    private Button back;
+    private Button end;
 
     // Register display format int
     private int registerDisplayFormat;
@@ -206,24 +208,24 @@ public class MainView extends AppLayout {
          HorizontalLayout buttons = new HorizontalLayout();
          
          // Reset program to beginning of instructions (DONE)
-         restart = new Icon(VaadinIcon.FAST_BACKWARD);
+         restart = new Button(new Icon(VaadinIcon.FAST_BACKWARD));
          restart.addClickListener( event -> {
              activeSimulation.restart();
              //Notification.show("Simulation Reset");
              updateSimulation();
          });
          restart.onEnabledStateChanged(false);
-         styleIcon(restart);
+         styleIcon((Icon)restart.getIcon());
         
          // Undo the simulation of 1 instruction (DONE)
-         back = new Icon(VaadinIcon.STEP_BACKWARD);
+         back = new Button(new Icon(VaadinIcon.STEP_BACKWARD));
          back.addClickListener( event -> {
                  activeSimulation.stepBackward();
                  //Notification.show("Backward");
                  updateSimulation();
          });
          back.onEnabledStateChanged(false);
-         styleIcon(back);
+         styleIcon((Icon)back.getIcon());
 
          // Jump to current instruction (DONE)
          current = new Button("Scroll to Current Instruction");
@@ -234,7 +236,7 @@ public class MainView extends AppLayout {
          current.setEnabled(false);
         
          // Simulate 1 instruction (DONE)
-         forward = new Icon(VaadinIcon.STEP_FORWARD);
+         forward = new Button(new Icon(VaadinIcon.STEP_FORWARD));
          forward.addClickListener(event -> {
              try { 
                  activeSimulation.stepForward();
@@ -246,22 +248,55 @@ public class MainView extends AppLayout {
              }
          });
          forward.onEnabledStateChanged(false);
-         styleIcon(forward);
+         styleIcon((Icon)forward.getIcon());
 
          // Skip to end of simulation
-         end = new Icon(VaadinIcon.FAST_FORWARD);
+         end = new Button(new Icon(VaadinIcon.FAST_FORWARD));
          end.addClickListener( event -> {
              try {
-                 //Notification.show("Execute simulation");
-                 activeSimulation.finish();
-                 updateSimulation();
+                 if (!activeSimulation.finish()) {
+                     Dialog dialog = new Dialog();
+
+                     dialog.setCloseOnEsc(false);
+                     dialog.setCloseOnOutsideClick(false);
+
+                     VerticalLayout vl = new VerticalLayout();
+
+                     Label l = new Label("Your program has executed many instructions. "
+                        + "It is possible it may be stuck in an infinite loop. ");
+                     vl.add(l);
+
+                     Button confirmButton = new Button("Continue", confirmEvent -> {
+                         dialog.close();
+                         end.click();
+                     });
+
+                     Button cancelButton = new Button("Stop", cancelEvent -> {
+                         dialog.close();
+                     });
+
+                     cancelButton.getStyle().set("color", "white");
+                     cancelButton.getStyle().set("background", "red");
+                     confirmButton.getStyle().set("color", "white");
+                     confirmButton.getStyle().set("background", "blue");
+
+                     //dialog.add(confirmButton, cancelButton);
+                     HorizontalLayout hl = new HorizontalLayout();
+                     hl.add(confirmButton, cancelButton);
+                     vl.add(hl);
+                     dialog.add(vl);
+                     dialog.open();
                  }
+                 updateSimulation();
+             }
              catch(x86RuntimeException e) {
                  Notification.show("End: x86RuntimeException");
              }
+             catch(Exception e) {
+             }
          });
          end.onEnabledStateChanged(false);
-         styleIcon(end);
+         styleIcon((Icon)end.getIcon());
         buttons.add(restart, back, current, forward, end);
         buttons.setWidthFull();
         buttons.setPadding(true);
@@ -354,6 +389,9 @@ public class MainView extends AppLayout {
         // Container for page content
         Span content = new Span(fileSim, upload, simContainer);
         setContent(content);
+    }
+
+    public void runForward() {
     }
 
     /**
@@ -599,13 +637,14 @@ public class MainView extends AppLayout {
     }
 
     public void updateIcons() {
-        styleIcon(restart);
-        styleIcon(forward);
-        styleIcon(back);
-        styleIcon(end);
+        styleIcon((Icon)restart.getIcon());
+        styleIcon((Icon)forward.getIcon());
+        styleIcon((Icon)back.getIcon());
+        styleIcon((Icon)end.getIcon());
     }
+
     public void styleIcon(Icon icon) {
-        icon.setSize("50px");
+        icon.setSize("30px");
         icon.setColor("#5271ffff");
     }
 }
