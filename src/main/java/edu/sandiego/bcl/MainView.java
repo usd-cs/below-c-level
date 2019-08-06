@@ -226,6 +226,7 @@ public class MainView extends AppLayout {
          back = new Button(new Icon(VaadinIcon.STEP_BACKWARD));
          back.addClickListener( event -> {
              activeSimulation.stepBackward();
+             runtimeErrorMessage.setText(" ");
              updateSimulation();
          });
          back.onEnabledStateChanged(false);
@@ -539,7 +540,6 @@ public class MainView extends AppLayout {
         updateRegisterTable();
         updateStatusFlags();
         updateSimulationControls();
-        updateIcons();
     }
 
     /**
@@ -594,11 +594,18 @@ public class MainView extends AppLayout {
         boolean atBeginning = activeSimulation.isAtBeginning();
         boolean emptyProgram = activeSimulation.getProgramLines().isEmpty();
 
+        // set enabled/disabled state for all buttons
         forward.setEnabled(!simulationDone);
         end.setEnabled(!simulationDone);
         current.setEnabled(!emptyProgram && !simulationDone);
         back.setEnabled(!atBeginning && !emptyProgram);
         restart.setEnabled(!atBeginning);
+
+        // apply styling for buttons
+        styleButton(restart);
+        styleButton(back);
+        styleButton(forward);
+        styleButton(end);
     }
 
     /**
@@ -646,16 +653,10 @@ public class MainView extends AppLayout {
         return actionItems;
     }
 
-    public void updateIcons() {
-        styleIcon((Icon)restart.getIcon(), restart.isEnabled());
-        styleIcon((Icon)forward.getIcon(), forward.isEnabled());
-        styleIcon((Icon)back.getIcon(), back.isEnabled());
-        styleIcon((Icon)end.getIcon(), end.isEnabled());
-    }
-
-    public void styleIcon(Icon icon, boolean isEnabled) {
+    public void styleButton(Button b) {
+        Icon icon = (Icon)b.getIcon();
         icon.setSize("30px");
-        if (isEnabled) {
+        if (b.isEnabled()) {
             icon.setColor("#5271ffff");
         }
         else {
