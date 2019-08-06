@@ -219,8 +219,6 @@ public class MainView extends AppLayout {
              runtimeErrorMessage.setText(" ");
              updateSimulation();
          });
-         restart.onEnabledStateChanged(false);
-         restart.setEnabled(false);
         
          // Undo the simulation of 1 instruction (DONE)
          back = new Button(new Icon(VaadinIcon.STEP_BACKWARD));
@@ -229,7 +227,6 @@ public class MainView extends AppLayout {
              runtimeErrorMessage.setText(" ");
              updateSimulation();
          });
-         back.onEnabledStateChanged(false);
 
          // Jump to current instruction (DONE)
          current = new Button("Scroll to Current Instruction");
@@ -251,7 +248,6 @@ public class MainView extends AppLayout {
                  updateSimulation();
              }
          });
-         forward.onEnabledStateChanged(false);
 
          // Skip to end of simulation
          end = new Button(new Icon(VaadinIcon.FAST_FORWARD));
@@ -299,7 +295,6 @@ public class MainView extends AppLayout {
              catch(Exception e) {
              }
          });
-         end.onEnabledStateChanged(false);
         buttons.add(restart, back, current, forward, end);
         buttons.setWidthFull();
         buttons.setPadding(true);
@@ -600,6 +595,10 @@ public class MainView extends AppLayout {
         current.setEnabled(!emptyProgram && !simulationDone);
         back.setEnabled(!atBeginning && !emptyProgram);
         restart.setEnabled(!atBeginning);
+
+        if (simulationDone && !emptyProgram) {
+            runtimeErrorMessage.setText("Simulation Complete!");
+        }
 
         // apply styling for buttons
         styleButton(restart);
