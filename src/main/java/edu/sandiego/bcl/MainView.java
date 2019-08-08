@@ -104,6 +104,7 @@ public class MainView extends AppLayout {
     private Button current;
     private Button back;
     private Button end;
+    private Button clearSim;
 
     // Register display format int
     private int registerDisplayFormat;
@@ -118,20 +119,22 @@ public class MainView extends AppLayout {
             MainView.class.getClassLoader().getResourceAsStream("images/BelowCLevelHeader.png")
         );
         Image headerImage = new Image( res,"Alternative text description for logo image");
-        setBranding(headerImage);
+     //   setBranding(headerImage);
 
         // Navigation Bar
-        AppLayoutMenu nav = createMenu();
-        AppLayoutMenuItem home = new AppLayoutMenuItem("Home");
-        AppLayoutMenuItem userGuide = new AppLayoutMenuItem("User Guide");
-        AppLayoutMenuItem tutorials = new AppLayoutMenuItem("Tutorials");
-        AppLayoutMenuItem feedback = new AppLayoutMenuItem("Feedback");
-        nav.addMenuItems(home, userGuide, tutorials, feedback);
+    //      AppLayoutMenu nav = createMenu();
+  //        nav.getElement().getStyle().set("background", "white");
+       // AppLayoutMenuItem home = new AppLayoutMenuItem("Home");
+      //  AppLayoutMenuItem userGuide = new AppLayoutMenuItem("User Guide");
+      //  AppLayoutMenuItem tutorials = new AppLayoutMenuItem("Tutorials");
+      //  AppLayoutMenuItem feedback = new AppLayoutMenuItem("Feedback");
+      //  nav.addMenuItems(home, userGuide, tutorials, feedback);
      
         // Set up x86-64 instruction list table
         instructionTable = new Grid<>(x86ProgramLine.class);
-        GridSelectionModel<x86ProgramLine> selectionMode = instructionTable
+        GridSelectionModel<x86ProgramLine> iSelectionMode = instructionTable
             .setSelectionMode(Grid.SelectionMode.NONE);
+        instructionTable.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS);
         initializeInstructionTable();
 
         runtimeErrorMessage = new Label();
@@ -143,6 +146,9 @@ public class MainView extends AppLayout {
         stack.getStyle().set("font-weight", "bold");
         stack.setWidthFull();
         stackTable = new Grid<>();
+        GridSelectionModel<StackEntry> sSelectionMode = stackTable
+            .setSelectionMode(Grid.SelectionMode.NONE);
+        stackTable.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS);
         initializeStackTable();
                        
         // Set up Combo Box for number value format
@@ -150,8 +156,9 @@ public class MainView extends AppLayout {
         valueFormat = new ComboBox<>();
         valueFormat.setItems("Hexidecimal", "Unsigned Decimal", "Signed Decimal");
         valueFormat.setPlaceholder("Select");
+        valueFormat.setAllowCustomValue(false);
         valueFormat.addValueChangeListener( event -> {
-            Notification.show("Selected option: " + event.getValue());
+          //  Notification.show("Selected option: " + event.getValue());
             if(event.getValue().equals("Unsigned Decimal")) {
                 registerDisplayFormat = 1;
                 updateSimulation();
@@ -170,13 +177,14 @@ public class MainView extends AppLayout {
         register.getStyle().set("font-weight", "bold");
         register.setWidthFull();
         registerTable = new Grid<>();
-        registerTable.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        GridSelectionModel<Register> rSelectionMode = registerTable
+            .setSelectionMode(Grid.SelectionMode.NONE);
+        registerTable.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COLUMN_BORDERS);
         initializeRegisterTable();
 
         // Set up status flags
         condFlags = new Label("Condition Flags");
         condFlags.getStyle().set("font-weight", "bold");
-        condFlags.setWidthFull();
 
         HorizontalLayout statusFlags = new HorizontalLayout();
         sfLabel = new Label();
@@ -234,10 +242,12 @@ public class MainView extends AppLayout {
          // Jump to current instruction (DONE)
          current = new Button("Scroll to Current Instruction");
          current.addClickListener(event -> { 
-             Notification.show("scrolling to current");
+          //   Notification.show("scrolling to current");
              scrollToSelectedInstruction();
          });
          current.setEnabled(false);
+         current.getStyle().set("font-color", "#5271ffff");
+         current.getStyle().set("background-color", "#eee6ff");
         
          // Simulate 1 instruction (DONE)
          forward = new Button(new Icon(VaadinIcon.STEP_FORWARD));
@@ -299,30 +309,36 @@ public class MainView extends AppLayout {
              }
          });
         buttons.add(restart, back, current, forward, end);
-        buttons.setWidthFull();
-        buttons.setPadding(true);
-        
+       // buttons.setWidthFull();
+       // buttons.setPadding(true);
+        buttons.setSpacing(true);
+
         // Start a new, blank simulation
-        Button clearSim = new Button("Clear Simulation");
+        clearSim = new Button("Clear Simulation");
         clearSim.addClickListener( event -> {
-            Notification.show("Starting new sim!");
+         //   Notification.show("Starting new sim!");
             activeSimulation = new Simulation();
             instructionTable.getDataProvider().refreshAll();
             instructionTable.setItems(activeSimulation.getProgramLines());
             updateSimulation();
         });
+        clearSim.setEnabled(false);
+        clearSim.getStyle().set("font-color", "#5271ffff");
+        clearSim.getStyle().set("background-color", "#eee6ff");
         HorizontalLayout tableFooter = new HorizontalLayout();
         tableFooter.add(clearSim, current);
+        tableFooter.setAlignSelf(Alignment.START, clearSim);
+        tableFooter.setAlignSelf(Alignment.END, current);
         tableFooter.setWidthFull();
-        tableFooter.setSpacing(false);
-    //    tableFooter.setPadding(false);
+        tableFooter.setSpacing(true);
+//        tableFooter.setPadding(true);
 
         // Upload file button
         // CURRENTLY UNIMPLEMENTED
-        Button fileSim = new Button("Try your own");
+    //    Button fileSim = new Button("Try your own");
         MemoryBuffer buffer = new MemoryBuffer();
         Upload upload = new Upload(buffer);
-        upload.setUploadButton(fileSim);
+    //    upload.setUploadButton(fileSim);
         upload.setAcceptedFileTypes(".s");
         Label uploadLabel = new Label("Upload a .s file");
         upload.setDropLabel(uploadLabel);
@@ -338,7 +354,7 @@ public class MainView extends AppLayout {
                 updateSimulation();
             }
             catch(IOException e) {
-                Notification.show("IOEXCEPT" + e.getMessage());
+             //   Notification.show("IOEXCEPT" + e.getMessage());
                 e.getMessage();
             }
 
@@ -350,9 +366,10 @@ public class MainView extends AppLayout {
 
         // Container for left side of app
         VerticalLayout left = new VerticalLayout();
-        left.add(instructionInput, instructionTable, runtimeErrorMessage, tableFooter, buttons);
+        left.add(upload, instructionInput, instructionTable, runtimeErrorMessage, tableFooter, buttons);
         left.setSpacing(false);
-        left.setAlignItems(Alignment.CENTER);
+        left.setAlignSelf(Alignment.CENTER, buttons);
+    //    left.setAlignItems(Alignment.CENTER);
    //    left.setPadding(false);
 
         VerticalLayout stackLayout = new VerticalLayout();
@@ -372,6 +389,7 @@ public class MainView extends AppLayout {
         right.add(stackLayout, regLayout, condFlags, statusFlags);
         right.setSizeFull();
         right.setSpacing(false);
+        right.setAlignItems(Alignment.CENTER);
      //   right.setPadding(false);
  
        // Container for Simulation
@@ -384,12 +402,12 @@ public class MainView extends AppLayout {
        
         // For visibility and scroll testing purposes
         simContainer.setWidth("90%");
-        simContainer.setHeight("100%");
+        simContainer.setHeight("80%");
         
         
     
         // Container for page content
-        Span content = new Span(fileSim, upload, simContainer);
+        Span content = new Span(headerImage, simContainer);
         setContent(content);
 
         updateSimulation();
@@ -408,9 +426,12 @@ public class MainView extends AppLayout {
             "<div title='[[item.description]]' class='instruction'>[[item.Instruction]]</div>")
             .withProperty("Instruction", line -> line.toString())
             .withProperty("description", line -> line.getDescriptionString()))
+            .setWidth("40%")
             .setHeader("Instruction");
 
-        instructionTable.addComponentColumn(this::createInstructionActions).setHeader("Actions");
+        instructionTable.addComponentColumn(this::createInstructionActions)
+            .setWidth("5%")
+            .setHeader("Actions");
         
  /*       instructionTable.setClassNameGenerator(line -> {
             x86ProgramLine currLine = activeSimulation.getCurrentLine();
@@ -598,6 +619,7 @@ public class MainView extends AppLayout {
         current.setEnabled(!emptyProgram && !simulationDone);
         back.setEnabled(!atBeginning && !emptyProgram);
         restart.setEnabled(!atBeginning);
+        clearSim.setEnabled(!emptyProgram);
 
         if (simulationDone && !emptyProgram) {
             runtimeErrorMessage.setText("Simulation Complete!");
@@ -621,7 +643,7 @@ public class MainView extends AppLayout {
         Icon breakPt = new Icon(VaadinIcon.DOT_CIRCLE);
         breakPt.setColor("#abaaaf");
         breakPt.addClickListener( event -> {
-            Notification.show("Breakpoint button clicked!");
+        //    Notification.show("Breakpoint button clicked!");
             line.toggleBreakpoint();
             if(line.getBreakpoint() == true) {
                 breakPt.setColor("#5271ffff");
@@ -633,13 +655,13 @@ public class MainView extends AppLayout {
 
         Icon edit = new Icon(VaadinIcon.EDIT);
         edit.addClickListener( event -> {
-            Notification.show("Edit button clicked!");
+        //    Notification.show("Edit button clicked!");
         });
 
         Icon delete = new Icon(VaadinIcon.TRASH);
         delete.setColor("#abaaaf");
         delete.addClickListener( event -> {
-            Notification.show("Remove button Clicked");
+        //    Notification.show("Remove button Clicked");
             activeSimulation.removeFromProgram(line);
             ListDataProvider<x86ProgramLine> dataProvider = (ListDataProvider<x86ProgramLine>) instructionTable
                 .getDataProvider();
