@@ -59,7 +59,7 @@
                     <scanIntervalSeconds>1</scanIntervalSeconds>
 					<httpConnector>
 						<!--host>localhost</host-->
-						<port>9999</port>
+						<port>7080</port>
 					</httpConnector>
                 </configuration>
             </plugin>
