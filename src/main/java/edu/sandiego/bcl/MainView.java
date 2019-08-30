@@ -13,6 +13,7 @@ import com.vaadin.flow.component.dependency.HtmlImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
@@ -66,7 +67,8 @@ import org.apache.commons.io.IOUtils;
  * The main view contains a button and a click listener.
  */
 @Route("")
-@PWA(name = "Project Base for Vaadin Flow", shortName = "Project Base")
+@PageTitle("Below C Level")
+@PWA(name = "Below C Level x86-64 Simulator", shortName = "Below C Level")
 @HtmlImport("frontend://coolstyle.html")
 @StyleSheet("frontend://table-styles.css")
 
